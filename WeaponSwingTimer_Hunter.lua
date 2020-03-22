@@ -1,14 +1,15 @@
 local addon_name, addon_data = ...
-
+--- define addon structure from the above local variable
 addon_data.hunter = {}
-
+--- declare array for ranks of all abilities, cast times, cooldown, based on spell ID
 addon_data.hunter.shot_spell_ids = {
     [75] = {spell_name = 'Auto Shot', rank = nil, cast_time = nil, cooldown = nil},
-    [2643] = {spell_name = 'Multi-Shot', rank = 1, cast_time = 0.5, cooldown = 10},
-    [14288] = {spell_name = 'Multi-Shot', rank = 2, cast_time = 0.5, cooldown = 10},
-    [14289] = {spell_name = 'Multi-Shot', rank = 3, cast_time = 0.5, cooldown = 10},
-    [14290] = {spell_name = 'Multi-Shot', rank = 4, cast_time = 0.5, cooldown = 10},
-    [25294] = {spell_name = 'Multi-Shot', rank = 5, cast_time = 0.5, cooldown = 10},
+	[5384] = {spell_name = 'Feign Death', rank = nil, cast_time = nil, cooldown = nil},
+    [2643] = {spell_name = 'Multi-Shot', rank = 1, cast_time = 0.45, cooldown = 10},
+    [14288] = {spell_name = 'Multi-Shot', rank = 2, cast_time = 0.45, cooldown = 10},
+    [14289] = {spell_name = 'Multi-Shot', rank = 3, cast_time = 0.45, cooldown = 10},
+    [14290] = {spell_name = 'Multi-Shot', rank = 4, cast_time = 0.45, cooldown = 10},
+    [25294] = {spell_name = 'Multi-Shot', rank = 5, cast_time = 0.45, cooldown = 10},
     [19434] = {spell_name = 'Aimed Shot', rank = 1, cast_time = 3, cooldown = 6},
     [20900] = {spell_name = 'Aimed Shot', rank = 2, cast_time = 3, cooldown = 6},
     [20901] = {spell_name = 'Aimed Shot', rank = 3, cast_time = 3, cooldown = 6},
@@ -17,7 +18,7 @@ addon_data.hunter.shot_spell_ids = {
     [20904] = {spell_name = 'Aimed Shot', rank = 6, cast_time = 3, cooldown = 6},
     [5019] = {spell_name = 'Shoot', rank = nil, cast_time = nil, cooldown = nil}
 }
-
+--- is spell multi-shot defined by spell_id
 addon_data.hunter.is_spell_multi_shot = function(spell_id)
     if (spell_id == 2643) or (spell_id == 14288) or (spell_id == 14289) or 
        (spell_id == 14290) or (spell_id == 25294) then
@@ -26,7 +27,7 @@ addon_data.hunter.is_spell_multi_shot = function(spell_id)
             return false
     end
 end
-
+--- is spell aimed shot defined by spell_id
 addon_data.hunter.is_spell_aimed_shot = function(spell_id)
     if (spell_id == 19434) or (spell_id == 20900) or (spell_id == 20901) or 
        (spell_id == 20902) or (spell_id == 20903) or (spell_id == 20904) then
@@ -35,15 +36,15 @@ addon_data.hunter.is_spell_aimed_shot = function(spell_id)
             return false
     end
 end
-
+--- is spell auto shot defined by spell_id
 addon_data.hunter.is_spell_auto_shot = function(spell_id)
     return (spell_id == 75)
 end
-
+--- is spell shoot defined by spell_id
 addon_data.hunter.is_spell_shoot = function(spell_id)
     return (spell_id == 5019)
 end
-
+--- default settings to be loaded on initial load and reset to default
 addon_data.hunter.default_settings = {
 	enabled = true,
 	width = 300,
@@ -53,7 +54,7 @@ addon_data.hunter.default_settings = {
 	x_offset = 0,
 	y_offset = -260,
 	in_combat_alpha = 1.0,
-	ooc_alpha = 0.25,
+	ooc_alpha = 0.0,
 	backplane_alpha = 0.5,
 	is_locked = false,
     show_text = true,
@@ -61,26 +62,28 @@ addon_data.hunter.default_settings = {
     show_multishot_cast_bar = true,
     show_latency_bars = false,
     show_multishot_clip_bar = false,
-    show_border = true,
+    show_border = false,
     classic_bars = true,
     one_bar = false,
     cooldown_r = 0.95, cooldown_g = 0.95, cooldown_b = 0.95, cooldown_a = 1.0,
     auto_cast_r = 0.8, auto_cast_g = 0.0, auto_cast_b = 0.0, auto_cast_a = 1.0,
     clip_r = 1.0, clip_g = 0.0, clip_b = 0.0, clip_a = 0.7
 }
-
+--- Initializing variables for calculations and function calls
 addon_data.hunter.shooting = false
 addon_data.hunter.range_speed = 3.0
-addon_data.hunter.auto_cast_time = 0.7001
-addon_data.hunter.shot_timer = 0.60
+addon_data.hunter.auto_cast_time = 0.50
+addon_data.hunter.shot_timer = 0.50
 addon_data.hunter.last_shot_time = GetTime()
 addon_data.hunter.auto_shot_ready = true
+addon_data.hunter.feigndeath = false
 
 addon_data.hunter.casting = false
 addon_data.hunter.casting_shot = false
 addon_data.hunter.cast_timer = 0.1
 addon_data.hunter.cast_time = 0.1
 addon_data.hunter.last_failed_time = GetTime()
+addon_data.hunter.range_cast_speed_modifer = 1
 
 addon_data.hunter.range_weapon_id = 0
 addon_data.hunter.has_moved = false
@@ -88,6 +91,7 @@ addon_data.hunter.berserk_haste = 1
 addon_data.hunter.class = 0
 addon_data.hunter.guid = 0
 
+--- The below 3 functions check upon beginning to cast spell, use action, etc to call StartCastingSpell
 addon_data.hunter.OnUseAction = function(action_id)
     addon_data.hunter.scan_tip:SetAction(action_id)
     name, _, _, cast_time, _, _, real_spell_id = GetSpellInfo(WSTScanTipTextLeft1:GetText())
@@ -110,14 +114,20 @@ addon_data.hunter.OnCastSpell = function(spell_id, spell_book_type)
     end
 end
 
+--- Selection of starting a timer for casting auto, aimed, multi
 addon_data.hunter.StartCastingSpell = function(spell_id)
     local settings = character_hunter_settings
     if (GetTime() - addon_data.hunter.last_failed_time) > 0 then
         if not addon_data.hunter.casting and UnitCanAttack('player', 'target') then
             spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
-            if cast_time == nil then 
+            if cast_time == nil then
+			
                 return 
             end
+			if spell_name == 'Feign Death' then
+				addon_data.hunter.ResetShotTimer()
+				return
+			end
             if not addon_data.hunter.is_spell_auto_shot(spell_id) and 
                not addon_data.hunter.is_spell_shoot(spell_id) and 
                cast_time > 0 then
@@ -178,12 +188,17 @@ addon_data.hunter.RestoreDefaults = function()
     addon_data.hunter.UpdateConfigPanelValues()
 end
 
+--- verify weapon speed, class, guid
 addon_data.hunter.UpdateInfo = function()
     addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
     addon_data.hunter.class = UnitClass("player")[2]
     addon_data.hunter.guid = UnitGUID("player")
 end
 
+--- Buffs and debuffs change casting speeds, which is multiplied by the cast time
+--- -----------------------------------------------------------------------------
+--- Anything that changes cast times should go here. Need to add other forms of debuffs
+--- berserk haste is a simple calculation to derive the percent of berserking haste provided to the player from their health percent
 addon_data.hunter.UpdateRangeCastSpeedModifier = function()
     local speed = 1.0
     local buffs = {3045, 26635, 6150, 28866, 12889} -- aura ids for each haste effect
@@ -224,6 +239,9 @@ addon_data.hunter.UpdateBerserkHaste = function()
     end
 end
 
+
+
+--- Update timer for auto shot based on various conditions
 addon_data.hunter.ResetShotTimer = function()
     -- The timer is reset to either the auto cast time or the difference between the time since the last shot and the current time depending on which is larger
     local curr_time = GetTime()
@@ -242,7 +260,11 @@ end
 
 addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
     local curr_time = GetTime()
-    addon_data.hunter.shot_timer = addon_data.hunter.shot_timer - elapsed
+	local shot_timer = addon_data.hunter.shot_timer
+    addon_data.hunter.shot_timer = shot_timer - elapsed
+	addon_data.hunter.UpdateRangeCastSpeedModifier()
+	addon_data.hunter.auto_cast_time = 0.50 * addon_data.hunter.range_cast_speed_modifer
+	
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
         if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
@@ -257,7 +279,7 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
             addon_data.hunter.ResetShotTimer()
         end
     else
-        addon_data.hunter.auto_shot_ready = false
+         addon_data.hunter.auto_shot_ready = false
     end
 end
 
@@ -283,6 +305,11 @@ addon_data.hunter.OnUpdate = function(elapsed)
     end
 end
 
+
+
+--- spell functions to determine the state of the spell being casted.
+--- -----------------------------------------------------------------
+--- Determines the state of shooting on or off
 addon_data.hunter.OnStartAutorepeatSpell = function()
     addon_data.hunter.shooting = true
     addon_data.hunter.UpdateInfo()
@@ -297,6 +324,7 @@ addon_data.hunter.OnStopAutorepeatSpell = function()
     addon_data.hunter.UpdateInfo()
 end
 
+--- failed attempt at using spell cast start instead of start casting spell function call
 addon_data.hunter.OnUnitSpellCastStart = function(unit, spell_id)
 --[[
     if unit == 'player' then
@@ -324,6 +352,8 @@ addon_data.hunter.OnUnitSpellCastStart = function(unit, spell_id)
 ]]--
 end
 
+--- upon spell cast succeeded, check if is auto shot and reset timer, adjust ranged speed based on haste. 
+--- If not auto shot, set bar to green *commented out
 addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
     if unit == 'player' then
         addon_data.hunter.casting = false
@@ -364,6 +394,7 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
     end
 end
 
+--- unsure if this does anything, maybe not. Might adjust/modify this to be spell pushback
 addon_data.hunter.OnUnitSpellCastDelayed = function(unit, spell_id)
     if unit == 'player' then
         for id, spell_table in pairs(addon_data.hunter.shot_spell_ids) do
@@ -379,6 +410,7 @@ addon_data.hunter.OnUnitSpellCastDelayed = function(unit, spell_id)
     end
 end
 
+--- attempt to display when a cast has failed. Will need adjustments as it often displays "failed" everytime it casts.
 addon_data.hunter.OnUnitSpellCastFailed = function(unit, spell_id)
     local settings = character_hunter_settings
     local frame = addon_data.hunter.frame
@@ -395,8 +427,7 @@ addon_data.hunter.OnUnitSpellCastFailed = function(unit, spell_id)
     end
 end
 
-
-
+--- attempt to display when a cast has been interrupted. Will need some adjustments as it doesn't display correctly
 addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
     if unit == 'player' then
         if addon_data.hunter.shot_spell_ids[spell_id] then
@@ -417,6 +448,8 @@ addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
     end
 end
 
+--- triggered when auto shot is toggled on and attempts to begin casting, but can't
+--- This causes 0.5 seconds of delay before it can try casting again
 addon_data.hunter.OnUnitSpellCastFailedQuiet = function(unit, spell_id)
     local settings = character_hunter_settings
     if settings.show_autoshot_delay_timer and unit == "player" and addon_data.hunter.is_spell_auto_shot(spell_id) then
@@ -426,12 +459,17 @@ addon_data.hunter.OnUnitSpellCastFailedQuiet = function(unit, spell_id)
     end
 end
 
+
+
+--- Updating and initializing visuals
+--- ---------------------------------
 addon_data.hunter.UpdateVisualsOnUpdate = function()
     local settings = character_hunter_settings
     local frame = addon_data.hunter.frame
     local range_speed = addon_data.hunter.range_speed
     local shot_timer = addon_data.hunter.shot_timer
     local auto_cast_time = addon_data.hunter.auto_cast_time
+	
 	if settings.enabled then
         frame.shot_bar_text:SetText(tostring(addon_data.utils.SimpleRound(shot_timer, 0.1)))
         if addon_data.core.in_combat or addon_data.hunter.shooting or addon_data.hunter.casting_shot then
@@ -449,7 +487,7 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
                 new_width = settings.width * ((shot_timer - auto_cast_time) / (range_speed - auto_cast_time))
                 if settings.show_multishot_clip_bar then
                     frame.multishot_clip_bar:Show()
-                    multishot_clip_width = math.min((settings.width * 2) * (0.1 / (addon_data.hunter.range_speed - 0.1)), settings.width)
+                    multishot_clip_width = math.min((settings.width * 2) * (0.35 / (addon_data.hunter.range_speed - 0.35)), settings.width)
                     frame.multishot_clip_bar:SetWidth(multishot_clip_width)
                 end
             end
@@ -466,7 +504,7 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             end
             if settings.show_multishot_clip_bar then
                 frame.multishot_clip_bar:Show()
-                multishot_clip_width = math.min(settings.width * (0.1 / (addon_data.hunter.range_speed - 0.1)), settings.width)
+                multishot_clip_width = math.min(settings.width * (0.35 / (addon_data.hunter.range_speed - 0.35)), settings.width)
                 frame.multishot_clip_bar:SetWidth(5)
                 multi_offset = (settings.width * (addon_data.hunter.auto_cast_time / addon_data.hunter.range_speed)) + multishot_clip_width
                 frame.multishot_clip_bar:SetPoint('TOPRIGHT', -multi_offset, 0)
@@ -672,6 +710,15 @@ addon_data.hunter.InitializeVisuals = function()
     frame:Show()
 end
 
+
+
+--- Everything below is designated as part of the UI settings menu. Checkboxes, adjustments, sliders
+--- ------------------------------------------------------------------------------------------------
+--- Adjusts the values of everything based on the settings selected with UpdateConfigPanelValues
+--- 10 boxes that can be checked, all exact same just with different names
+--- Bar height, width, and offset values set with numerical value
+--- Color picker selection for 3 visual displays of the bars
+--- Alpha adjustments for 3 visual displays of the bars
 addon_data.hunter.UpdateConfigPanelValues = function()
     local panel = addon_data.hunter.config_frame
     local settings = character_hunter_settings
@@ -874,7 +921,7 @@ addon_data.hunter.BackplaneAlphaOnValChange = function(self)
     character_hunter_settings.backplane_alpha = tonumber(self:GetValue())
     addon_data.hunter.UpdateVisualsOnSettingsChange()
 end
-
+--- Initializes the main setting panel including layout, alignment, and design
 addon_data.hunter.CreateConfigPanel = function(parent_panel)
     addon_data.hunter.config_frame = CreateFrame("Frame", addon_name .. "HunterConfigPanel", parent_panel)
     local panel = addon_data.hunter.config_frame
