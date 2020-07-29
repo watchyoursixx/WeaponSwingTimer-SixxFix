@@ -5,6 +5,9 @@ addon_data.hunter = {}
 addon_data.hunter.shot_spell_ids = {
     [75] = {spell_name = 'Auto Shot', rank = nil, cast_time = nil, cooldown = nil},
 	[5384] = {spell_name = 'Feign Death', rank = nil, cast_time = nil, cooldown = nil},
+	[19506] = {spell_name = 'Trueshot Aura', rank = 1, cast_time = nil, cooldown = nil},
+	[20905] = {spell_name = 'Trueshot Aura', rank = 2, cast_time = nil, cooldown = nil},
+	[20906] = {spell_name = 'Trueshot Aura', rank = 3, cast_time = nil, cooldown = nil},
     [2643] = {spell_name = 'Multi-Shot', rank = 1, cast_time = 0.45, cooldown = 10},
     [14288] = {spell_name = 'Multi-Shot', rank = 2, cast_time = 0.45, cooldown = 10},
     [14289] = {spell_name = 'Multi-Shot', rank = 3, cast_time = 0.45, cooldown = 10},
@@ -76,7 +79,7 @@ addon_data.hunter.auto_cast_time = 0.50
 addon_data.hunter.shot_timer = 0.50
 addon_data.hunter.last_shot_time = GetTime()
 addon_data.hunter.auto_shot_ready = true
-addon_data.hunter.feigndeath = false
+addon_data.hunter.FeignStatus = false
 
 addon_data.hunter.casting = false
 addon_data.hunter.casting_shot = false
@@ -117,6 +120,7 @@ end
 --- Selection of starting a timer for casting auto, aimed, multi
 addon_data.hunter.StartCastingSpell = function(spell_id)
     local settings = character_hunter_settings
+	
     if (GetTime() - addon_data.hunter.last_failed_time) > 0 then
         if not addon_data.hunter.casting and UnitCanAttack('player', 'target') then
             spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
@@ -124,10 +128,6 @@ addon_data.hunter.StartCastingSpell = function(spell_id)
 			
                 return 
             end
-			if spell_name == 'Feign Death' then
-				addon_data.hunter.ResetShotTimer()
-				return
-			end
             if not addon_data.hunter.is_spell_auto_shot(spell_id) and 
                not addon_data.hunter.is_spell_shoot(spell_id) and 
                cast_time > 0 then
@@ -195,6 +195,13 @@ addon_data.hunter.UpdateInfo = function()
     addon_data.hunter.guid = UnitGUID("player")
 end
 
+--- Reset Swing Timer separately from feign and other spells
+addon_data.hunter.FeignDeath = function()
+    hunter_bw_shot_timer = GetTime()
+    addon_data.hunter.last_shot_time = GetTime()
+    addon_data.hunter.ResetShotTimer()
+end
+
 --- Buffs and debuffs change casting speeds, which is multiplied by the cast time
 --- -----------------------------------------------------------------------------
 --- Anything that changes cast times should go here. Need to add other forms of debuffs
@@ -246,12 +253,17 @@ addon_data.hunter.ResetShotTimer = function()
     -- The timer is reset to either the auto cast time or the difference between the time since the last shot and the current time depending on which is larger
     local curr_time = GetTime()
     local range_speed = addon_data.hunter.range_speed
-    if (curr_time + 0.01 - addon_data.hunter.last_shot_time) > (range_speed - addon_data.hunter.auto_cast_time) then
+    if (curr_time + 0.05 - addon_data.hunter.last_shot_time) > (range_speed - addon_data.hunter.auto_cast_time) then
         addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
         addon_data.hunter.auto_shot_ready = true
-    elseif curr_time ~= addon_data.hunter.last_shot_time then
+		
+    elseif curr_time ~= addon_data.hunter.last_shot_time and not addon_data.hunter.casting then
         addon_data.hunter.shot_timer = curr_time - addon_data.hunter.last_shot_time
         addon_data.hunter.auto_shot_ready = false
+	elseif addon_data.hunter.casting then
+		if (curr_time - addon_data.hunter.last_shot_time) > (3 * addon_data.hunter.range_cast_speed_modifer) then
+			addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
+		end
     else
         addon_data.hunter.shot_timer = range_speed
         addon_data.hunter.auto_shot_ready = false
@@ -263,7 +275,7 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 	local shot_timer = addon_data.hunter.shot_timer
     addon_data.hunter.shot_timer = shot_timer - elapsed
 	addon_data.hunter.UpdateRangeCastSpeedModifier()
-	addon_data.hunter.auto_cast_time = 0.50 * addon_data.hunter.range_cast_speed_modifer
+	addon_data.hunter.auto_cast_time = 0.45 * addon_data.hunter.range_cast_speed_modifer
 	
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
@@ -294,6 +306,12 @@ addon_data.hunter.OnUpdate = function(elapsed)
     if character_hunter_settings.enabled then
         -- Check to see if we have moved
         addon_data.hunter.has_moved = (GetUnitSpeed("player") > 0)
+		
+		-- Check for feign death movement that causes swing reset
+		if addon_data.hunter.FeignStatus and addon_data.hunter.has_moved then
+			addon_data.hunter.FeignDeath()
+			addon_data.hunter.FeignStatus = false
+		end
         -- Update the Auto Shot timer based on the updated settings
         addon_data.hunter.UpdateAutoShotTimer(elapsed)
         -- Update the cast bar timers
@@ -305,7 +323,12 @@ addon_data.hunter.OnUpdate = function(elapsed)
     end
 end
 
-
+hooksecurefunc("JumpOrAscendStart", function()
+	if  addon_data.hunter.FeignStatus then  
+			addon_data.hunter.FeignDeath()
+			addon_data.hunter.FeignStatus = false
+	end	  
+end)
 
 --- spell functions to determine the state of the spell being casted.
 --- -----------------------------------------------------------------
@@ -313,6 +336,7 @@ end
 addon_data.hunter.OnStartAutorepeatSpell = function()
     addon_data.hunter.shooting = true
     addon_data.hunter.UpdateInfo()
+	
     if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
         addon_data.hunter.ResetShotTimer()
     end
@@ -324,32 +348,9 @@ addon_data.hunter.OnStopAutorepeatSpell = function()
     addon_data.hunter.UpdateInfo()
 end
 
---- failed attempt at using spell cast start instead of start casting spell function call
+--- failed attempt at using spell cast start instead of start casting spell function call, doesn't track auto shot casts while it is already enabled
 addon_data.hunter.OnUnitSpellCastStart = function(unit, spell_id)
---[[
-    if unit == 'player' then
-        addon_data.hunter.casting = true
-        local spell_name
-        local settings = character_hunter_settings
-        for id, spell_table in pairs(addon_data.hunter.shot_spell_ids) do
-            if spell_id == id then
-                spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
-                if ((spell_name == 'Aimed Shot') and settings.show_aimedshot_cast_bar) or
-                   ((spell_name == 'Multi-Shot') and settings.show_multishot_cast_bar) then
-                        addon_data.hunter.casting_shot = true
-                        addon_data.hunter.cast_timer = 0
-                        addon_data.hunter.frame.spell_bar:SetVertexColor(0.7, 0.4, 0, 1)
-                        local name, text, _, start_time, end_time, _, _, _ = UnitCastingInfo("player")
-                        addon_data.hunter.cast_time = (end_time - start_time) / 1000
-                        if character_hunter_settings.show_text then
-                            addon_data.hunter.frame.spell_text_center:SetText(text)
-                        end
-                end
-                break
-            end
-        end
-    end
-]]--
+
 end
 
 --- upon spell cast succeeded, check if is auto shot and reset timer, adjust ranged speed based on haste. 
@@ -360,6 +361,16 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
         -- If the spell is Auto Shot then reset the shot timer
         if addon_data.hunter.shot_spell_ids[spell_id] then
             spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
+			if spell_name == 'Feign Death' or spell_name == 'Trueshot Aura' then
+				if spell_name == 'Feign Death' then
+					addon_data.hunter.FeignStatus = true
+				end
+				addon_data.hunter.FeignDeath()
+				return
+			end
+			if spell_name == 'Aimed Shot' then
+				addon_data.hunter.ResetShotTimer()
+			end
             if addon_data.hunter.is_spell_auto_shot(spell_id) or addon_data.hunter.is_spell_shoot(spell_id) then
                 hunter_bw_shot_timer = GetTime()
                 addon_data.hunter.last_shot_time = GetTime()
@@ -452,8 +463,12 @@ end
 --- This causes 0.5 seconds of delay before it can try casting again
 addon_data.hunter.OnUnitSpellCastFailedQuiet = function(unit, spell_id)
     local settings = character_hunter_settings
+	local curr_time = GetTime()
     if settings.show_autoshot_delay_timer and unit == "player" and addon_data.hunter.is_spell_auto_shot(spell_id) then
-        if not addon_data.hunter.casting and addon_data.hunter.auto_shot_ready then
+        
+		if not addon_data.hunter.casting and addon_data.hunter.shooting 
+		   and (curr_time - addon_data.hunter.last_shot_time) > (addon_data.hunter.range_speed - addon_data.hunter.auto_cast_time) then
+			
 			addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time + 0.5
 		end
     end
@@ -1138,4 +1153,3 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     addon_data.hunter.UpdateConfigPanelValues()
     return panel
 end
-
