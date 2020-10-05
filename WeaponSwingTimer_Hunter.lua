@@ -290,10 +290,15 @@ end
 addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
     local curr_time = GetTime()
 	local shot_timer = addon_data.hunter.shot_timer
+	local _, class, _ = UnitClass("player")
     addon_data.hunter.shot_timer = shot_timer - elapsed
-	addon_data.hunter.UpdateRangeCastSpeedModifier()
-	addon_data.hunter.auto_cast_time = 0.45 * addon_data.hunter.range_cast_speed_modifer
 	
+	if class == "WARLOCK" or class == "MAGE" or class == "PRIEST" then
+		addon_data.hunter.auto_cast_time = 0.5
+	else
+		addon_data.hunter.UpdateRangeCastSpeedModifier()
+		addon_data.hunter.auto_cast_time = 0.45 * addon_data.hunter.range_cast_speed_modifer
+	end
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
         if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
