@@ -359,6 +359,7 @@ hooksecurefunc("JumpOrAscendStart", function()
 	end	  
 end)
 
+
 --- spell functions to determine the state of the spell being casted.
 --- -----------------------------------------------------------------
 --- Determines the state of shooting on or off
@@ -419,12 +420,16 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
                 hunter_bw_shot_timer = GetTime()
                 addon_data.hunter.last_shot_time = GetTime()
                 addon_data.hunter.ResetShotTimer()
-			else
+			else 
 				addon_data.hunter.casting_spell_id = 0
                 addon_data.hunter.casting_shot = false
-                addon_data.hunter.frame.spell_bar:SetVertexColor(0, 0.5, 0, 1)
-                addon_data.hunter.frame.spell_bar:SetWidth(character_hunter_settings.width)
-                addon_data.hunter.frame.spell_bar_text:SetText("0.0")
+				-- only show green bar overlay if setting is enabled
+				if (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
+               (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+					addon_data.hunter.frame.spell_bar:SetVertexColor(0, 0.5, 0, 1)
+					addon_data.hunter.frame.spell_bar:SetWidth(character_hunter_settings.width)
+					addon_data.hunter.frame.spell_bar_text:SetText("0.0")
+				end
             end
 			if addon_data.hunter.is_spell_shoot(spell_id) then
 				new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
@@ -479,13 +484,18 @@ addon_data.hunter.OnUnitSpellCastFailed = function(unit, spell_id)
 		
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
-            addon_data.hunter.frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
 			
-            if character_hunter_settings.show_text then
-                frame.spell_text_center:SetText("Failed")
-            end
+			if (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
+               (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+					addon_data.hunter.frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
 			
-            frame.spell_bar:SetWidth(settings.width)
+			
+					if character_hunter_settings.show_text then
+						frame.spell_text_center:SetText("Failed")
+					end
+			
+					frame.spell_bar:SetWidth(settings.width)
+			end
         end
     end
 end
@@ -499,11 +509,14 @@ addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
         if spell_id == addon_data.hunter.casting_spell_id then
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
-            frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
-            if settings.show_text then
-                frame.spell_text_center:SetText("Interrupted")
-            end
-            frame.spell_bar:SetWidth(settings.width)
+			if (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
+               (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+					frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
+					if settings.show_text then
+						frame.spell_text_center:SetText("Interrupted")
+					end
+					frame.spell_bar:SetWidth(settings.width)
+			end
         end
     end
 end
@@ -677,7 +690,6 @@ addon_data.hunter.UpdateVisualsOnSettingsChange = function()
         end
         frame.spell_spark:SetSize(16, settings.height)
         frame.spell_text_center:SetPoint("TOP", 2, 0)
-        
 		frame.cast_latency:SetHeight(settings.height)
         frame.cast_latency:SetPoint("TOPLEFT", 0, 0)
         frame.cast_latency:SetColorTexture(1, 0, 0, 0.75)
