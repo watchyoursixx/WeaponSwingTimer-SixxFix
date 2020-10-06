@@ -399,9 +399,10 @@ end
 --- upon spell cast succeeded, check if is auto shot and reset timer, adjust ranged speed based on haste. 
 --- If not auto shot, set bar to green *commented out
 addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
+    local settings = character_hunter_settings
     if unit == 'player' then
 	
-		addon_data.hunter.casting = false
+	addon_data.hunter.casting = false
         -- If the spell is Auto Shot then reset the shot timer
         if addon_data.hunter.shot_spell_ids[spell_id] then
             spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
