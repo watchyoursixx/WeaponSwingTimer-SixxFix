@@ -382,6 +382,7 @@ hooksecurefunc("JumpOrAscendStart", function()
 	end	  
 end)
 
+
 --- spell functions to determine the state of the spell being casted.
 --- -----------------------------------------------------------------
 --- Determines the state of shooting on or off
@@ -438,14 +439,16 @@ end
 --- upon spell cast succeeded, check if is auto shot and reset timer, adjust ranged speed based on haste. 
 --- If not auto shot, set bar to green *commented out
 addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
+
 	local settings = character_hunter_settings
-    if unit == 'player' then
+
+  if unit == 'player' then
 	
-		addon_data.hunter.casting = false
+	      addon_data.hunter.casting = false
         -- If the spell is Auto Shot then reset the shot timer
         if addon_data.hunter.shot_spell_ids[spell_id] then
             spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
-			if spell_name == 'Feign Death' or spell_name == 'Trueshot Aura' then
+			  if spell_name == 'Feign Death' or spell_name == 'Trueshot Aura' then
 				if spell_name == 'Feign Death' then
 					addon_data.hunter.FeignStatus = true
 				end
@@ -516,17 +519,13 @@ addon_data.hunter.OnUnitSpellCastFailed = function(unit, spell_id)
 		
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
-			
 			if (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
-               (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
-					addon_data.hunter.frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
-			
-			
-					if character_hunter_settings.show_text then
-						frame.spell_text_center:SetText("Failed")
-					end
-			
-					frame.spell_bar:SetWidth(settings.width)
+            (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+				addon_data.hunter.frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
+				if character_hunter_settings.show_text then
+					frame.spell_text_center:SetText("Failed")
+				end
+				frame.spell_bar:SetWidth(settings.width)
 			end
         end
     end
@@ -544,18 +543,18 @@ addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
         if spell_id == addon_data.hunter.casting_spell_id then
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
+			
 			if (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
-               (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
-					frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
-					if settings.show_text then
-						frame.spell_text_center:SetText("Interrupted")
-					end
-					frame.spell_bar:SetWidth(settings.width)
+            (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+				frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
+				if settings.show_text then
+					frame.spell_text_center:SetText("Interrupted")
+				end
+				frame.spell_bar:SetWidth(settings.width)
 			end
         end
     end
 end
-
 --- triggered when auto shot is toggled on and attempts to begin casting, but can't
 --- This causes 0.5 seconds of delay before it can try casting again
 addon_data.hunter.OnUnitSpellCastFailedQuiet = function(unit, spell_id)
