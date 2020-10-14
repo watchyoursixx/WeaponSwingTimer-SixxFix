@@ -97,6 +97,12 @@ addon_data.hunter.has_moved = false
 addon_data.hunter.berserk_haste = 1
 addon_data.hunter.class = 0
 addon_data.hunter.guid = 0
+addon_data.hunter.cast_total_time = 0
+addon_data.hunter.hitcount = 0
+addon_data.hunter.initial_pushback_time = 0
+addon_data.hunter.initial_cast_time = 0
+addon_data.hunter.total_pushback = 0
+addon_data.hunter.cast_start_time_test = GetTime()
 
 
 --- The below 3 functions check upon beginning to cast spell, use action, etc to call StartCastingSpell
@@ -125,17 +131,30 @@ addon_data.hunter.OnCastSpell = function(spell_id, spell_book_type)
     end
 end
 
--- addon_data.hunter.CastPushback = function()
-	-- if addon_data.hunter.casting_shot then
-	        -- -- https://wow.gamepedia.com/index.php?title=Interrupt&oldid=305918
-        -- addon_data.hunter.pushbackValue = addon_data.hunter.pushbackValue or 1.0
-        -- --addon_data.hunter.cast_timer = addon_data.hunter.cast_timer + addon_data.hunter.pushbackValue
-        -- addon_data.hunter.cast_time = addon_data.hunter.cast_time + addon_data.hunter.pushbackValue
-        -- addon_data.hunter.pushbackValue = max(addon_data.hunter.pushbackValue - 0.5, 0.2)
-		-- print("test")
-		-- return
-	-- end
--- end
+addon_data.hunter.CastPushback = function()
+	if addon_data.hunter.casting_shot then
+	        -- https://wow.gamepedia.com/index.php?title=Interrupt&oldid=305918
+        addon_data.hunter.pushbackValue = addon_data.hunter.pushbackValue or 1
+
+		if ((GetTime() - addon_data.hunter.cast_start_time) < 1) and (addon_data.hunter.hitcount < 1) then
+			addon_data.hunter.initial_pushback_time = GetTime() - addon_data.hunter.cast_start_time
+		end
+		
+		if addon_data.hunter.initial_pushback_time > 0 then
+			addon_data.hunter.cast_time = addon_data.hunter.cast_time + addon_data.hunter.initial_pushback_time
+			addon_data.hunter.initial_pushback_time = 0
+			addon_data.hunter.pushbackValue = 1
+		else
+			addon_data.hunter.cast_time = addon_data.hunter.cast_time + addon_data.hunter.pushbackValue
+		end
+
+		addon_data.hunter.hitcount = addon_data.hunter.hitcount + 1
+
+        addon_data.hunter.pushbackValue = max(addon_data.hunter.pushbackValue - 0.2, 0.2)
+		
+		return
+	end
+end
 
 --- Selection of starting a timer for casting auto, aimed, multi
 addon_data.hunter.StartCastingSpell = function(spell_id)
@@ -148,16 +167,18 @@ addon_data.hunter.StartCastingSpell = function(spell_id)
                 return 
             end
             if not addon_data.hunter.is_spell_auto_shot(spell_id) and 
-               not addon_data.hunter.is_spell_shoot(spell_id) and 
-               cast_time > 0 then
+               not addon_data.hunter.is_spell_shoot(spell_id) and cast_time > 0 then
                     addon_data.hunter.casting = true
             end
 			if (not addon_data.hunter.casting_shot) and (
                (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
                (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar)) then
-                addon_data.hunter.cast_start_time = GetTime()
+				addon_data.hunter.cast_start_time = GetTime()
 				addon_data.hunter.casting_shot = true
 				addon_data.hunter.casting_spell_id = spell_id
+				addon_data.hunter.pushbackValue = 1
+				addon_data.hunter.initial_pushback_time = 0
+				addon_data.hunter.initial_cast_time = cast_time
                     
 				addon_data.hunter.cast_timer = 0
 				addon_data.hunter.frame.spell_bar:SetVertexColor(0.7, 0.4, 0, 1)
@@ -321,7 +342,7 @@ addon_data.hunter.UpdateCastTimer = function(elapsed)
 	
 	local base_cast_time = addon_data.hunter.shot_spell_ids[addon_data.hunter.casting_spell_id].cast_time
 	
-	if (addon_data.hunter.cast_timer < 0.15) then
+	if (addon_data.hunter.cast_timer < 0.25) then
 		addon_data.hunter.cast_time = base_cast_time * addon_data.hunter.range_cast_speed_modifer
 	end
 	
@@ -329,6 +350,8 @@ addon_data.hunter.UpdateCastTimer = function(elapsed)
     if addon_data.hunter.cast_timer > addon_data.hunter.cast_time + 0.5 then
         addon_data.hunter.OnUnitSpellCastFailed('player', 1)
     end
+	
+	addon_data.hunter.total_pushback = addon_data.hunter.cast_time - addon_data.hunter.initial_cast_time
 end
 
 addon_data.hunter.OnUpdate = function(elapsed)
@@ -377,43 +400,66 @@ addon_data.hunter.OnStopAutorepeatSpell = function()
     addon_data.hunter.shooting = false
     addon_data.hunter.UpdateInfo()
 end
+-- Using combat log to detect pushback hits as well as starting to use spell cast events to replace the old version of detection that was implied
+addon_data.target.OnCombatLogUnfiltered = function(combat_info)
+    local _, event, _, casterID, _, _, _, targetID, targetName, _, _, spellID, name, _ = unpack(combat_info)
+	local _, rank, icon, castTime = GetSpellInfo(spellID)
+	local icon, castTime = select(3, GetSpellInfo(spellID))
+	
+	if event == "SPELL_CAST_START" then
 
---- failed attempt at using spell cast start instead of start casting spell function call, doesn't track auto shot casts while it is already enabled
-addon_data.hunter.OnUnitSpellCastStart = function(unit, spell_id)
+		if casterID == UnitGUID("player") then
+		  
+			if name == "Aimed Shot" then
+				addon_data.hunter.cast_start_time_test = GetTime()
+			end
+		end
+	return end
+	
+	if event == "SPELL_CAST_SUCCESS" then
 
+		if casterID == UnitGUID("player") then
+			if name == "Aimed Shot" then
+				addon_data.hunter.cast_total_time = GetTime() - addon_data.hunter.cast_start_time
+			end
+		end
+	return end
+			
+		
+	
+	if event == "SWING_MISSED" or event == "RANGE_MISSED" or event == "SPELL_MISSED" then	return end
+	if event == "SWING_DAMAGE" or event == "ENVIRONMENTAL_DAMAGE" or event == "RANGE_DAMAGE" or event == "SPELL_DAMAGE" then	
+	
+		if targetID == UnitGUID("player") then
+			addon_data.hunter.CastPushback()
+		end
+	return end
 end
-
--- addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
-    -- local _, event, _, casterID, _, _, _, targetID, targetName, _, _, spellID, name, _, extra_spell_id, _, _, resisted, blocked, absorbed = unpack(combat_info)
-	-- local _, rank, icon, castTime = GetSpellInfo(spellID)
-	-- local icon, castTime = select(3, GetSpellInfo(spellID))
-	-- print("I'm hit!")
-	-- if event == "SWING_DAMAGE" or event == "ENVIRONMENTAL_DAMAGE" or event == "RANGE_DAMAGE" or event == "SPELL_DAMAGE" then	
-		-- if resisted or blocked or absorbed then return end
-		-- if targetID == UnitGUID("player") then
-			-- addon_data.hunter.CastPushback()
-		-- end
-	-- return end
--- end
 
 --- upon spell cast succeeded, check if is auto shot and reset timer, adjust ranged speed based on haste. 
 --- If not auto shot, set bar to green *commented out
 addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
-    local settings = character_hunter_settings
-    if unit == 'player' then
+
+	local settings = character_hunter_settings
+
+  if unit == 'player' then
 	
-	addon_data.hunter.casting = false
+	      addon_data.hunter.casting = false
         -- If the spell is Auto Shot then reset the shot timer
         if addon_data.hunter.shot_spell_ids[spell_id] then
             spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
-			if spell_name == 'Feign Death' or spell_name == 'Trueshot Aura' then
+			  if spell_name == 'Feign Death' or spell_name == 'Trueshot Aura' then
 				if spell_name == 'Feign Death' then
 					addon_data.hunter.FeignStatus = true
 				end
 				addon_data.hunter.FeignDeath()
 				return
 			end
-			if spell_name == 'Aimed Shot' then
+			if addon_data.hunter.is_spell_aimed_shot(spell_id) then
+
+				addon_data.hunter.pushbackValue = 1
+				addon_data.hunter.initial_pushback_time = 0
+				addon_data.hunter.hitcount = 0
 				addon_data.hunter.ResetShotTimer()
 				addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
 			end
@@ -457,71 +503,58 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
     end
 end
 
---- unsure if this does anything, maybe not. Might adjust/modify this to be spell pushback
-addon_data.hunter.OnUnitSpellCastDelayed = function(unit, spell_id)
-    if unit == 'player' then
-        for id, spell_table in pairs(addon_data.hunter.shot_spell_ids) do
-            if spell_id == id then
-                local name, text, _, start_time, end_time, _, _, _ = UnitCastingInfo("player")
-                local current_timer = (GetTime() - (start_time / 1000))
-                if current_timer < 0 then
-                    current_timer = 0
-                end
-                addon_data.hunter.cast_timer = current_timer
-            end
-        end
-    end
-end
-
---- attempt to display when a cast has failed. Will need adjustments as it often displays "failed" everytime it casts.
 addon_data.hunter.OnUnitSpellCastFailed = function(unit, spell_id)
     local settings = character_hunter_settings
     local frame = addon_data.hunter.frame
-    if unit == 'player' then
+	-- only care about if multi or aimed fails to cast, so ignore others
+    if unit == 'player' and (addon_data.hunter.is_spell_aimed_shot(spell_id) or addon_data.hunter.is_spell_multi_shot(spell_id)) then
+
         addon_data.hunter.last_failed_time = GetTime()
         addon_data.hunter.casting = false
+		addon_data.hunter.pushbackValue = 1
+		addon_data.hunter.initial_pushback_time = 0
+		addon_data.hunter.hitcount = 0
 		
         if spell_id == addon_data.hunter.casting_spell_id then
 		
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
-			
 			if (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
-               (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
-					addon_data.hunter.frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
-			
-			
-					if character_hunter_settings.show_text then
-						frame.spell_text_center:SetText("Failed")
-					end
-			
-					frame.spell_bar:SetWidth(settings.width)
+            (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+				addon_data.hunter.frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
+				if character_hunter_settings.show_text then
+					frame.spell_text_center:SetText("Failed")
+				end
+				frame.spell_bar:SetWidth(settings.width)
 			end
         end
     end
 end
 
---- attempt to display when a cast has been interrupted. Will need some adjustments as it doesn't display correctly
 addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
     local settings = character_hunter_settings
 	local frame = addon_data.hunter.frame
-	if unit == 'player' then
+	if unit == 'player' and (addon_data.hunter.is_spell_aimed_shot(spell_id) or addon_data.hunter.is_spell_multi_shot(spell_id)) then
         addon_data.hunter.casting = false
+		addon_data.hunter.pushbackValue = 1
+		addon_data.hunter.initial_pushback_time = 0
+		addon_data.hunter.hitcount = 0
+		
         if spell_id == addon_data.hunter.casting_spell_id then
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
+			
 			if (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
-               (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
-					frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
-					if settings.show_text then
-						frame.spell_text_center:SetText("Interrupted")
-					end
-					frame.spell_bar:SetWidth(settings.width)
+            (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+				frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
+				if settings.show_text then
+					frame.spell_text_center:SetText("Interrupted")
+				end
+				frame.spell_bar:SetWidth(settings.width)
 			end
         end
     end
 end
-
 --- triggered when auto shot is toggled on and attempts to begin casting, but can't
 --- This causes 0.5 seconds of delay before it can try casting again
 addon_data.hunter.OnUnitSpellCastFailedQuiet = function(unit, spell_id)
