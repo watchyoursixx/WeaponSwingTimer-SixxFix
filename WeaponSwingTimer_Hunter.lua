@@ -169,6 +169,7 @@ addon_data.hunter.StartCastingSpell = function(spell_id)
                not addon_data.hunter.is_spell_shoot(spell_id) and cast_time > 0 then
                     addon_data.hunter.casting = true
             end
+		
 			if (not addon_data.hunter.casting_shot) and (
                (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
                (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar)) then
@@ -509,7 +510,7 @@ addon_data.hunter.OnUnitSpellCastFailed = function(unit, spell_id)
 		addon_data.hunter.initial_pushback_time = 0
 		addon_data.hunter.hitcount = 0
 		
-        if spell_id == addon_data.hunter.casting_spell_id then
+        if addon_data.hunter.is_spell_aimed_shot(spell_id) or addon_data.hunter.is_spell_multi_shot(spell_id) then
 		
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
@@ -529,12 +530,13 @@ addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
     local settings = character_hunter_settings
 	local frame = addon_data.hunter.frame
 	if unit == 'player' and (addon_data.hunter.is_spell_aimed_shot(spell_id) or addon_data.hunter.is_spell_multi_shot(spell_id)) then
+	
         addon_data.hunter.casting = false
 		addon_data.hunter.pushbackValue = 1
 		addon_data.hunter.initial_pushback_time = 0
 		addon_data.hunter.hitcount = 0
 		
-        if spell_id == addon_data.hunter.casting_spell_id then
+        if addon_data.hunter.is_spell_aimed_shot(spell_id) or addon_data.hunter.is_spell_multi_shot(spell_id) then
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
 			
