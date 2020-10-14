@@ -400,7 +400,7 @@ addon_data.hunter.OnStopAutorepeatSpell = function()
     addon_data.hunter.UpdateInfo()
 end
 -- Using combat log to detect pushback hits as well as starting to use spell cast events to replace the old version of detection that was implied
-addon_data.target.OnCombatLogUnfiltered = function(combat_info)
+addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
     local _, event, _, casterID, _, _, _, targetID, targetName, _, _, spellID, name, _ = unpack(combat_info)
 	local _, rank, icon, castTime = GetSpellInfo(spellID)
 	local icon, castTime = select(3, GetSpellInfo(spellID))
@@ -486,11 +486,6 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
     end
 	if addon_data.hunter.is_spell_auto_shot(spell_id) then	-- Update the ranged attack speed
 		new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
-		-- FIXME: Temp fix until I can nail down the divide by zero error
-		-- if addon_data.hunter.range_speed == 0 then
-			-- addon_data.hunter.range_speed = 3
-		-- end
-		
 		-- Handling for getting haste buffs in combat, don't need to update auto shot cast time until the next shot is ready
 		if new_range_speed ~= addon_data.hunter.range_speed then
 			if not addon_data.hunter.auto_shot_ready then
