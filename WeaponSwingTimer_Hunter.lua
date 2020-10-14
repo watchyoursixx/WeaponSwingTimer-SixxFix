@@ -74,9 +74,8 @@ addon_data.hunter.default_settings = {
 }
 --- Initializing variables for calculations and function calls
 addon_data.hunter.shooting = false
--- added check below for range speed to calc based on equipped item for initial check. 
-range_speed, _, _, _, _, _ = UnitRangedDamage("player")
-addon_data.hunter.range_speed = range_speed
+-- added check below for range speed to default 3 on initialize 
+addon_data.hunter.range_speed = 3
 addon_data.hunter.auto_cast_time = 0.50
 addon_data.hunter.shot_timer = 0.50
 addon_data.hunter.last_shot_time = GetTime()
