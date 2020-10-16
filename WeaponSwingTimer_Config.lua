@@ -1,4 +1,5 @@
 local addon_name, addon_data = ...
+local L = addon_data.localization_table
 
 addon_data.config = {}
 
@@ -35,7 +36,7 @@ addon_data.config.InitializeVisuals = function()
     panel.config_melee_panel.target_panel = addon_data.target.CreateConfigPanel(panel.config_melee_panel)
     panel.config_melee_panel.target_panel:SetPoint('TOPLEFT', 0, -275)
     panel.config_melee_panel.target_panel:SetSize(1, 1)
-    panel.config_melee_panel.name = 'Melee Settings'
+    panel.config_melee_panel.name = L["Melee Settings"]
     panel.config_melee_panel.parent = panel.name
     panel.config_melee_panel.default = addon_data.config.OnDefault
     InterfaceOptions_AddCategory(panel.config_melee_panel)
@@ -46,7 +47,7 @@ addon_data.config.InitializeVisuals = function()
     panel.config_hunter_panel.hunter_panel = addon_data.hunter.CreateConfigPanel(panel.config_hunter_panel)
     panel.config_hunter_panel.hunter_panel:SetPoint('TOPLEFT', 0, 0)
     panel.config_hunter_panel.hunter_panel:SetSize(1, 1)
-    panel.config_hunter_panel.name = 'Hunter & Wand Settings'
+    panel.config_hunter_panel.name = L["Hunter & Wand Settings"]
     panel.config_hunter_panel.parent = panel.name
     panel.config_hunter_panel.default = addon_data.config.OnDefault
     InterfaceOptions_AddCategory(panel.config_hunter_panel)
@@ -187,7 +188,7 @@ addon_data.config.CreateConfigPanel = function(parent_panel)
     local panel = addon_data.config.config_frame
     local settings = character_player_settings
     -- Title Text
-    panel.title_text = addon_data.config.TextFactory(panel, "Global Bar Settings", 20)
+    panel.title_text = addon_data.config.TextFactory(panel, L["Global Bar Settings"], 20)
     panel.title_text:SetPoint("TOPLEFT", 0, 0)
     panel.title_text:SetTextColor(1, 0.9, 0, 1)
     
@@ -195,13 +196,13 @@ addon_data.config.CreateConfigPanel = function(parent_panel)
     panel.is_locked_checkbox = addon_data.config.CheckBoxFactory(
         "IsLockedCheckBox",
         panel,
-        " Lock All Bars",
-        "Locks all of the swing bar frames, preventing them from being dragged.",
+        L["Lock All Bars"],
+        L["Locks all of the swing bar frames, preventing them from being dragged."],
         addon_data.config.IsLockedCheckBoxOnClick)
     panel.is_locked_checkbox:SetPoint("TOPLEFT", 0, -30)
     
     -- Guidance Text
-    panel.guidance_text = addon_data.config.TextFactory(panel, "<- Click the '+' on the left\nfor more options", 16)
+    panel.guidance_text = addon_data.config.TextFactory(panel, L["Click the + on the left for more options"], 16)
     panel.guidance_text:SetPoint("TOPLEFT", 0, -100)
     panel.guidance_text:SetTextColor(1, 1, 1, 1)
     
