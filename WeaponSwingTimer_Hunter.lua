@@ -1,25 +1,27 @@
 local addon_name, addon_data = ...
+local L = addon_data.localization_table
+
 --- define addon structure from the above local variable
 addon_data.hunter = {}
 --- declare array for ranks of all abilities, cast times, cooldown, based on spell ID
 addon_data.hunter.shot_spell_ids = {
-    [75] = {spell_name = 'Auto Shot', rank = nil, cast_time = nil, cooldown = nil},
-	[5384] = {spell_name = 'Feign Death', rank = nil, cast_time = nil, cooldown = nil},
-	[19506] = {spell_name = 'Trueshot Aura', rank = 1, cast_time = nil, cooldown = nil},
-	[20905] = {spell_name = 'Trueshot Aura', rank = 2, cast_time = nil, cooldown = nil},
-	[20906] = {spell_name = 'Trueshot Aura', rank = 3, cast_time = nil, cooldown = nil},
-    [2643] = {spell_name = 'Multi-Shot', rank = 1, cast_time = 0.45, cooldown = 10},
-    [14288] = {spell_name = 'Multi-Shot', rank = 2, cast_time = 0.45, cooldown = 10},
-    [14289] = {spell_name = 'Multi-Shot', rank = 3, cast_time = 0.45, cooldown = 10},
-    [14290] = {spell_name = 'Multi-Shot', rank = 4, cast_time = 0.45, cooldown = 10},
-    [25294] = {spell_name = 'Multi-Shot', rank = 5, cast_time = 0.45, cooldown = 10},
-    [19434] = {spell_name = 'Aimed Shot', rank = 1, cast_time = 3.05, cooldown = 6},
-    [20900] = {spell_name = 'Aimed Shot', rank = 2, cast_time = 3.05, cooldown = 6},
-    [20901] = {spell_name = 'Aimed Shot', rank = 3, cast_time = 3.05, cooldown = 6},
-    [20902] = {spell_name = 'Aimed Shot', rank = 4, cast_time = 3.05, cooldown = 6},
-    [20903] = {spell_name = 'Aimed Shot', rank = 5, cast_time = 3.05, cooldown = 6},
-    [20904] = {spell_name = 'Aimed Shot', rank = 6, cast_time = 3.05, cooldown = 6},
-    [5019] = {spell_name = 'Shoot', rank = nil, cast_time = nil, cooldown = nil}
+    [75] = {spell_name = L["Auto Shot"], rank = nil, cast_time = nil, cooldown = nil},
+	[5384] = {spell_name = L["Feign Death"], rank = nil, cast_time = nil, cooldown = nil},
+	[19506] = {spell_name = L["Trueshot Aura"], rank = 1, cast_time = nil, cooldown = nil},
+	[20905] = {spell_name = L["Trueshot Aura"], rank = 2, cast_time = nil, cooldown = nil},
+	[20906] = {spell_name = L["Trueshot Aura"], rank = 3, cast_time = nil, cooldown = nil},
+    [2643] = {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.45, cooldown = 10},
+    [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.45, cooldown = 10},
+    [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.45, cooldown = 10},
+    [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.45, cooldown = 10},
+    [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.45, cooldown = 10},
+    [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 3.05, cooldown = 6},
+    [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 3.05, cooldown = 6},
+    [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 3.05, cooldown = 6},
+    [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 3.05, cooldown = 6},
+    [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 3.05, cooldown = 6},
+    [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 3.05, cooldown = 6},
+    [5019] = {spell_name = L["Shoot"], rank = nil, cast_time = nil, cooldown = nil}
 }
 --- is spell multi-shot defined by spell_id
 addon_data.hunter.is_spell_multi_shot = function(spell_id)
@@ -410,7 +412,7 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
 
 		if casterID == UnitGUID("player") then
 		  
-			if name == "Aimed Shot" then
+			if name == L["Aimed Shot"] then
 				addon_data.hunter.cast_start_time_test = GetTime()
 			end
 		end
@@ -419,7 +421,7 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
 	if event == "SPELL_CAST_SUCCESS" then
 
 		if casterID == UnitGUID("player") then
-			if name == "Aimed Shot" then
+			if name == L["Aimed Shot"] then
 				addon_data.hunter.cast_total_time = GetTime() - addon_data.hunter.cast_start_time
 			end
 		end
@@ -448,8 +450,8 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
         -- If the spell is Auto Shot then reset the shot timer
         if addon_data.hunter.shot_spell_ids[spell_id] then
             spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
-			  if spell_name == 'Feign Death' or spell_name == 'Trueshot Aura' then
-				if spell_name == 'Feign Death' then
+			if spell_name == L["Feign Death"] or spell_name == L["Trueshot Aura"] then
+				if spell_name == L["Feign Death"] then
 					addon_data.hunter.FeignStatus = true
 				end
 				addon_data.hunter.FeignDeath()
@@ -518,7 +520,7 @@ addon_data.hunter.OnUnitSpellCastFailed = function(unit, spell_id)
             (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
 				addon_data.hunter.frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
 				if character_hunter_settings.show_text then
-					frame.spell_text_center:SetText("Failed")
+					frame.spell_text_center:SetText(L["Failed"])
 				end
 				frame.spell_bar:SetWidth(settings.width)
 			end
@@ -544,7 +546,7 @@ addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
             (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
 				frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
 				if settings.show_text then
-					frame.spell_text_center:SetText("Interrupted")
+					frame.spell_text_center:SetText(L["Interrupted"])
 				end
 				frame.spell_bar:SetWidth(settings.width)
 			end
@@ -1036,12 +1038,12 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     local panel = addon_data.hunter.config_frame
     local settings = character_hunter_settings
     -- Title Text
-    panel.title_text = addon_data.config.TextFactory(panel, "Hunter & Wand Shot Bar Settings", 20)
+    panel.title_text = addon_data.config.TextFactory(panel, L["Hunter & Wand Shot Bar Settings"], 20)
     panel.title_text:SetPoint("TOPLEFT", 10 , -10)
     panel.title_text:SetTextColor(1, 0.9, 0, 1)
     
     -- General Settings Text
-    panel.general_text = addon_data.config.TextFactory(panel, "General Settings", 16)
+    panel.general_text = addon_data.config.TextFactory(panel, L["General Settings"], 16)
     panel.general_text:SetPoint("TOPLEFT", 10 , -50)
     panel.general_text:SetTextColor(1, 0.9, 0, 1)
     
@@ -1049,8 +1051,8 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.enabled_checkbox = addon_data.config.CheckBoxFactory(
         "HunterEnabledCheckBox",
         panel,
-        " Enable",
-        "Enables the Autoshot/Shoot bars.",
+        L["Enable"],
+        L["Enables the Autoshot/Shoot bars."],
         addon_data.hunter.EnabledCheckBoxOnClick)
     panel.enabled_checkbox:SetPoint("TOPLEFT", 10, -70)
     
@@ -1058,8 +1060,8 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.show_border_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowBorderCheckBox",
         panel,
-        " Show border",
-        "Enables the shot bar's border.",
+        L["Show border"],
+        L["Enables the shot bar's border."],
         addon_data.hunter.ShowBorderCheckBoxOnClick)
     panel.show_border_checkbox:SetPoint("TOPLEFT", 10, -90)
     
@@ -1067,8 +1069,8 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.classic_bars_checkbox = addon_data.config.CheckBoxFactory(
         "HunterClassicBarsCheckBox",
         panel,
-        " Classic bars",
-        "Enables the classic texture for the shot bars.",
+        L["Classic bars"],
+        L["Enables the classic texture for the shot bars."],
         addon_data.hunter.ClassicBarsCheckBoxOnClick)
     panel.classic_bars_checkbox:SetPoint("TOPLEFT", 10, -110)
     
@@ -1076,8 +1078,8 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.one_bar_checkbox = addon_data.config.CheckBoxFactory(
         "HunterOneBarCheckBox",
         panel,
-        " YaHT / One bar",
-        "Changes the Auto Shot bar to a single bar that fills from left to right",
+        L["YaHT / One bar"],
+        L["Changes the Auto Shot bar to a single bar that fills from left to right"],
         addon_data.hunter.OneBarCheckBoxOnClick)
     panel.one_bar_checkbox:SetPoint("TOPLEFT", 10, -130)
     
@@ -1085,8 +1087,8 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.show_text_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowTextCheckBox",
         panel,
-        " Show Text",
-        "Enables the shot bar text.",
+        L["Show Text"],
+        L["Enables the shot bar text."],
         addon_data.hunter.ShowTextCheckBoxOnClick)
     panel.show_text_checkbox:SetPoint("TOPLEFT", 10, -150)
     
@@ -1094,7 +1096,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.width_editbox = addon_data.config.EditBoxFactory(
         "HunterWidthEditBox",
         panel,
-        "Bar Width",
+        L["Bar Width"],
         75,
         25,
         addon_data.hunter.WidthEditBoxOnEnter)
@@ -1103,7 +1105,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.height_editbox = addon_data.config.EditBoxFactory(
         "HunterHeightEditBox",
         panel,
-        "Bar Height",
+        L["Bar Height"],
         75,
         25,
         addon_data.hunter.HeightEditBoxOnEnter)
@@ -1112,7 +1114,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
         "HunterXOffsetEditBox",
         panel,
-        "X Offset",
+        L["X Offset"],
         75,
         25,
         addon_data.hunter.XOffsetEditBoxOnEnter)
@@ -1121,7 +1123,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.y_offset_editbox = addon_data.config.EditBoxFactory(
         "HunterYOffsetEditBox",
         panel,
-        "Y Offset",
+        L["Y Offset"],
         75,
         25,
         addon_data.hunter.YOffsetEditBoxOnEnter)
@@ -1132,7 +1134,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         'HunterCooldownColorPicker',
         panel,
         settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a,
-        'Auto Shot Cooldown Color',
+        L["Auto Shot Cooldown Color"],
         addon_data.hunter.CooldownColorPickerOnClick)
     panel.cooldown_color_picker:SetPoint('TOPLEFT', 205, -180)
     
@@ -1141,7 +1143,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         'HunterAutoShotCastColorPicker',
         panel,
         settings.auto_cast_r, settings.auto_cast_g, settings.auto_cast_b, settings.auto_cast_a,
-        'Auto Shot Cast Color',
+        L["Auto Shot Cast Color"],
         addon_data.hunter.AutoShotCastColorPickerOnClick)
     panel.autoshot_cast_color_picker:SetPoint('TOPLEFT', 205, -200)
     
@@ -1149,7 +1151,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(
         "HunterInCombatAlphaSlider",
         panel,
-        "In Combat Alpha",
+        L["In Combat Alpha"],
         0,
         1,
         0.05,
@@ -1159,7 +1161,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.ooc_alpha_slider = addon_data.config.SliderFactory(
         "HunterOOCAlphaSlider",
         panel,
-        "Out of Combat Alpha",
+        L["Out of Combat Alpha"],
         0,
         1,
         0.05,
@@ -1169,7 +1171,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
         "HunterBackplaneAlphaSlider",
         panel,
-        "Backplane Alpha",
+        L["Backplane Alpha"],
         0,
         1,
         0.05,
@@ -1177,7 +1179,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.backplane_alpha_slider:SetPoint("TOPLEFT", 405, -190)
     
     -- Hunter Specific Settings Text
-    panel.hunter_text = addon_data.config.TextFactory(panel, "Hunter Specific Settings", 16)
+    panel.hunter_text = addon_data.config.TextFactory(panel, L["Hunter Specific Settings"], 16)
     panel.hunter_text:SetPoint("TOPLEFT", 10 , -250)
     panel.hunter_text:SetTextColor(1, 0.9, 0, 1)
     
@@ -1185,8 +1187,8 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.show_aimedshot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowAimedShotCastBarCheckBox",
         panel,
-        " Aimed Shot cast bar",
-        "Allows the cast bar to show Aimed Shot casts.",
+        L["Aimed Shot cast bar"],
+        L["Allows the cast bar to show Aimed Shot casts."],
         addon_data.hunter.ShowAimedShotCastBarCheckBoxOnClick)
     panel.show_aimedshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -250)
     
@@ -1194,8 +1196,8 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.show_multishot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowMultiShotCastBarCheckBox",
         panel,
-        " Multi-Shot cast bar",
-        "Allows the cast bar to show Multi-Shot casts.",
+        L["Multi-Shot cast bar"],
+        L["Allows the cast bar to show Multi-Shot casts."],
         addon_data.hunter.ShowMultiShotCastBarCheckBoxOnClick)
     panel.show_multishot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -270)
     
@@ -1203,8 +1205,8 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.show_latency_bar_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowLatencyBarCheckBox",
         panel,
-        " Latency bar",
-        "Shows a bar that represents latency on cast bar.",
+        L["Latency bar"],
+        L["Shows a bar that represents latency on cast bar."],
         addon_data.hunter.ShowLatencyBarsCheckBoxOnClick)
     panel.show_latency_bar_checkbox:SetPoint("TOPLEFT", 10, -290)
     
@@ -1212,17 +1214,17 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     panel.show_multishot_clip_bar_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowMultiShotClipBarCheckBox",
         panel,
-        " Multi-Shot clip bar",
-        "Shows a bar that represents when a Multi-Shot would clip an Auto Shot.",
+        L["Multi-Shot clip bar"],
+        L["Shows a bar that represents when a Multi-Shot would clip an Auto Shot."],
         addon_data.hunter.ShowMultiShotClipBarCheckBoxOnClick)
     panel.show_multishot_clip_bar_checkbox:SetPoint("TOPLEFT", 10, -310)
-	
-	    -- Show Autoshot delay timer Checkbox
+    
+    -- Show Autoshot delay timer Checkbox
     panel.show_autoshot_delay_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowAutoShotDelayCheckBox",
         panel,
-        " Auto Shot delay timer",
-        "Shows a timer that represents when Auto shot is delayed.",
+        L["Auto Shot delay timer"],
+        L["Shows a timer that represents when Auto shot is delayed."],
         addon_data.hunter.ShowAutoShotDelayCheckBoxOnClick)
     panel.show_autoshot_delay_checkbox:SetPoint("TOPLEFT", 10, -330)
     
@@ -1231,12 +1233,12 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         'HunterMultiClipColorPicker',
         panel,
         settings.clip_r, settings.clip_g, settings.clip_b, settings.clip_a,
-        'Multi-Shot Clip Color',
+        L["Multi-Shot Clip Color"],
         addon_data.hunter.MultiClipColorPickerOnClick)
     panel.multi_clip_color_picker:SetPoint('TOPLEFT', 205, -280)
     
     -- Add the explaination text
-    panel.explaination_text = addon_data.config.TextFactory(panel, "Bar Explanation", 16)
+    panel.explaination_text = addon_data.config.TextFactory(panel, L["Bar Explanation"], 16)
     panel.explaination_text:SetPoint("TOPLEFT", 10 , -400)
     panel.explaination_text:SetTextColor(1, 0.9, 0, 1)
     
