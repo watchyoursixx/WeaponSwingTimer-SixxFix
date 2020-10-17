@@ -52,6 +52,7 @@ addon_data.hunter.default_settings = {
 	enabled = true,
 	width = 300,
 	height = 12,
+	fontsize = 12,
     point = "CENTER",
 	rel_point = "CENTER",
 	x_offset = 0,
@@ -65,6 +66,7 @@ addon_data.hunter.default_settings = {
     show_multishot_cast_bar = true,
     show_latency_bars = false,
     show_multishot_clip_bar = false,
+	show_autoshot_delay_timer = false,
     show_border = false,
     classic_bars = true,
     one_bar = false,
@@ -138,7 +140,7 @@ addon_data.hunter.CastPushback = function()
 		if ((GetTime() - addon_data.hunter.cast_start_time) < 1) and (addon_data.hunter.hitcount < 1) then
 			addon_data.hunter.initial_pushback_time = GetTime() - addon_data.hunter.cast_start_time
 		end
-		
+
 		if addon_data.hunter.initial_pushback_time > 0 then
 			addon_data.hunter.cast_time = addon_data.hunter.cast_time + addon_data.hunter.initial_pushback_time
 			addon_data.hunter.initial_pushback_time = 0
@@ -169,7 +171,7 @@ addon_data.hunter.StartCastingSpell = function(spell_id)
                not addon_data.hunter.is_spell_shoot(spell_id) and cast_time > 0 then
                     addon_data.hunter.casting = true
             end
-		
+
 			if (not addon_data.hunter.casting_shot) and (
                (addon_data.hunter.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
                (addon_data.hunter.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar)) then
@@ -510,7 +512,7 @@ addon_data.hunter.OnUnitSpellCastFailed = function(unit, spell_id)
 		addon_data.hunter.initial_pushback_time = 0
 		addon_data.hunter.hitcount = 0
 		
-        if addon_data.hunter.is_spell_aimed_shot(spell_id) or addon_data.hunter.is_spell_multi_shot(spell_id) then
+        if addon_data.hunter.casting_spell_id > 0 and (addon_data.hunter.is_spell_aimed_shot(spell_id) or addon_data.hunter.is_spell_multi_shot(spell_id)) then
 		
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
@@ -536,7 +538,7 @@ addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
 		addon_data.hunter.initial_pushback_time = 0
 		addon_data.hunter.hitcount = 0
 		
-        if addon_data.hunter.is_spell_aimed_shot(spell_id) or addon_data.hunter.is_spell_multi_shot(spell_id) then
+        if addon_data.hunter.casting_spell_id > 0 and (addon_data.hunter.is_spell_aimed_shot(spell_id) or addon_data.hunter.is_spell_multi_shot(spell_id)) then
             addon_data.hunter.casting_shot = false
             addon_data.hunter.casting_spell_id = 0
 			
@@ -691,10 +693,14 @@ addon_data.hunter.UpdateVisualsOnSettingsChange = function()
             frame.auto_shot_cast_bar:SetHeight(settings.height)
             frame.auto_shot_cast_bar:SetVertexColor(settings.auto_cast_r, settings.auto_cast_g, settings.auto_cast_b, settings.auto_cast_a)
         end
-        frame.shot_bar_text:SetPoint("BOTTOMRIGHT", -5, 0)
+        frame.shot_bar_text:SetPoint("BOTTOMRIGHT", -5, (settings.height / 2) - (settings.fontsize / 2))
         frame.shot_bar_text:SetTextColor(1.0, 1.0, 1.0, 1.0)
-        frame.spell_bar_text:SetPoint("TOPRIGHT", -5, 0)
+		frame.shot_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		
+        frame.spell_bar_text:SetPoint("TOPRIGHT", -5, -(settings.height / 2) + (settings.fontsize / 2))
         frame.spell_bar_text:SetTextColor(1.0, 1.0, 1.0, 1.0)
+		frame.spell_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		
         frame.shot_bar:SetHeight(settings.height)
         if settings.classic_bars then
             frame.shot_bar:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Bar')
@@ -711,6 +717,7 @@ addon_data.hunter.UpdateVisualsOnSettingsChange = function()
         end
         frame.multishot_clip_bar:SetHeight(settings.height)
         frame.multishot_clip_bar:SetColorTexture(settings.clip_r, settings.clip_g, settings.clip_b, settings.clip_a)
+		
         frame.spell_bar:SetPoint("TOPLEFT", 0, 0)
         frame.spell_bar:SetHeight(settings.height)
         if settings.classic_bars then
@@ -719,7 +726,9 @@ addon_data.hunter.UpdateVisualsOnSettingsChange = function()
             frame.spell_bar:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Background')
         end
         frame.spell_spark:SetSize(16, settings.height)
-        frame.spell_text_center:SetPoint("TOP", 2, 0)
+        frame.spell_text_center:SetPoint("TOP", 2, -(settings.height / 2) + (settings.fontsize / 2))
+		frame.spell_text_center:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		
 		frame.cast_latency:SetHeight(settings.height)
         frame.cast_latency:SetPoint("TOPLEFT", 0, 0)
         frame.cast_latency:SetColorTexture(1, 0, 0, 0.75)
@@ -785,29 +794,29 @@ addon_data.hunter.InitializeVisuals = function()
     frame.backplane:SetPoint('BOTTOMRIGHT', 9, -9)
     frame.backplane:SetFrameStrata('BACKGROUND')
     -- Create the shot bar
-    frame.shot_bar = frame:CreateTexture(nil, "ARTWORK")
+    frame.shot_bar = frame:CreateTexture(nil,"ARTWORK")
     -- Create the shot bar text
-    frame.shot_bar_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.shot_bar_text:SetFont("Fonts/FRIZQT__.ttf", 11)
+    frame.shot_bar_text = frame:CreateFontString(nil,"OVERLAY")
+    frame.shot_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.shot_bar_text:SetJustifyV("CENTER")
     frame.shot_bar_text:SetJustifyH("CENTER")
     -- Create the multishot clip bar
-    frame.multishot_clip_bar = frame:CreateTexture(nil, "OVERLAY")
+    frame.multishot_clip_bar = frame:CreateTexture(nil,"OVERLAY")
     -- Create the auto shot cast bar indicator
-    frame.auto_shot_cast_bar = frame:CreateTexture(nil, "OVERLAY")
+    frame.auto_shot_cast_bar = frame:CreateTexture(nil,"OVERLAY")
     -- Create the range spell shot bar
-    frame.spell_bar = frame:CreateTexture(nil, "ARTWORK")
+    frame.spell_bar = frame:CreateTexture(nil,"ARTWORK")
     -- Create the spell bar text
-    frame.spell_bar_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.spell_bar_text:SetFont("Fonts/FRIZQT__.ttf", 11)
+    frame.spell_bar_text = frame:CreateFontString(nil,"OVERLAY")
+    frame.spell_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.spell_bar_text:SetJustifyV("CENTER")
     frame.spell_bar_text:SetJustifyH("CENTER")
     -- Create the spell spark
     frame.spell_spark = frame:CreateTexture(nil,"OVERLAY")
     frame.spell_spark:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Spark')
     -- Create the range spell shot bar center text
-    frame.spell_text_center = frame:CreateFontString(nil, "OVERLAY")
-    frame.spell_text_center:SetFont("Fonts/FRIZQT__.ttf", 11)
+    frame.spell_text_center = frame:CreateFontString(nil,"OVERLAY")
+    frame.spell_text_center:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.spell_text_center:SetTextColor(1, 1, 1, 1)
     frame.spell_text_center:SetJustifyV("CENTER")
     frame.spell_text_center:SetJustifyH("LEFT")
@@ -845,6 +854,8 @@ addon_data.hunter.UpdateConfigPanelValues = function()
     panel.width_editbox:SetCursorPosition(0)
     panel.height_editbox:SetText(tostring(settings.height))
     panel.height_editbox:SetCursorPosition(0)
+	panel.fontsize_editbox:SetText(tostring(settings.fontsize))
+    panel.fontsize_editbox:SetCursorPosition(0)
     panel.x_offset_editbox:SetText(tostring(settings.x_offset))
     panel.x_offset_editbox:SetCursorPosition(0)
     panel.y_offset_editbox:SetText(tostring(settings.y_offset))
@@ -931,6 +942,11 @@ end
 
 addon_data.hunter.HeightEditBoxOnEnter = function(self)
     character_hunter_settings.height = tonumber(self:GetText())
+    addon_data.hunter.UpdateVisualsOnSettingsChange()
+end
+
+addon_data.hunter.FontSizeEditBoxOnEnter = function(self)
+    character_hunter_settings.fontsize = tonumber(self:GetText())
     addon_data.hunter.UpdateVisualsOnSettingsChange()
 end
 
@@ -1098,7 +1114,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.WidthEditBoxOnEnter)
-    panel.width_editbox:SetPoint("TOPLEFT", 200, -90, "BOTTOMRIGHT", 275, -115)
+    panel.width_editbox:SetPoint("TOPLEFT", 240, -90, "BOTTOMRIGHT", 275, -115)
     -- Height EditBox
     panel.height_editbox = addon_data.config.EditBoxFactory(
         "HunterHeightEditBox",
@@ -1107,7 +1123,16 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.HeightEditBoxOnEnter)
-    panel.height_editbox:SetPoint("TOPLEFT", 280, -90, "BOTTOMRIGHT", 225, -115)
+	panel.height_editbox:SetPoint("TOPLEFT", 320, -90, "BOTTOMRIGHT", 225, -115)
+	-- Font Size EditBox
+	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
+        "FontSizeEditBox",
+        panel,
+        "Font Size",
+        75,
+        25,
+        addon_data.hunter.FontSizeEditBoxOnEnter)
+    panel.fontsize_editbox:SetPoint("TOPLEFT", 160, -90)
     -- X Offset EditBox
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
         "HunterXOffsetEditBox",
