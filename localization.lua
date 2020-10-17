@@ -4,7 +4,7 @@ local L = addon_data.localization_table
 
 	--Core
 	L["Thank you for installing WeaponSwingTimer Version"] = "Thank you for installing WeaponSwingTimer Version"
-	L["by LeftHandedGlove! Use |cFFFFC300/wst|r for more options."] = "by LeftHandedGlove! Maintained by WatchYourSixx! Use |cFFFFC300/wst|r for more options."
+	L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."] = "by WatchYourSixx! Use |cFFFFC300/wst|r for more options."
 	L["Unexpected Unit Type in MissHandler()."]="Unexpected Unit Type in MissHandler()."
 	L["Unexpected Unit Type in SpellHandler()."]="Unexpected Unit Type in SpellHandler()."
 
@@ -136,7 +136,7 @@ end
 if GetLocale() == "zhCN" then
 	--Core
 	L["Thank you for installing WeaponSwingTimer Version"] = "感谢您安装WeaponSwingTimer版本！"
-	L["by LeftHandedGlove! Use |cFFFFC300/wst|r for more options."] = "作者：LeftHandedGlove，持续更新：WatchYourSixx，汉化：Cyanokaze。使用|cFFFFC300/wst|r获取更多选项。"
+	L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."] = "作者：LeftHandedGlove，持续更新：WatchYourSixx，汉化：Cyanokaze。使用|cFFFFC300/wst|r获取更多选项。"
 	L["Unexpected Unit Type in MissHandler()."]="Unexpected Unit Type in MissHandler()."
 	L["Unexpected Unit Type in SpellHandler()."]="Unexpected Unit Type in SpellHandler()."
 
