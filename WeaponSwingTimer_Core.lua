@@ -14,7 +14,7 @@ addon_data.core.all_timers = {
 local version = "5.2.0"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
-                     " " .. L["by LeftHandedGlove! Use |cFFFFC300/wst|r for more options."]
+                     " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
                      
 addon_data.core.default_settings = {
     one_frame = false
