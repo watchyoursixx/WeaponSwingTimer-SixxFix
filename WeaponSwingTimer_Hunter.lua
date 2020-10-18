@@ -83,6 +83,8 @@ addon_data.hunter.shot_timer = 0.50
 addon_data.hunter.last_shot_time = GetTime()
 addon_data.hunter.auto_shot_ready = true
 addon_data.hunter.FeignStatus = false
+addon_data.hunter.FeignFullReset = false
+addon_data.hunter.range_auto_speed_modified = 1
 
 addon_data.hunter.casting = false
 addon_data.hunter.casting_shot = false
@@ -238,6 +240,10 @@ end
 addon_data.hunter.FeignDeath = function()
     hunter_bw_shot_timer = GetTime()
     addon_data.hunter.last_shot_time = GetTime()
+	if not addon_data.hunter.FeignFullReset then
+		addon_data.hunter.range_speed = addon_data.hunter.range_speed * 1.15 / addon_data.hunter.range_auto_speed_modified
+		addon_data.hunter.FeignFullReset = true
+	end
     addon_data.hunter.ResetShotTimer()
 end
 
@@ -466,6 +472,7 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 				addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
 			end
             if addon_data.hunter.is_spell_auto_shot(spell_id) or addon_data.hunter.is_spell_shoot(spell_id) then
+				addon_data.hunter.FeignFullReset = false
                 hunter_bw_shot_timer = GetTime()
                 addon_data.hunter.last_shot_time = GetTime()
                 addon_data.hunter.ResetShotTimer()
@@ -496,6 +503,7 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 											(new_range_speed / addon_data.hunter.range_speed)
 			end
 			addon_data.hunter.range_speed = new_range_speed
+			addon_data.hunter.range_auto_speed_modified = addon_data.hunter.range_cast_speed_modifer
 		end
     end
 end
