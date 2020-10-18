@@ -10,7 +10,8 @@ addon_data.target = {}
 addon_data.target.default_settings = {
 	enabled = true,
 	width = 200,
-	height = 10,
+	height = 12,
+	fontsize = 10,
     point = "CENTER",
 	rel_point = "CENTER",
 	x_offset = 0,
@@ -346,10 +347,14 @@ addon_data.target.UpdateVisualsOnSettingsChange = function()
         end
         frame.main_bar:SetVertexColor(settings.main_r, settings.main_g, settings.main_b, settings.main_a)
         frame.main_spark:SetSize(16, settings.height)
-        frame.main_left_text:SetPoint("TOPLEFT", 2, -(settings.height / 2) + 5)
+        frame.main_left_text:SetPoint("TOPLEFT", 2, -(settings.height / 2) + (settings.fontsize / 2))
         frame.main_left_text:SetTextColor(settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-        frame.main_right_text:SetPoint("TOPRIGHT", -5, -(settings.height / 2) + 5)
+		frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+	
+        frame.main_right_text:SetPoint("TOPRIGHT", -5, -(settings.height / 2) + (settings.fontsize / 2))
         frame.main_right_text:SetTextColor(settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
+		frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		
         frame.off_bar:SetPoint("BOTTOMLEFT", 0, 0)
         frame.off_bar:SetHeight(settings.height)
         if settings.classic_bars then
@@ -359,10 +364,14 @@ addon_data.target.UpdateVisualsOnSettingsChange = function()
         end
         frame.off_bar:SetVertexColor(settings.off_r, settings.off_g, settings.off_b, settings.off_a)
         frame.off_spark:SetSize(16, settings.height)
-        frame.off_left_text:SetPoint("BOTTOMLEFT", 2, (settings.height / 2) - 5)
+        frame.off_left_text:SetPoint("BOTTOMLEFT", 2, (settings.height / 2) - (settings.fontsize / 2))
         frame.off_left_text:SetTextColor(settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-        frame.off_right_text:SetPoint("BOTTOMRIGHT", -5, (settings.height / 2) - 5)
+		frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+	
+        frame.off_right_text:SetPoint("BOTTOMRIGHT", -5, (settings.height / 2) - (settings.fontsize / 2))
         frame.off_right_text:SetTextColor(settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
+		frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		
         if settings.show_left_text then
             frame.main_left_text:Show()
             frame.off_left_text:Show()
@@ -443,12 +452,12 @@ addon_data.target.InitializeVisuals = function()
     frame.main_spark:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Spark')
     -- Create the main hand bar left text
     frame.main_left_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", 10)
+    frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.main_left_text:SetJustifyV("CENTER")
     frame.main_left_text:SetJustifyH("LEFT")
     -- Create the main hand bar right text
     frame.main_right_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", 10)
+    frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.main_right_text:SetJustifyV("CENTER")
     frame.main_right_text:SetJustifyH("RIGHT")
     -- Create the off hand bar
@@ -458,12 +467,12 @@ addon_data.target.InitializeVisuals = function()
     frame.off_spark:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Spark')
     -- Create the off hand bar left text
     frame.off_left_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", 10)
+    frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.off_left_text:SetJustifyV("CENTER")
     frame.off_left_text:SetJustifyH("LEFT")
     -- Create the off hand bar right text
     frame.off_right_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", 10)
+    frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.off_right_text:SetJustifyV("CENTER")
     frame.off_right_text:SetJustifyH("RIGHT")
     -- Show it off
@@ -490,6 +499,8 @@ addon_data.target.UpdateConfigPanelValues = function()
     panel.width_editbox:SetCursorPosition(0)
     panel.height_editbox:SetText(tostring(settings.height))
     panel.height_editbox:SetCursorPosition(0)
+	panel.fontsize_editbox:SetText(tostring(settings.fontsize))
+    panel.fontsize_editbox:SetCursorPosition(0)
     panel.x_offset_editbox:SetText(tostring(settings.x_offset))
     panel.x_offset_editbox:SetCursorPosition(0)
     panel.y_offset_editbox:SetText(tostring(settings.y_offset))
@@ -552,6 +563,11 @@ end
 
 addon_data.target.HeightEditBoxOnEnter = function(self)
     character_target_settings.height = tonumber(self:GetText())
+    addon_data.target.UpdateVisualsOnSettingsChange()
+end
+
+addon_data.target.FontSizeEditBoxOnEnter = function(self)
+    character_target_settings.fontsize = tonumber(self:GetText())
     addon_data.target.UpdateVisualsOnSettingsChange()
 end
 
@@ -758,7 +774,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.target.WidthEditBoxOnEnter)
-    panel.width_editbox:SetPoint("TOPLEFT", 200, -60, "BOTTOMRIGHT", 275, -85)
+    panel.width_editbox:SetPoint("TOPLEFT", 240, -60, "BOTTOMRIGHT", 275, -85)
     -- Height EditBox
     panel.height_editbox = addon_data.config.EditBoxFactory(
         "TargetHeightEditBox",
@@ -767,7 +783,16 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.target.HeightEditBoxOnEnter)
-    panel.height_editbox:SetPoint("TOPLEFT", 280, -60, "BOTTOMRIGHT", 355, -85)
+    panel.height_editbox:SetPoint("TOPLEFT", 320, -60, "BOTTOMRIGHT", 355, -85)
+	-- Font Size EditBox
+	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
+        "FontSizeEditBox",
+        panel,
+        "Font Size",
+        75,
+        25,
+        addon_data.target.FontSizeEditBoxOnEnter)
+    panel.fontsize_editbox:SetPoint("TOPLEFT", 160, -60)
     -- X Offset EditBox
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
         "TargetXOffsetEditBox",

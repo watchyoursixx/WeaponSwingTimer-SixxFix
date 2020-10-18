@@ -1,3 +1,5 @@
+Originally created by LeftHandedGlove. Huge thanks to him starting this project!
+
 <p align="center">
 <img src="https://github.com/LeftHandedGlove/WeaponSwingTimerAddon/blob/master/Images/wst_logo_shadow.png?raw=true" width="50%" height="50%" title="WST_Logo" class="center">
 </p>
@@ -8,9 +10,6 @@ WeaponSwingTimer is an addon for WoW Classic that tracks your's and your target'
 If you're a hunter, it also tracks Auto Shot timing and castable shots cast time.
 
 If you use a wand, it also tracks when your shot will go off.
-
-## Latest Update Video
-https://www.youtube.com/watch?v=o_b7PZxIuls
 
 ## Melee Bars
 The melee bars track the player's and target's main-hand and off-hand swings.
