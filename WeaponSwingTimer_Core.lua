@@ -600,7 +600,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
                 addon_data.target.ResetOffSwingTimer()
             end
         else
-            addon_data.utils.PrintMsg("Unexpected Unit Type in MissHandler().")
+            addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
     else
         if unit == "player" then
@@ -616,7 +616,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
                 addon_data.target.ResetOffSwingTimer()
             end 
         else
-            addon_data.utils.PrintMsg("Unexpected Unit Type in MissHandler().")
+            addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
     end
 end
@@ -632,7 +632,7 @@ addon_data.core.SpellHandler = function(unit, spell_id)
                     elseif unit == "target" then
                         addon_data.target.ResetMainSwingTimer()
                     else
-                        addon_data.utils.PrintMsg("Unexpected Unit Type in SpellHandler().")
+                        addon_data.utils.PrintMsg(L["Unexpected Unit Type in SpellHandler()."])
                     end
                 end
                 
@@ -688,8 +688,14 @@ local function CoreFrame_OnEvent(self, event, ...)
         addon_data.hunter.OnStartAutorepeatSpell()
     elseif event == "STOP_AUTOREPEAT_SPELL" then
         addon_data.hunter.OnStopAutorepeatSpell()
+    elseif event == "UNIT_SPELLCAST_START" then
+        addon_data.hunter.OnUnitSpellCastStart(args[1], args[3])
+    elseif event == "UNIT_SPELLCAST_STOP" then
+        addon_data.hunter.OnUnitSpellCastStop(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         addon_data.hunter.OnUnitSpellCastSucceeded(args[1], args[3])
+    elseif event == "UNIT_SPELLCAST_DELAYED" then
+        addon_data.hunter.OnUnitSpellCastDelayed(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_FAILED" then
         addon_data.hunter.OnUnitSpellCastFailed(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
