@@ -17,7 +17,8 @@ local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. "
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
                      
 addon_data.core.default_settings = {
-    one_frame = false
+    one_frame = false,
+    welcome_message = true
 }
 
 addon_data.core.in_combat = false
@@ -661,7 +662,10 @@ local function OnAddonLoaded(self)
     -- Any other misc operations that happen at the start
     addon_data.player.ZeroizeSwingTimers()
     addon_data.target.ZeroizeSwingTimers()
-    addon_data.utils.PrintMsg(load_message)
+	
+	if character_core_settings.welcome_message then
+		addon_data.utils.PrintMsg(load_message)
+	end
 end
 
 local function CoreFrame_OnEvent(self, event, ...)
