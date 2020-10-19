@@ -13,10 +13,99 @@ addon_data.localization_table = L
 
 GetLocale() == "enUS" then
 	--Core
-	L["Thank you for installing WeaponSwingTimer Version"] = true
-	L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."] = true
-	L["Unexpected Unit Type in MissHandler()."] = true
-	L["Unexpected Unit Type in SpellHandler()."] = true
+	L["Thank you for installing WeaponSwingTimer Version"]	=	TRUE
+	L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]	= TRUE
+	L["Unexpected Unit Type in MissHandler()."]	=	TRUE
+	L["Unexpected Unit Type in SpellHandler()."]	=	TRUE
+
+	--Config
+	L["Global Bar Settings"]	=	TRUE
+	L["Melee Settings"]	=	TRUE
+	L["Hunter & Wand Settings"]	=	TRUE
+	L["Lock All Bars"]	=	TRUE
+	L[" Welcome Message"]	=	TRUE
+	L["Locks all of the swing bar frames, preventing them from being dragged."]	=	TRUE
+	L["Displays the welcome message upon login/reload. Uncheck to disable."]	=	TRUE
+	L["Click the + on the left for more options"]	=	TRUE
+
+	--Player
+	L["Player Swing Bar Settings"]	=	TRUE
+	L["Enables the player's swing bars."]	=	TRUE
+	L["Enables the player's off-hand swing bar."]	=	TRUE
+	L["Enables the player bar's border."]	=	TRUE
+	L["Enables the classic texture for the player's bars."]	=	TRUE
+	L["Enables the player's left side text."]	=	TRUE
+	L["Enables the player's right side text."]	=	TRUE
+
+	--Target
+	L["Target Swing Bar Settings"]	=	TRUE
+	L["Enables the target's swing bars."]	=	TRUE
+	L["Enables the target's off-hand swing bar."]	=	TRUE
+	L["Enables the target bar's border."]	=	TRUE
+	L["Enables the classic texture for the target's bars."]	=	TRUE
+	L["Enables the target's left side text."]	=	TRUE
+	L["Enables the target's right side text."]	=	TRUE
+
+	--Shot
+	L["Failed"] 	=	TRUE
+	L["Interrupted"] 	=	TRUE
+	L["Hunter & Wand Shot Bar Settings"]	=	TRUE
+	L["General Settings"]	=	TRUE
+	L["YaHT / One bar"]	=	TRUE
+	L["Changes the Auto Shot bar to a single bar that fills from left to right"]	=	TRUE
+	L["Show Text"]	=	TRUE
+	L["Enables the shot bar text."]	=	TRUE
+	L["Auto Shot Cooldown Color"]	=	TRUE
+	L["Auto Shot Cast Color"]	=	TRUE
+	L["Hunter Specific Settings"]	=	TRUE
+	L["Aimed Shot cast bar"]	=	TRUE
+	L["Allows the cast bar to show Aimed Shot casts."]	=	TRUE
+	L["Multi-Shot cast bar"]	=	TRUE
+	L["Allows the cast bar to show Multi-Shot casts."]	=	TRUE
+	L["Latency bar"]	=	TRUE
+	L["Shows a bar that represents latency on cast bar."]	=	TRUE
+	L["Multi-Shot clip bar"]	=	TRUE
+	L["Shows a bar that represents when a Multi-Shot would clip an Auto Shot."]	=	TRUE
+	L["Auto Shot delay timer"] 	=	TRUE
+	L["Shows a timer that represents when Auto shot is delayed."] 	=	TRUE
+	L["Multi-Shot Clip Color"]	=	TRUE
+
+	--Common
+	L["Main-Hand"]	=	TRUE
+	L["Off-Hand"]	=	TRUE
+	L["Enable"]	=	TRUE
+	L["Show Off-Hand"]	=	TRUE
+	L["Show border"]	=	TRUE
+	L["Classic bars"]	=	TRUE
+	L["Fill / Empty"]	=	TRUE
+	L["Determines if the bar is full or empty when a swing is ready."]	=	TRUE
+	L["Show Left Text"]	=	TRUE
+	L["Show Right Text"]	=	TRUE
+	L["Bar Width"]	=	TRUE
+	L["Bar Height"]	=	TRUE
+	L["X Offset"]	=	TRUE
+	L["Y Offset"]	=	TRUE
+	L["Main-hand Bar Color"]	=	TRUE
+	L["Main-hand Bar Text Color"]	=	TRUE
+	L["Off-hand Bar Color"]	=	TRUE
+	L["Off-hand Bar Text Color"]	=	TRUE
+	L["In Combat Alpha"]	=	TRUE
+	L["Out of Combat Alpha"]	=	TRUE
+	L["Backplane Alpha"]	=	TRUE
+	L["Bar Explanation"]	=	TRUE
+
+	--Buffs
+	L["Auto Shot"]	=	TRUE
+	L["Feign Death"] 	=	TRUE
+	L["Trueshot Aura"] 	=	TRUE
+	L["Multi-Shot"]	=	TRUE
+	L["Aimed Shot"]	=	TRUE
+	L["Shoot"]	=	TRUE
+	L["Quick Shots"]	=	TRUE
+	L["Rapid Shot"]	=	TRUE
+	L["Berserking"]	=	TRUE
+	L["Kiss of the Spider"]	=	TRUE
+	L["Curse of Tongues"]	=	TRUE
 
 elseif GetLocale() == "deDE" then
 	L["Thank you for installing WeaponSwingTimer Version"] = "Vielen Dank, dass Sie die WeaponSwingTimer-Version installiert haben"
