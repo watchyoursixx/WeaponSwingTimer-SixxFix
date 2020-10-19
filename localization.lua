@@ -13,7 +13,9 @@ local L = addon_data.localization_table
 	L["Melee Settings"]="Melee Settings"
 	L["Hunter & Wand Settings"]="Hunter & Wand Settings"
 	L["Lock All Bars"]=" Lock All Bars"
+	L[" Welcome Message"]=" Welcome Message"
 	L["Locks all of the swing bar frames= preventing them from being dragged."]="Locks all of the swing bar frames, preventing them from being dragged."
+	L["Displays the welcome message upon login/reload. Uncheck to disable."]="Displays the welcome message upon login/reload. Uncheck to disable."
 	L["Click the + on the left for more options"]="<-- Click the '+' on the\nleft for more options"
 
 	--Player
