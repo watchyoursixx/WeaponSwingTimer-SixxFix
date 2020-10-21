@@ -1,4 +1,5 @@
 local addon_name, addon_data = ...
+local L = addon_data.localization_table
 
 addon_data.target = {}
 
@@ -9,7 +10,8 @@ addon_data.target = {}
 addon_data.target.default_settings = {
 	enabled = true,
 	width = 200,
-	height = 10,
+	height = 12,
+	fontsize = 10,
     point = "CENTER",
 	rel_point = "CENTER",
 	x_offset = 0,
@@ -256,7 +258,7 @@ addon_data.target.UpdateVisualsOnUpdate = function()
             frame.main_spark:Show()
         end
         -- Update the main bars text
-        frame.main_left_text:SetText("Main-Hand")
+        frame.main_left_text:SetText(L["Main-Hand"])
         frame.main_right_text:SetText(tostring(addon_data.utils.SimpleRound(main_timer, 0.1)))
         -- Update the off hand bar
         if addon_data.target.has_offhand and settings.show_offhand then
@@ -290,7 +292,7 @@ addon_data.target.UpdateVisualsOnUpdate = function()
                 frame.off_spark:Show()
             end
             -- Update the off-hand bar's text
-            frame.off_left_text:SetText("Off-Hand")
+            frame.off_left_text:SetText(L["Off-Hand"])
             frame.off_right_text:SetText(tostring(addon_data.utils.SimpleRound(off_timer, 0.1)))
         else
             frame.off_bar:Hide()
@@ -345,10 +347,14 @@ addon_data.target.UpdateVisualsOnSettingsChange = function()
         end
         frame.main_bar:SetVertexColor(settings.main_r, settings.main_g, settings.main_b, settings.main_a)
         frame.main_spark:SetSize(16, settings.height)
-        frame.main_left_text:SetPoint("TOPLEFT", 2, -(settings.height / 2) + 5)
+        frame.main_left_text:SetPoint("TOPLEFT", 2, -(settings.height / 2) + (settings.fontsize / 2))
         frame.main_left_text:SetTextColor(settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-        frame.main_right_text:SetPoint("TOPRIGHT", -5, -(settings.height / 2) + 5)
+		frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+	
+        frame.main_right_text:SetPoint("TOPRIGHT", -5, -(settings.height / 2) + (settings.fontsize / 2))
         frame.main_right_text:SetTextColor(settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
+		frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		
         frame.off_bar:SetPoint("BOTTOMLEFT", 0, 0)
         frame.off_bar:SetHeight(settings.height)
         if settings.classic_bars then
@@ -358,10 +364,14 @@ addon_data.target.UpdateVisualsOnSettingsChange = function()
         end
         frame.off_bar:SetVertexColor(settings.off_r, settings.off_g, settings.off_b, settings.off_a)
         frame.off_spark:SetSize(16, settings.height)
-        frame.off_left_text:SetPoint("BOTTOMLEFT", 2, (settings.height / 2) - 5)
+        frame.off_left_text:SetPoint("BOTTOMLEFT", 2, (settings.height / 2) - (settings.fontsize / 2))
         frame.off_left_text:SetTextColor(settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-        frame.off_right_text:SetPoint("BOTTOMRIGHT", -5, (settings.height / 2) - 5)
+		frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+	
+        frame.off_right_text:SetPoint("BOTTOMRIGHT", -5, (settings.height / 2) - (settings.fontsize / 2))
         frame.off_right_text:SetTextColor(settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
+		frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		
         if settings.show_left_text then
             frame.main_left_text:Show()
             frame.off_left_text:Show()
@@ -442,12 +452,12 @@ addon_data.target.InitializeVisuals = function()
     frame.main_spark:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Spark')
     -- Create the main hand bar left text
     frame.main_left_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", 10)
+    frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.main_left_text:SetJustifyV("CENTER")
     frame.main_left_text:SetJustifyH("LEFT")
     -- Create the main hand bar right text
     frame.main_right_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", 10)
+    frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.main_right_text:SetJustifyV("CENTER")
     frame.main_right_text:SetJustifyH("RIGHT")
     -- Create the off hand bar
@@ -457,12 +467,12 @@ addon_data.target.InitializeVisuals = function()
     frame.off_spark:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Spark')
     -- Create the off hand bar left text
     frame.off_left_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", 10)
+    frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.off_left_text:SetJustifyV("CENTER")
     frame.off_left_text:SetJustifyH("LEFT")
     -- Create the off hand bar right text
     frame.off_right_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", 10)
+    frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.off_right_text:SetJustifyV("CENTER")
     frame.off_right_text:SetJustifyH("RIGHT")
     -- Show it off
@@ -489,6 +499,8 @@ addon_data.target.UpdateConfigPanelValues = function()
     panel.width_editbox:SetCursorPosition(0)
     panel.height_editbox:SetText(tostring(settings.height))
     panel.height_editbox:SetCursorPosition(0)
+	panel.fontsize_editbox:SetText(tostring(settings.fontsize))
+    panel.fontsize_editbox:SetCursorPosition(0)
     panel.x_offset_editbox:SetText(tostring(settings.x_offset))
     panel.x_offset_editbox:SetCursorPosition(0)
     panel.y_offset_editbox:SetText(tostring(settings.y_offset))
@@ -551,6 +563,11 @@ end
 
 addon_data.target.HeightEditBoxOnEnter = function(self)
     character_target_settings.height = tonumber(self:GetText())
+    addon_data.target.UpdateVisualsOnSettingsChange()
+end
+
+addon_data.target.FontSizeEditBoxOnEnter = function(self)
+    character_target_settings.fontsize = tonumber(self:GetText())
     addon_data.target.UpdateVisualsOnSettingsChange()
 end
 
@@ -688,7 +705,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
     local panel = addon_data.target.config_frame
     local settings = character_target_settings
     -- Title Text
-    panel.title_text = addon_data.config.TextFactory(panel, "Target Swing Bar Settings", 20)
+    panel.title_text = addon_data.config.TextFactory(panel, L["Target Swing Bar Settings"], 20)
     panel.title_text:SetPoint("TOPLEFT", 10, -10)
     panel.title_text:SetTextColor(1, 0.82, 0, 1)
     
@@ -696,56 +713,56 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
     panel.enabled_checkbox = addon_data.config.CheckBoxFactory(
         "TargetEnabledCheckBox",
         panel,
-        " Enable",
-        "Enables the target's swing bars.",
+        L["Enable"],
+        L["Enables the target's swing bars."],
         addon_data.target.EnabledCheckBoxOnClick)
     panel.enabled_checkbox:SetPoint("TOPLEFT", 10, -40)
     -- Show Off-Hand Checkbox
     panel.show_offhand_checkbox = addon_data.config.CheckBoxFactory(
         "TargetShowOffHandCheckBox",
         panel,
-        " Show Off-Hand",
-        "Enables the target's off-hand swing bar.",
+        L["Show Off-Hand"],
+        L["Enables the target's off-hand swing bar."],
         addon_data.target.ShowOffHandCheckBoxOnClick)
     panel.show_offhand_checkbox:SetPoint("TOPLEFT", 10, -60)
     -- Show Border Checkbox
     panel.show_border_checkbox = addon_data.config.CheckBoxFactory(
         "TargetShowBorderCheckBox",
         panel,
-        " Show border",
-        "Enables the target bar's border.",
+        L["Show border"],
+        L["Enables the target bar's border."],
         addon_data.target.ShowBorderCheckBoxOnClick)
     panel.show_border_checkbox:SetPoint("TOPLEFT", 10, -80)
     -- Show Classic Bars Checkbox
     panel.classic_bars_checkbox = addon_data.config.CheckBoxFactory(
         "TargetClassicBarsCheckBox",
         panel,
-        " Classic bars",
-        "Enables the classic texture for the target's bars.",
+        L["Classic bars"],
+        L["Enables the classic texture for the target's bars."],
         addon_data.target.ClassicBarsCheckBoxOnClick)
     panel.classic_bars_checkbox:SetPoint("TOPLEFT", 10, -100)
     -- Fill/Empty Checkbox
     panel.fill_empty_checkbox = addon_data.config.CheckBoxFactory(
         "TargetFillEmptyCheckBox",
         panel,
-        " Fill / Empty",
-        "Determines if the bar is full or empty when a swing is ready.",
+        L["Fill / Empty"],
+        L["Determines if the bar is full or empty when a swing is ready."],
         addon_data.target.FillEmptyCheckBoxOnClick)
     panel.fill_empty_checkbox:SetPoint("TOPLEFT", 10, -120)
     -- Show Left Text Checkbox
     panel.show_left_text_checkbox = addon_data.config.CheckBoxFactory(
         "TargetShowLeftTextCheckBox",
         panel,
-        " Show Left Text",
-        "Enables the target's left side text.",
+        L["Show Left Text"],
+        L["Enables the target's left side text."],
         addon_data.target.ShowLeftTextCheckBoxOnClick)
     panel.show_left_text_checkbox:SetPoint("TOPLEFT", 10, -140)
     -- Show Right Text Checkbox
     panel.show_right_text_checkbox = addon_data.config.CheckBoxFactory(
         "TargetShowRightTextCheckBox",
         panel,
-        " Show Right Text",
-        "Enables the target's right side text.",
+        L["Show Right Text"],
+        L["Enables the target's right side text."],
         addon_data.target.ShowRightTextCheckBoxOnClick)
     panel.show_right_text_checkbox:SetPoint("TOPLEFT", 10, -160)
     
@@ -753,25 +770,34 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
     panel.width_editbox = addon_data.config.EditBoxFactory(
         "TargetWidthEditBox",
         panel,
-        "Bar Width",
+        L["Bar Width"],
         75,
         25,
         addon_data.target.WidthEditBoxOnEnter)
-    panel.width_editbox:SetPoint("TOPLEFT", 200, -60, "BOTTOMRIGHT", 275, -85)
+    panel.width_editbox:SetPoint("TOPLEFT", 240, -60, "BOTTOMRIGHT", 275, -85)
     -- Height EditBox
     panel.height_editbox = addon_data.config.EditBoxFactory(
         "TargetHeightEditBox",
         panel,
-        "Bar Height",
+        L["Bar Height"],
         75,
         25,
         addon_data.target.HeightEditBoxOnEnter)
-    panel.height_editbox:SetPoint("TOPLEFT", 280, -60, "BOTTOMRIGHT", 355, -85)
+    panel.height_editbox:SetPoint("TOPLEFT", 320, -60, "BOTTOMRIGHT", 355, -85)
+	-- Font Size EditBox
+	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
+        "FontSizeEditBox",
+        panel,
+        "Font Size",
+        75,
+        25,
+        addon_data.target.FontSizeEditBoxOnEnter)
+    panel.fontsize_editbox:SetPoint("TOPLEFT", 160, -60)
     -- X Offset EditBox
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
         "TargetXOffsetEditBox",
         panel,
-        "X Offset",
+        L["X Offset"],
         75,
         25,
         addon_data.target.XOffsetEditBoxOnEnter)
@@ -780,7 +806,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
     panel.y_offset_editbox = addon_data.config.EditBoxFactory(
         "TargetYOffsetEditBox",
         panel,
-        "Y Offset",
+        L["Y Offset"],
         75,
         25,
         addon_data.target.YOffsetEditBoxOnEnter)
@@ -791,7 +817,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
         'TargetMainColorPicker',
         panel,
         settings.main_r, settings.main_g, settings.main_b, settings.main_a,
-        'Main-hand Bar Color',
+        L["Main-hand Bar Color"],
         addon_data.target.MainColorPickerOnClick)
     panel.main_color_picker:SetPoint('TOPLEFT', 205, -150)
     -- Main-hand color text picker
@@ -799,7 +825,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
         'TargetMainTextColorPicker',
         panel,
         settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a,
-        'Main-hand Bar Text Color',
+        L["Main-hand Bar Text Color"],
         addon_data.target.MainTextColorPickerOnClick)
     panel.main_text_color_picker:SetPoint('TOPLEFT', 205, -170)
     -- Off-hand color picker
@@ -807,7 +833,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
         'TargetOffColorPicker',
         panel,
         settings.off_r, settings.off_g, settings.off_b, settings.off_a,
-        'Off-hand Bar Color',
+        L["Off-hand Bar Color"],
         addon_data.target.OffColorPickerOnClick)
     panel.off_color_picker:SetPoint('TOPLEFT', 205, -200)
     -- Off-hand color text picker
@@ -815,7 +841,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
         'TargetOffTextColorPicker',
         panel,
         settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a,
-        'Off-hand Bar Text Color',
+        L["Off-hand Bar Text Color"],
         addon_data.target.OffTextColorPickerOnClick)
     panel.off_text_color_picker:SetPoint('TOPLEFT', 205, -220)
     
@@ -823,7 +849,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(
         "TargetInCombatAlphaSlider",
         panel,
-        "In Combat Alpha",
+        L["In Combat Alpha"],
         0,
         1,
         0.05,
@@ -833,7 +859,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
     panel.ooc_alpha_slider = addon_data.config.SliderFactory(
         "TargetOOCAlphaSlider",
         panel,
-        "Out of Combat Alpha",
+        L["Out of Combat Alpha"],
         0,
         1,
         0.05,
@@ -843,7 +869,7 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
         "TargetBackplaneAlphaSlider",
         panel,
-        "Backplane Alpha",
+        L["Backplane Alpha"],
         0,
         1,
         0.05,

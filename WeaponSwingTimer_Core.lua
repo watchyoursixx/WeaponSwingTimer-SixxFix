@@ -11,13 +11,14 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "5.1.0"
+local version = "5.2.1"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
                      
 addon_data.core.default_settings = {
-    one_frame = false
+    one_frame = false,
+    welcome_message = true
 }
 
 addon_data.core.in_combat = false
@@ -600,7 +601,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
                 addon_data.target.ResetOffSwingTimer()
             end
         else
-            addon_data.utils.PrintMsg("Unexpected Unit Type in MissHandler().")
+            addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
     else
         if unit == "player" then
@@ -616,7 +617,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
                 addon_data.target.ResetOffSwingTimer()
             end 
         else
-            addon_data.utils.PrintMsg("Unexpected Unit Type in MissHandler().")
+            addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
     end
 end
@@ -632,7 +633,7 @@ addon_data.core.SpellHandler = function(unit, spell_id)
                     elseif unit == "target" then
                         addon_data.target.ResetMainSwingTimer()
                     else
-                        addon_data.utils.PrintMsg("Unexpected Unit Type in SpellHandler().")
+                        addon_data.utils.PrintMsg(L["Unexpected Unit Type in SpellHandler()."])
                     end
                 end
                 
@@ -651,9 +652,7 @@ local function OnAddonLoaded(self)
     addon_data.core.core_frame:RegisterEvent("UNIT_INVENTORY_CHANGED")
     addon_data.core.core_frame:RegisterEvent("START_AUTOREPEAT_SPELL")
     addon_data.core.core_frame:RegisterEvent("STOP_AUTOREPEAT_SPELL")
-    addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_START")
     addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-    addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_DELAYED")
     addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_FAILED")
     addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
     addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_FAILED_QUIET")
@@ -663,7 +662,10 @@ local function OnAddonLoaded(self)
     -- Any other misc operations that happen at the start
     addon_data.player.ZeroizeSwingTimers()
     addon_data.target.ZeroizeSwingTimers()
-    addon_data.utils.PrintMsg(load_message)
+	
+	if character_core_settings.welcome_message then
+		addon_data.utils.PrintMsg(load_message)
+	end
 end
 
 local function CoreFrame_OnEvent(self, event, ...)
@@ -682,6 +684,7 @@ local function CoreFrame_OnEvent(self, event, ...)
         local combat_info = {CombatLogGetCurrentEventInfo()}
         addon_data.player.OnCombatLogUnfiltered(combat_info)
         addon_data.target.OnCombatLogUnfiltered(combat_info)
+		addon_data.hunter.OnCombatLogUnfiltered(combat_info)
     elseif event == "UNIT_INVENTORY_CHANGED" then
         addon_data.player.OnInventoryChange()
         addon_data.target.OnInventoryChange()
@@ -689,14 +692,8 @@ local function CoreFrame_OnEvent(self, event, ...)
         addon_data.hunter.OnStartAutorepeatSpell()
     elseif event == "STOP_AUTOREPEAT_SPELL" then
         addon_data.hunter.OnStopAutorepeatSpell()
-    elseif event == "UNIT_SPELLCAST_START" then
-        addon_data.hunter.OnUnitSpellCastStart(args[1], args[3])
-    elseif event == "UNIT_SPELLCAST_STOP" then
-        addon_data.hunter.OnUnitSpellCastStop(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         addon_data.hunter.OnUnitSpellCastSucceeded(args[1], args[3])
-    elseif event == "UNIT_SPELLCAST_DELAYED" then
-        addon_data.hunter.OnUnitSpellCastDelayed(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_FAILED" then
         addon_data.hunter.OnUnitSpellCastFailed(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
