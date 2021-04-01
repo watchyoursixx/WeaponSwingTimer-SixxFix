@@ -9,7 +9,7 @@ addon_data.player = {}
 
 addon_data.player.default_settings = {
 	enabled = true,
-	width = 200,
+	width = 300,
 	height = 12,
 	fontsize = 10,
     point = "CENTER",
@@ -23,7 +23,7 @@ addon_data.player.default_settings = {
     show_left_text = true,
     show_right_text = true,
 	show_offhand = true,
-    show_border = true,
+    show_border = false,
     classic_bars = true,
     fill_empty = true,
     main_r = 0.1, main_g = 0.1, main_b = 0.9, main_a = 1.0,
@@ -414,7 +414,7 @@ addon_data.player.InitializeVisuals = function()
     frame:SetScript("OnDragStart", addon_data.player.OnFrameDragStart)
     frame:SetScript("OnDragStop", addon_data.player.OnFrameDragStop)
     -- Create the backplane and border
-    frame.backplane = CreateFrame("Frame", addon_name .. "PlayerBackdropFrame", frame)
+    frame.backplane = CreateFrame("Frame", addon_name .. "PlayerBackdropFrame", frame, "BackdropTemplate")
     frame.backplane:SetPoint('TOPLEFT', -9, 9)
     frame.backplane:SetPoint('BOTTOMRIGHT', 9, -9)
     frame.backplane:SetFrameStrata('BACKGROUND')
