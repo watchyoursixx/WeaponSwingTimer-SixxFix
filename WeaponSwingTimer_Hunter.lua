@@ -114,18 +114,18 @@ addon_data.hunter.cast_start_time_test = GetTime()
 addon_data.hunter.OnUseAction = function(action_id)
     addon_data.hunter.scan_tip:SetAction(action_id)
     name, _, _, cast_time, _, _, real_spell_id = GetSpellInfo(WSTScanTipTextLeft1:GetText())
-	addon_data.hunter.FeignStatus = false
-    if not addon_data.hunter.casting and name then
-        addon_data.hunter.StartCastingSpell(real_spell_id)
-    end
+--	addon_data.hunter.FeignStatus = false
+--    if not addon_data.hunter.casting and name then
+--        addon_data.hunter.StartCastingSpell(real_spell_id)
+--    end
 end
 
 addon_data.hunter.OnCastSpellByName = function(name, on_self)
     name, _, _, cast_time, _, _, real_spell_id = GetSpellInfo(name)
-	addon_data.hunter.FeignStatus = false
-    if not addon_data.hunter.casting then
-        addon_data.hunter.StartCastingSpell(real_spell_id)
-    end
+--	addon_data.hunter.FeignStatus = false
+--    if not addon_data.hunter.casting then
+--        addon_data.hunter.StartCastingSpell(real_spell_id)
+--    end
 end
 
 addon_data.hunter.OnCastSpell = function(spell_id, spell_book_type)
@@ -322,8 +322,11 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
     local curr_time = GetTime()
 	local shot_timer = addon_data.hunter.shot_timer
 	local _, class, _ = UnitClass("player")
-    addon_data.hunter.shot_timer = shot_timer - elapsed
-	
+    	if addon_data.hunter.shot_timer < 0 then
+		addon_data.hunter.shot_timer = 0
+	else
+		addon_data.hunter.shot_timer = shot_timer - elapsed
+	end
 	if class == "WARLOCK" or class == "MAGE" or class == "PRIEST" then
 		addon_data.hunter.auto_cast_time = 0.5
 	else
@@ -416,24 +419,32 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
 	local _, rank, icon, castTime = GetSpellInfo(spellID)
 	local icon, castTime = select(3, GetSpellInfo(spellID))
 	
-	if event == "SPELL_CAST_START" then
-
-		if casterID == UnitGUID("player") then
-		  
+	if casterID == UnitGUID("player") then
+		if event == "SPELL_CAST_START" then
+		  addon_data.hunter.FeignStatus = false
 			if name == L["Aimed Shot"] then
 				addon_data.hunter.cast_start_time_test = GetTime()
-			end
-		end
-	return end
-	
-	if event == "SPELL_CAST_SUCCESS" then
 
-		if casterID == UnitGUID("player") then
+				addon_data.hunter.StartCastingSpell(real_spell_id)
+			elseif name == L["Multi-Shot"] then
+				
+				addon_data.hunter.StartCastingSpell(real_spell_id)
+			else
+			
+			end
+
+		return end
+	
+		if event == "SPELL_CAST_SUCCESS" then
+
+		
 			if name == L["Aimed Shot"] then
 				addon_data.hunter.cast_total_time = GetTime() - addon_data.hunter.cast_start_time
 			end
-		end
-	return end
+
+		return end
+			
+	end
 			
 		
 	
