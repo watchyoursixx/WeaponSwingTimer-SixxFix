@@ -114,7 +114,7 @@ swing_reset_spells['HUNTER'] = {
     -- --[[ Mongoose Bite ]]
     -- --[[ Multi-Shot ]]
     -- --[[ Rapid Fire ]]
-    --[[ Raptor Strike ]]               2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266,
+    --[[ Raptor Strike ]]               2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266, 27014
     -- --[[ Readiness ]]
     -- --[[ Revive Pet ]]
     -- --[[ Scare Beast ]]
@@ -626,7 +626,8 @@ addon_data.core.SpellHandler = function(unit, spell_id)
     for class, spell_table in pairs(swing_reset_spells) do
         if player_class == class then
             for spell_index, curr_spell_id in ipairs(spell_table) do
-                if spell_id == curr_spell_id then
+				if spell_id == curr_spell_id then
+				
                     if unit == "player" then
                         addon_data.player.ResetMainSwingTimer()
                     elseif unit == "target" then
