@@ -17,10 +17,10 @@ addon_data.config.InitializeVisuals = function()
     panel.global_panel = addon_data.config.CreateConfigPanel(panel)
     panel.global_panel:SetPoint('TOPLEFT', 10, -10)
     panel.global_panel:SetSize(1, 1)
-    
-    panel.logo = panel:CreateTexture(nil, 'ARTWORK')
-    panel.logo:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/LandingPage')
-    panel.logo:SetSize(1024, 1024)
+
+    panel.logo = panel:CreateTexture(nil, 'ARTWORK')	
+    panel.logo:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/LandingPage')	
+    panel.logo:SetSize(1024, 1024)	
     panel.logo:SetPoint('TOPLEFT', 5, -10)
 
     panel.name = "WeaponSwingTimer"
@@ -47,8 +47,8 @@ addon_data.config.InitializeVisuals = function()
     panel.config_hunter_panel.hunter_panel = addon_data.hunter.CreateConfigPanel(panel.config_hunter_panel)
     panel.config_hunter_panel.hunter_panel:SetPoint('TOPLEFT', 0, 0)
     panel.config_hunter_panel.hunter_panel:SetSize(1, 1)
-	panel.config_hunter_panel.castbar_panel = addon_data.castbar.CreateConfigPanel(panel.config_hunter_panel)
-    panel.config_hunter_panel.castbar_panel:SetPoint('TOPLEFT', 0, -275)
+    panel.config_hunter_panel.castbar_panel = addon_data.castbar.CreateConfigPanel(panel.config_hunter_panel)	
+    panel.config_hunter_panel.castbar_panel:SetPoint('TOPLEFT', 0, -275)	
     panel.config_hunter_panel.castbar_panel:SetSize(1, 1)
     panel.config_hunter_panel.name = L["Hunter & Wand Settings"]
     panel.config_hunter_panel.parent = panel.name
@@ -173,18 +173,26 @@ end
 addon_data.config.UpdateConfigValues = function()
     local panel = addon_data.config.config_frame
     local settings = character_player_settings
+    local settings_core = character_core_settings
+
     panel.is_locked_checkbox:SetChecked(settings.is_locked)
+	panel.welcome_checkbox:SetChecked(settings_core.welcome_message)
 end
 
 addon_data.config.IsLockedCheckBoxOnClick = function(self)
     character_player_settings.is_locked = self:GetChecked()
     character_target_settings.is_locked = self:GetChecked()
     character_hunter_settings.is_locked = self:GetChecked()
-	character_castbar_settings.is_locked = self:GetChecked()
+    character_castbar_settings.is_locked = self:GetChecked()
     addon_data.player.frame:EnableMouse(not character_target_settings.is_locked)
     addon_data.target.frame:EnableMouse(not character_target_settings.is_locked)
     addon_data.hunter.frame:EnableMouse(not character_target_settings.is_locked)
-	addon_data.castbar.frame:EnableMouse(not character_target_settings.is_locked)
+    addon_data.castbar.frame:EnableMouse(not character_target_settings.is_locked)
+    addon_data.core.UpdateAllVisualsOnSettingsChange()
+end
+
+addon_data.config.WelcomeCheckBoxOnClick = function(self)
+	character_core_settings.welcome_message = self:GetChecked()
     addon_data.core.UpdateAllVisualsOnSettingsChange()
 end
 
@@ -201,18 +209,20 @@ addon_data.config.CreateConfigPanel = function(parent_panel)
     panel.is_locked_checkbox = addon_data.config.CheckBoxFactory(
         "IsLockedCheckBox",
         panel,
-        L["Lock All Bars"],
+        L[" Lock All Bars"],
         L["Locks all of the swing bar frames, preventing them from being dragged."],
         addon_data.config.IsLockedCheckBoxOnClick)
     panel.is_locked_checkbox:SetPoint("TOPLEFT", 0, -30)
-    
-    -- Guidance Text
-    panel.guidance_text = addon_data.config.TextFactory(panel, L["Click the + on the left for more options"], 16)
-    panel.guidance_text:SetPoint("TOPLEFT", 0, -100)
-    panel.guidance_text:SetTextColor(1, 1, 1, 1)
+	    -- Is Locked Checkbox
+    panel.welcome_checkbox = addon_data.config.CheckBoxFactory(
+        "WelcomeCheckBox",
+        panel,
+        L[" Welcome Message"],
+        L["Displays the welcome message upon login/reload. Uncheck to disable."],
+        addon_data.config.WelcomeCheckBoxOnClick)
+    panel.welcome_checkbox:SetPoint("TOPLEFT", 0, -80)
     
     -- Return the final panel
     addon_data.config.UpdateConfigValues()
     return panel
 end
-
