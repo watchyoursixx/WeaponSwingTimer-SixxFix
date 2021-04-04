@@ -331,7 +331,7 @@ addon_data.castbar.OnUnitSpellCastSucceeded = function(unit, spell_id)
 
 			if addon_data.castbar.is_spell_aimed_shot(spell_id) then
 
-				addon_data.castbar.FeignDeath()
+				addon_data.hunter.FeignDeath()
 			end
 			addon_data.castbar.casting_spell_id = 0
             addon_data.castbar.casting_shot = false
