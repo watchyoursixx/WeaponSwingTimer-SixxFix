@@ -61,7 +61,7 @@ addon_data.castbar.default_settings = {
 	in_combat_alpha = 1.0,
 	ooc_alpha = 0.5,
 	backplane_alpha = 0.5,
-    show_text = true,
+    show_cast_text = true,
     show_multishot_cast_bar = true,
     show_latency_bars = false,
     show_border = false
@@ -433,7 +433,7 @@ addon_data.castbar.UpdateVisualsOnSettingsChange = function()
             frame.cast_latency:Hide()
         end
 
-        if settings.show_text then
+        if settings.show_cast_text then
             frame.spell_text_center:Show()
             frame.spell_bar_text:Show()
         else
@@ -521,7 +521,7 @@ addon_data.castbar.UpdateConfigPanelValues = function()
     local settings = character_castbar_settings
     panel.show_multishot_cast_bar_checkbox:SetChecked(settings.show_multishot_cast_bar)
     panel.show_latency_bar_checkbox:SetChecked(settings.show_latency_bars)
-    panel.show_text_checkbox:SetChecked(settings.show_text)
+    panel.show_casttext_checkbox:SetChecked(settings.show_cast_text)
     panel.width_editbox:SetText(tostring(settings.width))
     panel.width_editbox:SetCursorPosition(0)
     panel.height_editbox:SetText(tostring(settings.height))
@@ -551,8 +551,8 @@ addon_data.castbar.ShowLatencyBarsCheckBoxOnClick = function(self)
     addon_data.castbar.UpdateVisualsOnSettingsChange()
 end
 
-addon_data.castbar.ShowTextCheckBoxOnClick = function(self)
-    character_castbar_settings.show_text = self:GetChecked()
+addon_data.castbar.ShowCastTextCheckBoxOnClick = function(self)
+    character_castbar_settings.show_cast_text = self:GetChecked()
     addon_data.castbar.UpdateVisualsOnSettingsChange()
 end
 
@@ -601,23 +601,14 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     local panel = addon_data.castbar.config_frame
     local settings = character_castbar_settings
     
-    -- Show Border Checkbox
-    panel.show_border_checkbox = addon_data.config.CheckBoxFactory(
-        "HunterShowBorderCheckBox",
-        panel,
-        L["Show border"],
-        L["Enables the shot bar's border."],
-        addon_data.castbar.ShowBorderCheckBoxOnClick)
-    panel.show_border_checkbox:SetPoint("TOPLEFT", 10, -90)
-    
     -- Show Text Checkbox
-    panel.show_text_checkbox = addon_data.config.CheckBoxFactory(
-        "HunterShowTextCheckBox",
+    panel.show_casttext_checkbox = addon_data.config.CheckBoxFactory(
+        "HunterShowCastTextCheckBox",
         panel,
-        L["Show Text"],
-        L["Enables the shot bar text."],
-        addon_data.castbar.ShowTextCheckBoxOnClick)
-    panel.show_text_checkbox:SetPoint("TOPLEFT", 10, -150)
+		L["Show Cast Text"],
+        L["Enables the cast bar text."],
+        addon_data.castbar.ShowCastTextCheckBoxOnClick)
+    panel.show_casttext_checkbox:SetPoint("TOPLEFT", 10, -85)
     
     -- Width EditBox
     panel.width_editbox = addon_data.config.EditBoxFactory(
@@ -696,11 +687,6 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         addon_data.castbar.BackplaneAlphaOnValChange)
     panel.backplane_alpha_slider:SetPoint("TOPLEFT", 405, -190)
     
-    -- Hunter Specific Settings Text
-    panel.hunter_text = addon_data.config.TextFactory(panel, L["Hunter Specific Settings"], 16)
-    panel.hunter_text:SetPoint("TOPLEFT", 10 , -250)
-    panel.hunter_text:SetTextColor(1, 0.9, 0, 1)
-    
     -- Show Multi Shot Cast Bar Checkbox
     panel.show_multishot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowMultiShotCastBarCheckBox",
@@ -708,7 +694,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         L["Multi-Shot cast bar"],
         L["Allows the cast bar to show Multi-Shot casts."],
         addon_data.castbar.ShowMultiShotCastBarCheckBoxOnClick)
-    panel.show_multishot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -270)
+    panel.show_multishot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -45)
     
     -- Show Latency Bar Checkbox
     panel.show_latency_bar_checkbox = addon_data.config.CheckBoxFactory(
@@ -717,7 +703,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         L["Latency bar"],
         L["Shows a bar that represents latency on cast bar."],
         addon_data.castbar.ShowLatencyBarsCheckBoxOnClick)
-    panel.show_latency_bar_checkbox:SetPoint("TOPLEFT", 10, -290)
+    panel.show_latency_bar_checkbox:SetPoint("TOPLEFT", 10, -65)
     
     -- Return the final panel
     addon_data.castbar.UpdateConfigPanelValues()

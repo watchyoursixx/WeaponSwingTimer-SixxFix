@@ -76,7 +76,6 @@ addon_data.hunter.default_settings = {
 --- Initializing variables for calculations and function calls
 addon_data.hunter.shooting = false
 -- added check below for range speed to default 3 on initialize 
--- range_speed, _, _, _, _, _ = UnitRangedDamage("player")
 addon_data.hunter.range_speed = 3
 addon_data.hunter.auto_cast_time = 0.52
 addon_data.hunter.shot_timer = 0.52
@@ -343,7 +342,7 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 
 		if addon_data.hunter.is_spell_auto_shot(spell_id) then	-- Update the ranged attack speed
 			new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
-			--print(new_range_speed)
+
 			-- Handling for getting haste buffs in combat, don't need to update auto shot cast time until the next shot is ready
 			if new_range_speed ~= addon_data.hunter.range_speed then
 				if not addon_data.hunter.auto_shot_ready then
@@ -921,7 +920,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     
     -- Hunter Specific Settings Text
     panel.hunter_text = addon_data.config.TextFactory(panel, L["Hunter Specific Settings"], 16)
-    panel.hunter_text:SetPoint("TOPLEFT", 10 , -250)
+    panel.hunter_text:SetPoint("TOPLEFT", 10 , -220)
     panel.hunter_text:SetTextColor(1, 0.9, 0, 1)
 
     -- Show Multi-Shot Clip Bar Checkbox
@@ -931,7 +930,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         L["Multi-Shot clip bar"],
         L["Shows a bar that represents when a Multi-Shot would clip an Auto Shot."],
         addon_data.hunter.ShowMultiShotClipBarCheckBoxOnClick)
-    panel.show_multishot_clip_bar_checkbox:SetPoint("TOPLEFT", 10, -310)
+    panel.show_multishot_clip_bar_checkbox:SetPoint("TOPLEFT", 10, -220)
     
     -- Show Autoshot delay timer Checkbox
     panel.show_autoshot_delay_checkbox = addon_data.config.CheckBoxFactory(
@@ -940,7 +939,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         L["Auto Shot delay timer"],
         L["Shows a timer that represents when Auto shot is delayed."],
         addon_data.hunter.ShowAutoShotDelayCheckBoxOnClick)
-    panel.show_autoshot_delay_checkbox:SetPoint("TOPLEFT", 10, -330)
+    panel.show_autoshot_delay_checkbox:SetPoint("TOPLEFT", 10, -240)
     
     -- Multi-shot clip color picker
     panel.multi_clip_color_picker = addon_data.config.color_picker_factory(
@@ -949,7 +948,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         settings.clip_r, settings.clip_g, settings.clip_b, settings.clip_a,
         L["Multi-Shot Clip Color"],
         addon_data.hunter.MultiClipColorPickerOnClick)
-    panel.multi_clip_color_picker:SetPoint('TOPLEFT', 205, -280)
+    panel.multi_clip_color_picker:SetPoint('TOPLEFT', 205, -240)
     
     -- Add the explaination text
     panel.explaination_text = addon_data.config.TextFactory(panel, L["Bar Explanation"], 16)

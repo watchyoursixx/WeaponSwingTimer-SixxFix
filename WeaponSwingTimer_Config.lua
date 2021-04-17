@@ -48,7 +48,7 @@ addon_data.config.InitializeVisuals = function()
     panel.config_hunter_panel.hunter_panel:SetPoint('TOPLEFT', 0, 0)
     panel.config_hunter_panel.hunter_panel:SetSize(1, 1)
     panel.config_hunter_panel.castbar_panel = addon_data.castbar.CreateConfigPanel(panel.config_hunter_panel)	
-    panel.config_hunter_panel.castbar_panel:SetPoint('TOPLEFT', 0, -275)	
+    panel.config_hunter_panel.castbar_panel:SetPoint('TOPLEFT', 0, -235)	
     panel.config_hunter_panel.castbar_panel:SetSize(1, 1)
     panel.config_hunter_panel.name = L["Hunter & Wand Settings"]
     panel.config_hunter_panel.parent = panel.name
