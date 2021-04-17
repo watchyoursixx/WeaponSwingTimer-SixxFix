@@ -4,7 +4,6 @@ local L = addon_data.localization_table
 addon_data.castbar = {}
 --- declare array for ranks of all abilities, cast times, cooldown, based on spell ID
 addon_data.castbar.shot_spell_ids = {
-    [75] = {spell_name = L["Auto Shot"], rank = nil, cast_time = nil, cooldown = nil},
 	[5384] = {spell_name = L["Feign Death"], rank = nil, cast_time = nil, cooldown = nil},
 	[19506] = {spell_name = L["Trueshot Aura"], rank = 1, cast_time = nil, cooldown = nil},
 	[20905] = {spell_name = L["Trueshot Aura"], rank = 2, cast_time = nil, cooldown = nil},
@@ -14,6 +13,7 @@ addon_data.castbar.shot_spell_ids = {
     [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.45, cooldown = 10},
     [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.45, cooldown = 10},
     [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.45, cooldown = 10},
+	[27021] = {spell_name = L["Multi-Shot"], rank = 6, cast_time = 0.45, cooldown = 10},
     [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 2.61, cooldown = 6},
     [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 2.61, cooldown = 6},
     [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 2.61, cooldown = 6},
@@ -25,7 +25,7 @@ addon_data.castbar.shot_spell_ids = {
 --- is spell multi-shot defined by spell_id
 addon_data.castbar.is_spell_multi_shot = function(spell_id)
     if (spell_id == 2643) or (spell_id == 14288) or (spell_id == 14289) or 
-       (spell_id == 14290) or (spell_id == 25294) then
+       (spell_id == 14290) or (spell_id == 25294) or (spell_id == 27021) then
             return true
     else
             return false
@@ -50,15 +50,16 @@ addon_data.castbar.is_spell_shoot = function(spell_id)
 end
 --- default settings to be loaded on initial load and reset to default
 addon_data.castbar.default_settings = {
+	enabled = true,
 	width = 300,
 	height = 12,
 	fontsize = 12,
     point = "CENTER",
 	rel_point = "CENTER",
 	x_offset = 0,
-	y_offset = -260,
+	y_offset = 0,
 	in_combat_alpha = 1.0,
-	ooc_alpha = 0.0,
+	ooc_alpha = 0.5,
 	backplane_alpha = 0.5,
     show_text = true,
     show_multishot_cast_bar = true,
@@ -83,7 +84,6 @@ addon_data.castbar.casting_spell_id = 0
 addon_data.castbar.cast_timer = 0.1
 addon_data.castbar.cast_time = 0.1
 addon_data.castbar.last_failed_time = GetTime()
-addon_data.castbar.range_cast_speed_modifer = 1
 addon_data.castbar.cast_start_time = GetTime()
 
 addon_data.castbar.range_weapon_id = 0
@@ -97,22 +97,6 @@ addon_data.castbar.initial_pushback_time = 0
 addon_data.castbar.initial_cast_time = 0
 addon_data.castbar.total_pushback = 0
 addon_data.castbar.cast_start_time_test = GetTime()
-
-
---- The below 3 functions check upon beginning to cast spell, use action, etc to call StartCastingSpell
-addon_data.castbar.OnUseAction = function(action_id)
-    addon_data.castbar.scan_tip:SetAction(action_id)
-    name, _, _, cast_time, _, _, real_spell_id = GetSpellInfo(WSTScanTipTextLeft1:GetText())
-	
-end
-
-addon_data.castbar.OnCastSpellByName = function(name, on_self)
-    name, _, _, cast_time, _, _, real_spell_id = GetSpellInfo(name)
-end
-
-addon_data.castbar.OnCastSpell = function(spell_id, spell_book_type)
-    name, _, _, cast_time, _, _, real_spell_id = GetSpellInfo(spell_id, spell_book_type)
-end
 
 addon_data.castbar.CastPushback = function()
 	if addon_data.castbar.casting_shot then
@@ -191,9 +175,7 @@ addon_data.castbar.LoadSettings = function()
             character_castbar_settings[setting] = value
         end
     end
-    hooksecurefunc('UseAction', addon_data.castbar.OnUseAction)
-    hooksecurefunc('CastSpellByName', addon_data.castbar.OnCastSpellByName)
-    hooksecurefunc('CastSpell', addon_data.castbar.OnCastSpell)
+
     addon_data.castbar.scan_tip = CreateFrame("GameTooltip", "WSTScanTip", nil, "GameTooltipTemplate")
     addon_data.castbar.scan_tip:SetOwner(WorldFrame, "ANCHOR_NONE")
 end
@@ -208,64 +190,18 @@ addon_data.castbar.RestoreDefaults = function()
     addon_data.castbar.UpdateConfigPanelValues()
 end
 
---- verify weapon speed, class, guid
-addon_data.castbar.UpdateInfo = function()
-    addon_data.castbar.range_weapon_id = GetInventoryItemID("player", 18)
-    addon_data.castbar.class = UnitClass("player")[2]
-    addon_data.castbar.guid = UnitGUID("player")
-end
-
 
 --- Buffs and debuffs change casting speeds, which is multiplied by the cast time
 --- -----------------------------------------------------------------------------
 --- Anything that changes cast times should go here. Need to add other forms of debuffs
 --- berserk haste is a simple calculation to derive the percent of berserking haste provided to the player from their health percent
-addon_data.castbar.UpdateRangeCastSpeedModifier = function()
-    local speed = 1.0
-    local buffs = {3045, 26635, 6150, 28866, 12889} -- aura ids for each haste effect
-	for i=1, 40 do
-        local _, _, _, _, _, _, _, _, _, buffId = UnitBuff("player",i)
-		-- name, _ = UnitAura("player", i)
-        if buffId == buffs[3] then -- Quick Shots 
-		-- if name == "Quick Shots" then
-            speed = speed/1.3
-        end
-        if buffId == buffs[1] then -- Rapid Fire 
-		-- if name == "Rapid Fire" then
-            speed = speed/1.4
-        end
-        if buffId == buffs[2] then -- Troll Racial 
-		-- if name == "Berserking" then
-            addon_data.castbar.UpdateBerserkHaste()
-            speed = speed/ (addon_data.castbar.berserk_haste)
-        end
-        if buffId == buffs[4] then -- Kiss of the Spider 
-		-- if name == "Kiss of the Spider" then
-            speed = speed/1.2
-        end
-		if buffId == buffs[5] then -- Curse of Tongues
-        -- if name == "Curse of Tongues" then
-            speed = speed/0.5
-        end
-    end
-    addon_data.castbar.range_cast_speed_modifer = speed
-end
-
-addon_data.castbar.UpdateBerserkHaste = function()
-	
-    if((UnitHealth("player")/UnitHealthMax("player") >= 0.40)) then
-        addon_data.castbar.berserk_haste = (1.30 - (UnitHealth("player")/UnitHealthMax("player")-0.40)/2)
-    else
-        addon_data.castbar.berserk_haste =  1.3
-    end
-end
 
 addon_data.castbar.UpdateCastTimer = function(elapsed)
 	
 	local base_cast_time = addon_data.castbar.shot_spell_ids[addon_data.castbar.casting_spell_id].cast_time
 	
 	if (addon_data.castbar.cast_timer < 0.25) then
-		addon_data.castbar.cast_time = base_cast_time * addon_data.castbar.range_cast_speed_modifer
+		addon_data.castbar.cast_time = base_cast_time * addon_data.hunter.range_cast_speed_modifer
 	end
 	
     addon_data.castbar.cast_timer = GetTime() - addon_data.castbar.cast_start_time
@@ -298,7 +234,11 @@ addon_data.castbar.OnCombatLogUnfiltered = function(combat_info)
 		if event == "SPELL_CAST_START" then
 		  
 				addon_data.hunter.FeignStatus = false
-				addon_data.castbar.StartCastingSpell(real_spell_id)
+				
+				if addon_data.castbar.is_spell_multi_shot(spellID) then
+					addon_data.castbar.StartCastingSpell(spellID)
+					
+				end
 		return end
 	
 		if event == "SPELL_CAST_SUCCESS" then
@@ -325,7 +265,7 @@ addon_data.castbar.OnUnitSpellCastSucceeded = function(unit, spell_id)
   if unit == 'player' then
 	
 	      addon_data.castbar.casting = false
-        -- If the spell is Auto Shot then reset the shot timer
+        
         if addon_data.castbar.shot_spell_ids[spell_id] then
             spell_name = addon_data.castbar.shot_spell_ids[spell_id].spell_name
 
@@ -407,9 +347,11 @@ addon_data.castbar.UpdateVisualsOnUpdate = function()
 
     if addon_data.core.in_combat or addon_data.castbar.casting_shot then
 		if addon_data.castbar.casting_shot then
+		
 			local time_left = math.max(addon_data.utils.SimpleRound(addon_data.castbar.cast_time - addon_data.castbar.cast_timer, 0.1), 0)
 			frame.spell_bar_text:SetText(string.format("%.1f", time_left))
 			frame:SetAlpha(1)
+			frame.spell_bar:SetVertexColor(0.8, 0.64, 0, 1)
 			new_width = settings.width * (addon_data.castbar.cast_timer / addon_data.castbar.cast_time)
 			new_width = math.min(new_width, settings.width)
 			frame.spell_bar:SetWidth(new_width)
@@ -421,6 +363,7 @@ addon_data.castbar.UpdateVisualsOnUpdate = function()
 			end
 		else
 			new_alpha = frame:GetAlpha() - 0.005
+
 			if new_alpha <= 0 then
 				new_alpha = 0
 				frame:SetSize(settings.width, settings.height)
@@ -441,6 +384,7 @@ addon_data.castbar.UpdateVisualsOnUpdate = function()
 		end
 	end
 	else
+		frame.spell_bar:SetVertexColor(0.2, 0.2, 0.2, 1)
         frame:SetAlpha(settings.ooc_alpha)
     end
 end
@@ -465,6 +409,7 @@ addon_data.castbar.UpdateVisualsOnSettingsChange = function()
                 tile = true, tileSize = 16, edgeSize = 16, 
                 insets = { left = 8, right = 8, top = 8, bottom = 8}})
         end
+		frame:SetAlpha(settings.ooc_alpha)
         frame.backplane:SetBackdropColor(0,0,0,settings.backplane_alpha)
 
         frame.spell_bar_text:SetPoint("TOPRIGHT", -5, -(settings.height / 2) + (settings.fontsize / 2))

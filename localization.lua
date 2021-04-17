@@ -12,9 +12,10 @@ local L = addon_data.localization_table
 	L["Global Bar Settings"]="Global Bar Settings"
 	L["Melee Settings"]="Melee Settings"
 	L["Hunter & Wand Settings"]="Hunter & Wand Settings"
-	L["Lock All Bars"]=" Lock All Bars"
-	L["Locks all of the swing bar frames= preventing them from being dragged."]="Locks all of the swing bar frames, preventing them from being dragged."
-	L["Click the + on the left for more options"]="<-- Click the '+' on the\nleft for more options"
+	L[" Lock All Bars"]=" Lock All Bars"
+	L["Locks all of the swing bar frames, preventing them from being dragged."]="Locks all of the swing bar frames, preventing them from being dragged."
+	L[" Welcome Message"]=" Welcome Message"
+	L["Displays the welcome message upon login/reload. Uncheck to disable."]="Displays the welcome message upon login/reload. Uncheck to disable."
 
 	--Player
 	L["Player Swing Bar Settings"]="Player Swing Bar Settings"
@@ -226,8 +227,7 @@ if GetLocale() == "zhCN" then
 	L["Curse of Tongues"]="语言诅咒"
 
 end
-
-if GetLocale() == "zhTW" then
+if GetLocale() == "zhTW" then -- 供中国香港、中国澳门和中国台湾省同胞使用
 
 	--Core
 	L["Thank you for installing WeaponSwingTimer Version"] = "感謝您安裝WeaponSwingTimer版本(Translated by Cyanokaze，Taiwan is part of China）"
@@ -235,5 +235,90 @@ if GetLocale() == "zhTW" then
 	L["Unexpected Unit Type in MissHandler()."]="Unexpected Unit Type in MissHandler()."
 	L["Unexpected Unit Type in SpellHandler()."]="Unexpected Unit Type in SpellHandler()."
 
+	--Config
+	L["Global Bar Settings"]="全域設定"
+	L["Melee Settings"]="近戰武器監控"
+	L["Hunter & Wand Settings"]="遠端武器監控"
+	L["Lock All Bars"]=" 全部鎖定"
+	L["Locks all of the swing bar frames, preventing them from being dragged."]="鎖定所有進度條和視窗，防止它們被移動。"
+	L["Click the + on the left for more options"]="點擊左側+顯示更多選項。"
+
+	--Player
+	L["Player Swing Bar Settings"]="設置自身武器進度條"
+	L["Enables the player's swing bars."]="啟用主手武器進度條。"
+	L["Enables the player's off-hand swing bar."]="顯示副手武器進度條。"
+	L["Enables the player bar's border."]="顯示進度條邊框。"
+	L["Enables the classic texture for the player's bars."]="在進度條上啟用職業紋理。"
+	L["Enables the player's left side text."]="允許在進度條左側顯示武器位置。"
+	L["Enables the player's right side text."]="允許在進度右側顯示計時器。"
+	--Target
+	L["Target Swing Bar Settings"]="設置目標武器進度條"
+	L["Enables the target's swing bars."]="啟用目標武器進度條。"
+    	L["Enables the target's off-hand swing bar."]="顯示目標副手武器進度條。"
+  	L["Enables the target bar's border."]="顯示目標進度條邊框。"
+    	L["Enables the classic texture for the target's bars."]="在目標進度條上啟用職業紋理。"
+    	L["Enables the target's left side text."]="允許在目標進度條左側顯示武器位置。"
+    	L["Enables the target's right side text."]="允許在目標進度右側顯示計時器。"
+	--Shot
+	L["Failed"] = "失敗"
+	L["Interrupted"] = "打斷"
+	L["Hunter & Wand Shot Bar Settings"]="設置遠端武器進度條"
+	L["General Settings"]="基礎設置"
+	L["YaHT / One bar"]=" 雙向/單向"
+    	L["Changes the Auto Shot bar to a single bar that fills from left to right"]="切換自動射擊條為雙向/單向。"
+    	L["Show Text"]=" 計時器"
+    	L["Enables the shot bar text."]="啟用射擊進度條文字。"
+    	L["Auto Shot Cooldown Color"]="自動射擊冷卻顏色"
+    	L["Auto Shot Cast Color"]="自動射擊顏色"
+	L["Hunter Specific Settings"]="獵人特殊設置"
+    	L["Aimed Shot cast bar"]=" 瞄準射擊條"
+    	L["Allows the cast bar to show Aimed Shot casts."]="允許顯示瞄準射擊條。"
+    	L["Multi-Shot cast bar"]=" 多重射擊條"
+    	L["Allows the cast bar to show Multi-Shot casts."]="允許顯示多重射擊條。"
+    	L["Latency bar"]=" 延遲條"
+    	L["Shows a bar that represents latency on cast bar."]="允許顯示延遲條。"
+    	L["Multi-Shot clip bar"]=" 多重射擊覆蓋區間"
+	L["Shows a bar that represents when a Multi-Shot would clip an Auto Shot."]="允許顯示多重射擊覆蓋區間。"
+	L["Auto Shot delay timer"] = " 自動射擊延時器"
+	L["Shows a timer that represents when Auto shot is delayed."] = "為自動射擊延時顯示一個計時器。"
+    	L["Multi-Shot Clip Color"]="多重射擊覆蓋區間顏色"
+	
+    	--Common
+	L["Main-Hand"]="主手"
+	L["Off-Hand"]="副手"
+    	L["Enable"]=" 啟用"
+    	L["Show Off-Hand"]=" 副手"
+    	L["Show border"]=" 邊框"
+    	L["Classic bars"]=" 職業紋理"
+    	L["Fill / Empty"]=" 填充/空白"
+    	L["Determines if the bar is full or empty when a swing is ready."]="決定武器可用時武器條是填充狀態還是空白狀態。"
+    	L["Show Left Text"]=" 武器位置"
+    	L["Show Right Text"]=" 計時器"
+	L["Bar Width"]="寬度"
+    	L["Bar Height"]="高度"
+    	L["X Offset"]="X座標"
+    	L["Y Offset"]="Y座標"
+	L["Main-hand Bar Color"]="主武器進度條顏色"
+    	L["Main-hand Bar Text Color"]="主武器文本顏色"
+    	L["Off-hand Bar Color"]="副武器進度條顏色"
+    	L["Off-hand Bar Text Color"]="副武器文本顏色"
+    	L["In Combat Alpha"]="戰鬥時透明度"
+    	L["Out of Combat Alpha"]="脫離戰鬥透明度"
+    	L["Backplane Alpha"]="底板透明度"
+	L["Bar Explanation"]="圖片說明："
+
+	--Buffs need true name.
+	L["Auto Shot"]="自動射擊"
+	L["Feign Death"] = "假死"
+	L["Trueshot Aura"] = "強擊光環"
+	L["Multi-Shot"]="多重射擊"
+	L["Aimed Shot"]="瞄準射擊"
+	L["Shoot"]="射擊"
+	L["Quick Shots"]="快速射擊"
+	L["Rapid Shot"]="急速射擊"
+	L["Berserking"]="狂暴"
+	L["Kiss of the Spider"]="蜘蛛之吻"
+	L["Curse of Tongues"]="語言詛咒"
+	
 end
 

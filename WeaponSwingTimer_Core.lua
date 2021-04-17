@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "6.2.1"
+local version = "6.3.1"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -487,14 +487,14 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Bloodthirst ]]
     -- --[[ Challenging Shout ]]
     -- --[[ Charge ]]
-    --[[ Cleave ]]                  845, 7369, 11608, 11609, 20569,
+    --[[ Cleave ]]                  845, 7369, 11608, 11609, 20569, 25231,
     -- --[[ Death Wish ]]
     -- --[[ Defensive Stance ]]
     -- --[[ Demoralizing Shout ]]
     -- --[[ Disarm ]]
     -- --[[ Execute ]]
     -- --[[ Hamstring ]]
-    --[[ Heroic Strike ]]           78, 284, 285, 1608, 11564, 11565, 11566, 11567, 25286,
+    --[[ Heroic Strike ]]           78, 284, 285, 1608, 11564, 11565, 11566, 11567, 25286, 30324,
     -- --[[ Intercept ]]
     -- --[[ Intimidating Shout ]]
     -- --[[ Last Stand ]]
@@ -514,7 +514,7 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Shoot Bow ]]
     -- --[[ Shoot Crossbow ]]
     -- --[[ Shoot Gun ]]
-    --[[ Slam ]]                    1464, 8820, 11604, 11605
+    --[[ Slam ]]                    1464, 8820, 11604, 11605, 25241
     -- --[[ Sunder Armor ]]
     -- --[[ Sweeping Strikes ]]
     -- --[[ Taunt ]]
@@ -700,6 +700,7 @@ local function CoreFrame_OnEvent(self, event, ...)
     elseif event == "UNIT_SPELLCAST_FAILED" then
 		addon_data.castbar.OnUnitSpellCastFailed(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
+		addon_data.hunter.OnUnitSpellCastInterrupted(args[1], args[3])
 		addon_data.castbar.OnUnitSpellCastInterrupted(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_FAILED_QUIET" then
         addon_data.hunter.OnUnitSpellCastFailedQuiet(args[1], args[3])

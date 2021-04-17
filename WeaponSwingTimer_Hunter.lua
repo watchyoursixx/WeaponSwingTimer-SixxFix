@@ -5,22 +5,22 @@ local L = addon_data.localization_table
 addon_data.hunter = {}
 --- declare array for ranks of all abilities, cast times, cooldown, based on spell ID
 addon_data.hunter.shot_spell_ids = {
-    [75] = {spell_name = L["Auto Shot"], rank = nil, cast_time = nil, cooldown = nil},
+    [75] = {spell_name = L["Auto Shot"], rank = nil, cast_time = 0.5, cooldown = nil},
 	[5384] = {spell_name = L["Feign Death"], rank = nil, cast_time = nil, cooldown = nil},
 	[19506] = {spell_name = L["Trueshot Aura"], rank = 1, cast_time = nil, cooldown = nil},
 	[20905] = {spell_name = L["Trueshot Aura"], rank = 2, cast_time = nil, cooldown = nil},
 	[20906] = {spell_name = L["Trueshot Aura"], rank = 3, cast_time = nil, cooldown = nil},
-    [2643] = {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.45, cooldown = 10},
-    [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.45, cooldown = 10},
-    [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.45, cooldown = 10},
-    [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.45, cooldown = 10},
-    [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.45, cooldown = 10},
-    [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 2.61, cooldown = 6},
-    [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 2.61, cooldown = 6},
-    [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 2.61, cooldown = 6},
-    [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 2.61, cooldown = 6},
-    [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 2.61, cooldown = 6},
-    [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 2.61, cooldown = 6},
+    [2643] = {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.5, cooldown = 10},
+    [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.5, cooldown = 10},
+    [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.5, cooldown = 10},
+    [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.5, cooldown = 10},
+    [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.5, cooldown = 10},
+    [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 3, cooldown = 6},
+    [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 3, cooldown = 6},
+    [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 3, cooldown = 6},
+    [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 3, cooldown = 6},
+    [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 3, cooldown = 6},
+    [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 3, cooldown = 6},
     [5019] = {spell_name = L["Shoot"], rank = nil, cast_time = nil, cooldown = nil}
 }
 --- is spell multi-shot defined by spell_id
@@ -76,17 +76,19 @@ addon_data.hunter.default_settings = {
 --- Initializing variables for calculations and function calls
 addon_data.hunter.shooting = false
 -- added check below for range speed to default 3 on initialize 
+-- range_speed, _, _, _, _, _ = UnitRangedDamage("player")
 addon_data.hunter.range_speed = 3
-addon_data.hunter.auto_cast_time = 0.50
-addon_data.hunter.shot_timer = 0.50
+addon_data.hunter.auto_cast_time = 0.52
+addon_data.hunter.shot_timer = 0.52
 addon_data.hunter.last_shot_time = GetTime()
 addon_data.hunter.auto_shot_ready = true
 addon_data.hunter.FeignStatus = false
 addon_data.hunter.FeignFullReset = false
 addon_data.hunter.range_auto_speed_modified = 1
+addon_data.hunter.base_speed = 1
 
 addon_data.hunter.casting = false
-addon_data.hunter.casting_shot = false
+addon_data.hunter.casting_auto = false
 addon_data.hunter.casting_spell_id = 0
 addon_data.hunter.cast_timer = 0.1
 addon_data.hunter.cast_time = 0.1
@@ -98,22 +100,6 @@ addon_data.hunter.has_moved = false
 addon_data.hunter.berserk_haste = 1
 addon_data.hunter.class = 0
 addon_data.hunter.guid = 0
-
-
---- The below 3 functions check upon beginning to cast spell, use action, etc to call StartCastingSpell
-addon_data.hunter.OnUseAction = function(action_id)
-    addon_data.hunter.scan_tip:SetAction(action_id)
-    name, _, _, cast_time, _, _, real_spell_id = GetSpellInfo(WSTScanTipTextLeft1:GetText())
-	
-end
-
-addon_data.hunter.OnCastSpellByName = function(name, on_self)
-    name, _, _, cast_time, _, _, real_spell_id = GetSpellInfo(name)
-end
-
-addon_data.hunter.OnCastSpell = function(spell_id, spell_book_type)
-    name, _, _, cast_time, _, _, real_spell_id = GetSpellInfo(spell_id, spell_book_type)
-end
 
 -- Selection of starting a timer for casting multi and handling of stopping auto timer from starting
 addon_data.hunter.StartCastingSpell = function(spell_id)
@@ -147,9 +133,7 @@ addon_data.hunter.LoadSettings = function()
             character_hunter_settings[setting] = value
         end
     end
-    hooksecurefunc('UseAction', addon_data.hunter.OnUseAction)
-    hooksecurefunc('CastSpellByName', addon_data.hunter.OnCastSpellByName)
-    hooksecurefunc('CastSpell', addon_data.hunter.OnCastSpell)
+
     addon_data.hunter.scan_tip = CreateFrame("GameTooltip", "WSTScanTip", nil, "GameTooltipTemplate")
     addon_data.hunter.scan_tip:SetOwner(WorldFrame, "ANCHOR_NONE")
 end
@@ -167,13 +151,14 @@ end
 --- verify weapon speed, class, guid
 addon_data.hunter.UpdateInfo = function()
     addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
+	local weapon_id = addon_data.hunter.range_weapon_id
+	addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
     addon_data.hunter.class = UnitClass("player")[2]
     addon_data.hunter.guid = UnitGUID("player")
 end
 
 --- Reset Swing Timer separately from feign and other spells
 addon_data.hunter.FeignDeath = function()
-    hunter_bw_shot_timer = GetTime()
     addon_data.hunter.last_shot_time = GetTime()
 	if not addon_data.hunter.FeignFullReset then
 		addon_data.hunter.range_speed = addon_data.hunter.range_speed * 1.15 / addon_data.hunter.range_auto_speed_modified
@@ -182,50 +167,18 @@ addon_data.hunter.FeignDeath = function()
     addon_data.hunter.ResetShotTimer()
 end
 
---- Buffs and debuffs change casting speeds, which is multiplied by the cast time
---- -----------------------------------------------------------------------------
---- Anything that changes cast times should go here. Need to add other forms of debuffs
---- berserk haste is a simple calculation to derive the percent of berserking haste provided to the player from their health percent
+
 addon_data.hunter.UpdateRangeCastSpeedModifier = function()
-    local speed = 1.0
-    local buffs = {3045, 26635, 6150, 28866, 12889} -- aura ids for each haste effect
-	for i=1, 40 do
-        local _, _, _, _, _, _, _, _, _, buffId = UnitBuff("player",i)
-		-- name, _ = UnitAura("player", i)
-        if buffId == buffs[3] then -- Quick Shots 
-		-- if name == "Quick Shots" then
-            speed = speed/1.3
-        end
-        if buffId == buffs[1] then -- Rapid Fire 
-		-- if name == "Rapid Fire" then
-            speed = speed/1.4
-        end
-        if buffId == buffs[2] then -- Troll Racial 
-		-- if name == "Berserking" then
-            addon_data.hunter.UpdateBerserkHaste()
-            speed = speed/ (addon_data.hunter.berserk_haste)
-        end
-        if buffId == buffs[4] then -- Kiss of the Spider 
-		-- if name == "Kiss of the Spider" then
-            speed = speed/1.2
-        end
-		if buffId == buffs[5] then -- Curse of Tongues
-        -- if name == "Curse of Tongues" then
-            speed = speed/0.5
-        end
-    end
-    addon_data.hunter.range_cast_speed_modifer = speed
-end
 
-addon_data.hunter.UpdateBerserkHaste = function()
-	
-    if((UnitHealth("player")/UnitHealthMax("player") >= 0.40)) then
-        addon_data.hunter.berserk_haste = (1.30 - (UnitHealth("player")/UnitHealthMax("player")-0.40)/2)
-    else
-        addon_data.hunter.berserk_haste =  1.3
-    end
+	if addon_data.hunter.base_speed == 1 then 
+		addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
+		local weapon_id = addon_data.hunter.range_weapon_id
+		addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
+	else
+		range_speed, _, _, _, _, _ = UnitRangedDamage("player")
+		addon_data.hunter.range_cast_speed_modifer = range_speed / addon_data.hunter.base_speed
+	end
 end
-
 
 
 --- Update timer for auto shot based on various conditions
@@ -261,11 +214,12 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 		addon_data.hunter.shot_timer = shot_timer - elapsed
 	end
 	if class == "WARLOCK" or class == "MAGE" or class == "PRIEST" then
-		addon_data.hunter.auto_cast_time = 0.5
+		addon_data.hunter.auto_cast_time = 0.52
 	else
 		addon_data.hunter.UpdateRangeCastSpeedModifier()
-		addon_data.hunter.auto_cast_time = 0.45 * addon_data.hunter.range_cast_speed_modifer
+		addon_data.hunter.auto_cast_time = 0.52 * addon_data.hunter.range_cast_speed_modifer
 	end
+	
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
         if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
@@ -294,6 +248,7 @@ addon_data.hunter.OnUpdate = function(elapsed)
 			addon_data.hunter.FeignDeath()
 			addon_data.hunter.FeignStatus = false
 		end
+		
         -- Update the Auto Shot timer based on the updated settings
         addon_data.hunter.UpdateAutoShotTimer(elapsed)
         -- Update the visuals
@@ -322,7 +277,6 @@ addon_data.hunter.OnStartAutorepeatSpell = function()
 end
 
 addon_data.hunter.OnStopAutorepeatSpell = function()
-    
     addon_data.hunter.shooting = false
     addon_data.hunter.UpdateInfo()
 end
@@ -331,12 +285,18 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
     local _, event, _, casterID, _, _, _, targetID, targetName, _, _, spellID, name, _ = unpack(combat_info)
 	local _, rank, icon, castTime = GetSpellInfo(spellID)
 	local icon, castTime = select(3, GetSpellInfo(spellID))
+
 	if casterID == UnitGUID("player") then
 	
 		if event == "SPELL_CAST_START" then
-		  
+		
 				addon_data.hunter.FeignStatus = false
-				addon_data.hunter.StartCastingSpell(real_spell_id)
+				addon_data.hunter.StartCastingSpell(spellID)
+				
+				if addon_data.hunter.is_spell_auto_shot(spellID) then
+					addon_data.hunter.casting_auto = true
+				end
+				
 		return end
 	
 		if event == "SPELL_CAST_SUCCESS" then
@@ -352,7 +312,7 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 	local settings = character_hunter_settings
 	if unit == 'player' then
 	
-	      addon_data.hunter.casting = false
+	    addon_data.hunter.casting = false
         -- If the spell is Auto Shot then reset the shot timer
         if addon_data.hunter.shot_spell_ids[spell_id] then
             spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
@@ -369,12 +329,11 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 			end
             if addon_data.hunter.is_spell_auto_shot(spell_id) or addon_data.hunter.is_spell_shoot(spell_id) then
 				addon_data.hunter.FeignFullReset = false
-                hunter_bw_shot_timer = GetTime()
                 addon_data.hunter.last_shot_time = GetTime()
                 addon_data.hunter.ResetShotTimer()
 			else 
 				addon_data.hunter.casting_spell_id = 0
-                addon_data.hunter.casting_shot = false
+                addon_data.hunter.casting_auto = false
             end
 			if addon_data.hunter.is_spell_shoot(spell_id) then
 				new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
@@ -382,19 +341,32 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 			end
         end
 
-    end
-	if addon_data.hunter.is_spell_auto_shot(spell_id) then	-- Update the ranged attack speed
-		new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
-		-- Handling for getting haste buffs in combat, don't need to update auto shot cast time until the next shot is ready
-		if new_range_speed ~= addon_data.hunter.range_speed then
-			if not addon_data.hunter.auto_shot_ready then
-				addon_data.hunter.shot_timer = addon_data.hunter.shot_timer * 
+		if addon_data.hunter.is_spell_auto_shot(spell_id) then	-- Update the ranged attack speed
+			new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
+			--print(new_range_speed)
+			-- Handling for getting haste buffs in combat, don't need to update auto shot cast time until the next shot is ready
+			if new_range_speed ~= addon_data.hunter.range_speed then
+				if not addon_data.hunter.auto_shot_ready then
+					addon_data.hunter.shot_timer = addon_data.hunter.shot_timer * 
 											(new_range_speed / addon_data.hunter.range_speed)
+				end
+				addon_data.hunter.range_speed = new_range_speed
+				addon_data.hunter.range_auto_speed_modified = addon_data.hunter.range_cast_speed_modifer
 			end
-			addon_data.hunter.range_speed = new_range_speed
-			addon_data.hunter.range_auto_speed_modified = addon_data.hunter.range_cast_speed_modifer
 		end
     end
+end
+
+addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
+    local settings = character_castbar_settings
+	
+	addon_data.hunter.casting = false
+	if unit == 'player' and addon_data.hunter.is_spell_auto_shot(spell_id) then
+		addon_data.hunter.casting_auto = false
+		addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
+		addon_data.hunter.ResetShotTimer()
+	end
+	
 end
 
 --- triggered when auto shot is toggled on and attempts to begin casting, but can't
