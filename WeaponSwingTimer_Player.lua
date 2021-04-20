@@ -87,12 +87,17 @@ addon_data.player.OnUpdate = function(elapsed)
         if addon_data.player.off_weapon_speed == 0 then
             addon_data.player.off_weapon_speed = 2
         end
+		
+			
         -- If the weapon speed changed for either hand then a buff occured and we need to modify the timers
         if addon_data.player.main_speed_changed or addon_data.player.off_speed_changed then
             local main_multiplier = addon_data.player.main_weapon_speed / addon_data.player.prev_main_weapon_speed
             addon_data.player.main_swing_timer = addon_data.player.main_swing_timer * main_multiplier
             if addon_data.player.has_offhand then
-                local off_multiplier = (addon_data.player.off_weapon_speed / addon_data.player.prev_off_weapon_speed)
+				if addon_data.player.prev_off_weapon_speed == 0 then
+					addon_data.player.prev_off_weapon_speed = 2
+				end
+                local off_multiplier = addon_data.player.off_weapon_speed / addon_data.player.prev_off_weapon_speed
                 addon_data.player.off_swing_timer = addon_data.player.off_swing_timer * off_multiplier
             end
         end

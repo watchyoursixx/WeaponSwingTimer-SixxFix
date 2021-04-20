@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "6.3.2"
+local version = "6.3.3"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -694,6 +694,7 @@ local function CoreFrame_OnEvent(self, event, ...)
     elseif event == "UNIT_INVENTORY_CHANGED" then
         addon_data.player.OnInventoryChange()
         addon_data.target.OnInventoryChange()
+		addon_data.hunter.OnInventoryChange()
     elseif event == "START_AUTOREPEAT_SPELL" then
         addon_data.hunter.OnStartAutorepeatSpell()
     elseif event == "STOP_AUTOREPEAT_SPELL" then

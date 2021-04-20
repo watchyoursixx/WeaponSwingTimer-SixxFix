@@ -88,34 +88,25 @@ addon_data.hunter.base_speed = 1
 
 addon_data.hunter.casting = false
 addon_data.hunter.casting_auto = false
-addon_data.hunter.casting_spell_id = 0
-addon_data.hunter.cast_timer = 0.1
-addon_data.hunter.cast_time = 0.1
-addon_data.hunter.last_failed_time = GetTime()
 addon_data.hunter.range_cast_speed_modifer = 1
 
 addon_data.hunter.range_weapon_id = 0
 addon_data.hunter.has_moved = false
-addon_data.hunter.berserk_haste = 1
-addon_data.hunter.class = 0
-addon_data.hunter.guid = 0
 
--- Selection of starting a timer for casting multi and handling of stopping auto timer from starting
+-- handling of stopping auto timer from starting
 addon_data.hunter.StartCastingSpell = function(spell_id)
     local settings = character_hunter_settings
 
-    if (GetTime() - addon_data.hunter.last_failed_time) > 0 then
-        if not addon_data.hunter.casting and UnitCanAttack('player', 'target') then
-            spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
-            if cast_time == nil then
+    if not addon_data.hunter.casting and UnitCanAttack('player', 'target') then
+        spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
+        if cast_time == nil then
 			
-                return 
-            end
-            if not addon_data.hunter.is_spell_auto_shot(spell_id) and 
-               not addon_data.hunter.is_spell_shoot(spell_id) and cast_time > 0 then
-                    addon_data.hunter.casting = true
-            end
-		end
+            return 
+        end
+        if not addon_data.hunter.is_spell_auto_shot(spell_id) and 
+			not addon_data.hunter.is_spell_shoot(spell_id) and cast_time > 0 then
+               addon_data.hunter.casting = true
+        end
 	end
 end
 
@@ -147,35 +138,50 @@ addon_data.hunter.RestoreDefaults = function()
     addon_data.hunter.UpdateConfigPanelValues()
 end
 
---- verify weapon speed, class, guid
-addon_data.hunter.UpdateInfo = function()
-    addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
+-- Replaced update info with this instead, checking weapon id every time inventory is changed for simplicity
+addon_data.hunter.OnInventoryChange = function()
+	addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
 	local weapon_id = addon_data.hunter.range_weapon_id
-	addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
-    addon_data.hunter.class = UnitClass("player")[2]
-    addon_data.hunter.guid = UnitGUID("player")
-end
+	
+	if weapon_id == nil then
+		addon_data.hunter.base_speed = 1
+	else
+		addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
+	end
+	
+end	
 
---- Reset Swing Timer separately from feign and other spells
+--- Reset Swing Timer unhasted separately due to feign and other spells
 addon_data.hunter.FeignDeath = function()
     addon_data.hunter.last_shot_time = GetTime()
 	if not addon_data.hunter.FeignFullReset then
-		addon_data.hunter.range_speed = addon_data.hunter.range_speed * 1.15 / addon_data.hunter.range_auto_speed_modified
+		local weapon_id = GetInventoryItemID("player", 18)
+		addon_data.hunter.range_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed + 0.15
 		addon_data.hunter.FeignFullReset = true
 	end
     addon_data.hunter.ResetShotTimer()
 end
 
-
+-- Modified to use base speed and current ranged speed, to get the haste modifiers. This is used in multi-shot cast bar to provide an accurate bar, as well as multi clip
 addon_data.hunter.UpdateRangeCastSpeedModifier = function()
 
 	if addon_data.hunter.base_speed == 1 then 
 		addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
 		local weapon_id = addon_data.hunter.range_weapon_id
-		addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
+		-- added case for if no ranged equipped
+		if weapon_id == nil then
+			addon_data.hunter.base_speed = 1
+		else
+			addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
+		end
 	else
 		range_speed, _, _, _, _, _ = UnitRangedDamage("player")
-		addon_data.hunter.range_cast_speed_modifer = range_speed / addon_data.hunter.base_speed
+		-- added case for if range speed returns nil or 0
+		if range_speed == nil or range_speed == 0 then
+			range_speed = 1
+		else
+			addon_data.hunter.range_cast_speed_modifer = range_speed / addon_data.hunter.base_speed
+		end
 	end
 end
 
@@ -268,7 +274,6 @@ end)
 --- Determines the state of shooting on or off
 addon_data.hunter.OnStartAutorepeatSpell = function()
     addon_data.hunter.shooting = true
-    addon_data.hunter.UpdateInfo()
 	
     if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
         addon_data.hunter.ResetShotTimer()
@@ -277,7 +282,6 @@ end
 
 addon_data.hunter.OnStopAutorepeatSpell = function()
     addon_data.hunter.shooting = false
-    addon_data.hunter.UpdateInfo()
 end
 -- Using combat log to detect pushback hits as well as starting to use spell cast events to replace the old version of detection that was implied
 addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
@@ -331,7 +335,6 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
                 addon_data.hunter.last_shot_time = GetTime()
                 addon_data.hunter.ResetShotTimer()
 			else 
-				addon_data.hunter.casting_spell_id = 0
                 addon_data.hunter.casting_auto = false
             end
 			if addon_data.hunter.is_spell_shoot(spell_id) then

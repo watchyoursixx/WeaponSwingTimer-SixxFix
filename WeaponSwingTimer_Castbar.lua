@@ -67,16 +67,6 @@ addon_data.castbar.default_settings = {
     show_border = false
 }
 --- Initializing variables for calculations and function calls
-addon_data.castbar.shooting = false
--- added check below for range speed to default 3 on initialize 
-addon_data.castbar.range_speed = 3
-addon_data.castbar.auto_cast_time = 0.50
-addon_data.castbar.shot_timer = 0.50
-addon_data.castbar.last_shot_time = GetTime()
-addon_data.castbar.auto_shot_ready = true
-addon_data.castbar.FeignStatus = false
-addon_data.castbar.FeignFullReset = false
-addon_data.castbar.range_auto_speed_modified = 1
 
 addon_data.castbar.casting = false
 addon_data.castbar.casting_shot = false
@@ -85,18 +75,10 @@ addon_data.castbar.cast_timer = 0.1
 addon_data.castbar.cast_time = 0.1
 addon_data.castbar.last_failed_time = GetTime()
 addon_data.castbar.cast_start_time = GetTime()
-
-addon_data.castbar.range_weapon_id = 0
-addon_data.castbar.has_moved = false
-addon_data.castbar.berserk_haste = 1
-addon_data.castbar.class = 0
-addon_data.castbar.guid = 0
-addon_data.castbar.cast_total_time = 0
 addon_data.castbar.hitcount = 0
 addon_data.castbar.initial_pushback_time = 0
 addon_data.castbar.initial_cast_time = 0
 addon_data.castbar.total_pushback = 0
-addon_data.castbar.cast_start_time_test = GetTime()
 
 addon_data.castbar.CastPushback = function()
 	if addon_data.castbar.casting_shot then
@@ -154,7 +136,7 @@ addon_data.castbar.StartCastingSpell = function(spell_id)
 					local _, _, _, latency = GetNetStats()
 					addon_data.castbar.cast_time = addon_data.castbar.cast_time + (latency / 1000)
 				end
-				if settings.show_text then
+				if settings.show_cast_text then
 					addon_data.castbar.frame.spell_text_center:SetText(spell_name)
 				end
 			end	
