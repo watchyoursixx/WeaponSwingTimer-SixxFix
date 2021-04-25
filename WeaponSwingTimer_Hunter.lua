@@ -140,15 +140,17 @@ end
 
 -- Replaced update info with this instead, checking weapon id every time inventory is changed for simplicity
 addon_data.hunter.OnInventoryChange = function()
-	addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
-	local weapon_id = addon_data.hunter.range_weapon_id
+	local _, class, _ = UnitClass("player")
+	if (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK") then
+		addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
+		local weapon_id = addon_data.hunter.range_weapon_id
 	
-	if weapon_id == nil then
-		addon_data.hunter.base_speed = 1
-	else
-		addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
+		if weapon_id == nil then
+			addon_data.hunter.base_speed = 1
+		else
+			addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
+		end
 	end
-	
 end	
 
 --- Reset Swing Timer unhasted separately due to feign and other spells
@@ -165,7 +167,7 @@ end
 -- Modified to use base speed and current ranged speed, to get the haste modifiers. This is used in multi-shot cast bar to provide an accurate bar, as well as multi clip
 addon_data.hunter.UpdateRangeCastSpeedModifier = function()
 
-	if addon_data.hunter.base_speed == 1 then 
+	if addon_data.hunter.base_speed == 1 and (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK") then 
 		addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
 		local weapon_id = addon_data.hunter.range_weapon_id
 		-- added case for if no ranged equipped
