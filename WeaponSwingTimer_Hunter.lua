@@ -166,7 +166,8 @@ end
 
 -- Modified to use base speed and current ranged speed, to get the haste modifiers. This is used in multi-shot cast bar to provide an accurate bar, as well as multi clip
 addon_data.hunter.UpdateRangeCastSpeedModifier = function()
-
+	local _, class, _ = UnitClass("player")
+	
 	if addon_data.hunter.base_speed == 1 and (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK") then 
 		addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
 		local weapon_id = addon_data.hunter.range_weapon_id
