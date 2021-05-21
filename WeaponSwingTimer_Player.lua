@@ -198,7 +198,11 @@ addon_data.player.UpdateMainWeaponSpeed = function()
 end
 
 addon_data.player.UpdateOffWeaponSpeed = function()
-    addon_data.player.prev_off_weapon_speed = addon_data.player.off_weapon_speed
+	if addon_data.player.off_weapon_speed == nil then
+		addon_data.player.prev_off_weapon_speed = 2
+	else
+		addon_data.player.prev_off_weapon_speed = addon_data.player.off_weapon_speed
+	end
     _, addon_data.player.off_weapon_speed = UnitAttackSpeed("player")
     -- Check to see if we have an off-hand
     if (not addon_data.player.off_weapon_speed) or (addon_data.player.off_weapon_speed == 0) then
