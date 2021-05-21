@@ -10,11 +10,12 @@ addon_data.hunter.shot_spell_ids = {
 	[19506] = {spell_name = L["Trueshot Aura"], rank = 1, cast_time = nil, cooldown = nil},
 	[20905] = {spell_name = L["Trueshot Aura"], rank = 2, cast_time = nil, cooldown = nil},
 	[20906] = {spell_name = L["Trueshot Aura"], rank = 3, cast_time = nil, cooldown = nil},
-    [2643] = {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.5, cooldown = 10},
-    [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.5, cooldown = 10},
-    [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.5, cooldown = 10},
-    [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.5, cooldown = 10},
-    [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.5, cooldown = 10},
+    [2643] = {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.45, cooldown = 10},
+    [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.45, cooldown = 10},
+    [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.45, cooldown = 10},
+    [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.45, cooldown = 10},
+    [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.45, cooldown = 10},
+	[27021] = {spell_name = L["Multi-Shot"], rank = 6, cast_time = 0.45, cooldown = 10},
     [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 3, cooldown = 6},
     [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 3, cooldown = 6},
     [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 3, cooldown = 6},
@@ -26,7 +27,7 @@ addon_data.hunter.shot_spell_ids = {
 --- is spell multi-shot defined by spell_id
 addon_data.hunter.is_spell_multi_shot = function(spell_id)
     if (spell_id == 2643) or (spell_id == 14288) or (spell_id == 14289) or 
-       (spell_id == 14290) or (spell_id == 25294) then
+       (spell_id == 14290) or (spell_id == 25294) or (spell_id == 27021) then
             return true
     else
             return false
@@ -85,6 +86,8 @@ addon_data.hunter.FeignStatus = false
 addon_data.hunter.FeignFullReset = false
 addon_data.hunter.range_auto_speed_modified = 1
 addon_data.hunter.base_speed = 1
+addon_data.hunter.spell_GCD = 0
+addon_data.hunter.spell_GCD_Time = 0
 
 addon_data.hunter.casting = false
 addon_data.hunter.casting_auto = false
@@ -194,9 +197,10 @@ addon_data.hunter.ResetShotTimer = function()
     -- The timer is reset to either the auto cast time or the difference between the time since the last shot and the current time depending on which is larger
     local curr_time = GetTime()
     local range_speed = addon_data.hunter.range_speed
+	
     if (curr_time + 0.05 - addon_data.hunter.last_shot_time) > (range_speed - addon_data.hunter.auto_cast_time) then
-        addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
-        addon_data.hunter.auto_shot_ready = true
+		addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
+		addon_data.hunter.auto_shot_ready = true
 		
     elseif curr_time ~= addon_data.hunter.last_shot_time and not addon_data.hunter.casting then
         addon_data.hunter.shot_timer = curr_time - addon_data.hunter.last_shot_time
@@ -244,6 +248,9 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
     else
          addon_data.hunter.auto_shot_ready = false
     end
+	if addon_data.hunter.spell_GCD_Time + 1.5 > curr_time then
+		addon_data.hunter.spell_GCD = 1.5 - (curr_time - addon_data.hunter.spell_GCD_Time)
+	end
 end
 
 addon_data.hunter.OnUpdate = function(elapsed)
@@ -279,7 +286,7 @@ addon_data.hunter.OnStartAutorepeatSpell = function()
     addon_data.hunter.shooting = true
 	
     if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
-        addon_data.hunter.ResetShotTimer()
+        --addon_data.hunter.ResetShotTimer()
     end
 end
 
@@ -301,6 +308,10 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
 				
 				if addon_data.hunter.is_spell_auto_shot(spellID) then
 					addon_data.hunter.casting_auto = true
+				end
+				if spellID == 34120 or addon_data.hunter.is_spell_multi_shot(spellID) then
+					addon_data.hunter.spell_GCD = 1.5
+					addon_data.hunter.spell_GCD_Time = GetTime()
 				end
 				
 		return end
@@ -337,8 +348,9 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 				addon_data.hunter.FeignFullReset = false
                 addon_data.hunter.last_shot_time = GetTime()
                 addon_data.hunter.ResetShotTimer()
-			else 
-                addon_data.hunter.casting_auto = false
+				addon_data.hunter.casting_auto = false
+			--else 
+                --addon_data.hunter.casting_auto = false
             end
 			if addon_data.hunter.is_spell_shoot(spell_id) then
 				new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
@@ -397,7 +409,7 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
     local range_speed = addon_data.hunter.range_speed
     local shot_timer = addon_data.hunter.shot_timer
     local auto_cast_time = addon_data.hunter.auto_cast_time
-	local mult_cast_time = 0.35 * addon_data.hunter.range_cast_speed_modifer
+	local mult_cast_time = 0.5 * addon_data.hunter.range_cast_speed_modifer
 	
 	if settings.enabled then
         frame.shot_bar_text:SetText(tostring(addon_data.utils.SimpleRound(shot_timer, 0.1)))
@@ -412,11 +424,15 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
                 new_width = settings.width * (auto_cast_time - shot_timer) / auto_cast_time
                 frame.multishot_clip_bar:Hide()
             else
-                frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
+                if addon_data.hunter.spell_GCD > 0.5 then
+					frame.shot_bar:SetVertexColor(0.8, 0.64, 0, 1)
+				else
+					frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
+				end
                 new_width = settings.width * ((shot_timer - auto_cast_time) / (range_speed - auto_cast_time))
                 if settings.show_multishot_clip_bar then
                     frame.multishot_clip_bar:Show()
-                    multishot_clip_width = math.min((settings.width * 2) * (mult_cast_time / (addon_data.hunter.range_speed - mult_cast_time)), settings.width)
+                    multishot_clip_width = math.min((settings.width * 2) * (mult_cast_time / (addon_data.hunter.range_speed)), settings.width)
                     frame.multishot_clip_bar:SetWidth(multishot_clip_width)
                 end
             end
@@ -425,6 +441,11 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             end
             frame.shot_bar:SetWidth(math.min(new_width, settings.width))
         else
+		    if addon_data.hunter.spell_GCD > 0.2 then
+				frame.shot_bar:SetVertexColor(0.8, 0.64, 0, 1)
+			else
+				frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
+			end
             timer_width = settings.width * ((addon_data.hunter.range_speed - addon_data.hunter.shot_timer) / addon_data.hunter.range_speed)
             if addon_data.hunter.auto_shot_ready then
                 auto_shot_cast_width = settings.width * (addon_data.hunter.shot_timer / addon_data.hunter.range_speed)
@@ -433,7 +454,7 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             end
             if settings.show_multishot_clip_bar then
                 frame.multishot_clip_bar:Show()
-                multishot_clip_width = math.min(settings.width * (mult_cast_time / (addon_data.hunter.range_speed - mult_cast_time)), settings.width)
+                multishot_clip_width = math.min(settings.width * (mult_cast_time / range_speed ), settings.width)
                 frame.multishot_clip_bar:SetWidth(5)
                 multi_offset = (settings.width * (addon_data.hunter.auto_cast_time / addon_data.hunter.range_speed)) + multishot_clip_width
                 frame.multishot_clip_bar:SetPoint('BOTTOMRIGHT', -multi_offset, 0)

@@ -196,13 +196,14 @@ end
 
 addon_data.castbar.OnUpdate = function(elapsed)
     if character_castbar_settings.enabled then
-
+		local curr_time = GetTime()
         -- Update the cast bar timers
         if addon_data.castbar.casting_shot then
             addon_data.castbar.UpdateCastTimer(elapsed)
         end
         -- Update the visuals
         addon_data.castbar.UpdateVisualsOnUpdate()
+		
     end
 end
 
@@ -221,6 +222,7 @@ addon_data.castbar.OnCombatLogUnfiltered = function(combat_info)
 					addon_data.castbar.StartCastingSpell(spellID)
 					
 				end
+				
 		return end
 	
 		if event == "SPELL_CAST_SUCCESS" then
@@ -374,7 +376,7 @@ end
 addon_data.castbar.UpdateVisualsOnSettingsChange = function()
     local settings = character_castbar_settings
     local frame = addon_data.castbar.frame
-	if settings.enabled then
+	if settings.show_multishot_cast_bar then
         frame:Show()
         frame:ClearAllPoints()
         frame:SetPoint(settings.point, UIParent, settings.rel_point, settings.x_offset, settings.y_offset)
@@ -585,7 +587,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     
     -- Show Text Checkbox
     panel.show_casttext_checkbox = addon_data.config.CheckBoxFactory(
-        "HunterShowCastTextCheckBox",
+        "CastBarShowCastTextCheckBox",
         panel,
 		L["Show Cast Text"],
         L["Enables the cast bar text."],
@@ -594,7 +596,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     
     -- Width EditBox
     panel.width_editbox = addon_data.config.EditBoxFactory(
-        "HunterWidthEditBox",
+        "CastBarWidthEditBox",
         panel,
         L["Bar Width"],
         75,
@@ -603,7 +605,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     panel.width_editbox:SetPoint("TOPLEFT", 240, -90, "BOTTOMRIGHT", 275, -115)
     -- Height EditBox
     panel.height_editbox = addon_data.config.EditBoxFactory(
-        "HunterHeightEditBox",
+        "CastBarHeightEditBox",
         panel,
         L["Bar Height"],
         75,
@@ -621,7 +623,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     panel.fontsize_editbox:SetPoint("TOPLEFT", 160, -90)
     -- X Offset EditBox
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
-        "HunterXOffsetEditBox",
+        "CastBarXOffsetEditBox",
         panel,
         L["X Offset"],
         75,
@@ -630,7 +632,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     panel.x_offset_editbox:SetPoint("TOPLEFT", 200, -140, "BOTTOMRIGHT", 275, -165)
     -- Y Offset EditBox
     panel.y_offset_editbox = addon_data.config.EditBoxFactory(
-        "HunterYOffsetEditBox",
+        "CastBarYOffsetEditBox",
         panel,
         L["Y Offset"],
         75,
@@ -640,7 +642,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
          
     -- In Combat Alpha Slider
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(
-        "HunterInCombatAlphaSlider",
+        "CastBarInCombatAlphaSlider",
         panel,
         L["In Combat Alpha"],
         0,
@@ -650,7 +652,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 405, -90)
     -- Out Of Combat Alpha Slider
     panel.ooc_alpha_slider = addon_data.config.SliderFactory(
-        "HunterOOCAlphaSlider",
+        "CastBarOOCAlphaSlider",
         panel,
         L["Out of Combat Alpha"],
         0,
@@ -660,7 +662,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     panel.ooc_alpha_slider:SetPoint("TOPLEFT", 405, -140)
     -- Backplane Alpha Slider
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
-        "HunterBackplaneAlphaSlider",
+        "CastBarBackplaneAlphaSlider",
         panel,
         L["Backplane Alpha"],
         0,
