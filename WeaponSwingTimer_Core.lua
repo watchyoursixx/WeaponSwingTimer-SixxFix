@@ -590,7 +590,10 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
                 addon_data.target.main_swing_timer = min_swing_time
             end
             if not is_offhand then
-                addon_data.player.ResetMainSwingTimer()
+                if (addon_data.player.extra_attacks_flag == false) then
+			addon_data.player.ResetMainSwingTimer()
+		end
+		addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end
@@ -610,7 +613,10 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
     else
         if unit == "player" then
             if not is_offhand then
-                addon_data.player.ResetMainSwingTimer()
+                if (addon_data.player.extra_attacks_flag == false) then
+			addon_data.player.ResetMainSwingTimer()
+		end
+		addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end 
