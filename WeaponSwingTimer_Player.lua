@@ -40,6 +40,7 @@ addon_data.player.prev_main_weapon_speed = 2
 addon_data.player.main_weapon_speed = 2
 addon_data.player.main_weapon_id = GetInventoryItemID("player", 16)
 addon_data.player.main_speed_changed = false
+addon_data.player.extra_attacks_flag = false
 
 addon_data.player.off_swing_timer = 0.00001
 addon_data.player.prev_off_weapon_speed = 2
@@ -130,15 +131,26 @@ end
 addon_data.player.OnCombatLogUnfiltered = function(combat_info)
     local _, event, _, source_guid, _, _, _, dest_guid, _, _, _, _, spell_name, _ = unpack(combat_info)
     if (source_guid == addon_data.player.guid) then
+	
+	-- added check for extra attacks that would accidently reset the swing timer, reset by a sucessful
+		if (event == "SPELL_EXTRA_ATTACKS") then
+			addon_data.player.extra_attacks_flag = true
+		end
         if (event == "SWING_DAMAGE") then
             local _, _, _, _, _, _, _, _, _, is_offhand = select(12, unpack(combat_info))
             if is_offhand then
                 addon_data.player.ResetOffSwingTimer()
             else
-                addon_data.player.ResetMainSwingTimer()
+				if (addon_data.player.extra_attacks_flag == false) then
+					addon_data.player.ResetMainSwingTimer()
+				end
+				addon_data.player.extra_attacks_flag = false
             end
         elseif (event == "SWING_MISSED") then
             local miss_type, is_offhand = select(12, unpack(combat_info))
+			if not is_offhand then
+				addon_data.player.extra_attacks_flag = false
+			end
             addon_data.core.MissHandler("player", miss_type, is_offhand)
         elseif (event == "SPELL_DAMAGE") or (event == "SPELL_MISSED") then
             local _, _, _, _, _, _, spell_id = GetSpellInfo(spell_name)
