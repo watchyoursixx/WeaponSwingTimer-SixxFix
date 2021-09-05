@@ -58,6 +58,8 @@ local L = addon_data.localization_table
 	L["Auto Shot delay timer"] = " Auto Shot delay timer"
 	L["Shows a timer that represents when Auto shot is delayed."] = "Shows a timer that represents when Auto shot is delayed."
     L["Multi-Shot Clip Color"]="Multi-Shot Clip Color"
+	L["Steady-Shot clip bar"]=" Steady-Shot clip bar"
+	L["Steady-Shot Clip Color"]="Steady-Shot Clip Color"
 
     --Common
 	L["Main-Hand"]="Main-Hand"
