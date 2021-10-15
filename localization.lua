@@ -25,6 +25,11 @@ local L = addon_data.localization_table
     L["Enables the classic texture for the player's bars."]="Enables the classic texture for the player's bars."
     L["Enables the player's left side text."]="Enables the player's left side text."
     L["Enables the player's right side text."]="Enables the player's right side text."
+	L["Show Paladin Twist"]=" Show Paladin Twist"
+	L["Show 0.4s marker before swing to help with seal twisting. Apply seal after this."]="Show 0.4s marker before swing to help with seal twisting. Apply seal after this."
+	L["Show Paladin GCD"]=" Show Paladin GCD"
+	L["Show GCD marker before swing to help with seal twisting. Apply first seal before this."]="Show GCD marker before swing to help with seal twisting. Apply first seal before this."
+	L["Paladin Marker offset"]="Paladin Marker offset"
 	--Target
 	L["Target Swing Bar Settings"]="Target Swing Bar Settings"
 	L["Enables the target's swing bars."]="Enables the target's swing bars."
