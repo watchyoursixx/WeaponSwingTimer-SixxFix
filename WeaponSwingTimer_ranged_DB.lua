@@ -386,6 +386,7 @@ addon_data.ranged_DB.item_ids = {
 	[22318] = {base_speed = 2.9},    -- Malgen's Long Bow
 	[22347] = {base_speed = 3.2},    -- Fahrad's Reloading Repeater
 	[22408] = {base_speed = 1.3},    -- Ritssyn's Wand of Bad Mojo
+	[22646] = {base_speed = 0},    -- Master Spellstone
 	[22656] = {base_speed = 3},    -- The Purifier
 	[22810] = {base_speed = 2},    -- Toxin Injector
 	[22811] = {base_speed = 2.9},    -- Soulstring

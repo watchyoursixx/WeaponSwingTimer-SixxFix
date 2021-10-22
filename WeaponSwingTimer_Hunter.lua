@@ -183,8 +183,8 @@ addon_data.hunter.UpdateRangeCastSpeedModifier = function()
 		end
 	else
 		range_speed, _, _, _, _, _ = UnitRangedDamage("player")
-		-- added case for if range speed returns nil or 0
-		if range_speed == nil or range_speed == 0 then
+		-- added case for if range speed returns nil or 0, or base_speed is zero (Master Spellstone)
+		if range_speed == nil or range_speed == 0 or addon_data.hunter.base_speed == 0 then
 			range_speed = 1
 		else
 			addon_data.hunter.range_cast_speed_modifer = range_speed / addon_data.hunter.base_speed
