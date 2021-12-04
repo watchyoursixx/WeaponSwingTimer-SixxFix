@@ -41,7 +41,9 @@ local L = addon_data.localization_table
 	L["YaHT / One bar"]=" YaHT / One bar"
     L["Changes the Auto Shot bar to a single bar that fills from left to right"]="Changes the Auto Shot bar to a single bar that fills from left to right"
     L["Show Text"]=" Show Text"
+	L["Show Cast Text"]=" Show Cast Text"
     L["Enables the shot bar text."]="Enables the shot bar text."
+	L["Enables the cast bar text."]="Enables the cast bar text."
     L["Auto Shot Cooldown Color"]="Auto Shot Cooldown Color"
     L["Auto Shot Cast Color"]="Auto Shot Cast Color"
 	L["Hunter Specific Settings"]="Hunter Specific Settings"
@@ -53,9 +55,10 @@ local L = addon_data.localization_table
     L["Shows a bar that represents latency on cast bar."]="Shows a bar that represents latency on cast bar."
     L["Multi-Shot clip bar"]=" Multi-Shot clip bar"
     L["Shows a bar that represents when a Multi-Shot would clip an Auto Shot."]="Shows a bar that represents when a Multi-Shot would clip an Auto Shot."
-	L["Auto Shot delay timer"] = "Auto Shot delay timer"
+	L["Auto Shot delay timer"] = " Auto Shot delay timer"
 	L["Shows a timer that represents when Auto shot is delayed."] = "Shows a timer that represents when Auto shot is delayed."
     L["Multi-Shot Clip Color"]="Multi-Shot Clip Color"
+	L["Spell Bar Unlocked"] = "Spell Bar Unlocked"
 
     --Common
 	L["Main-Hand"]="Main-Hand"

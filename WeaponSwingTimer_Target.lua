@@ -9,7 +9,7 @@ addon_data.target = {}
 
 addon_data.target.default_settings = {
 	enabled = true,
-	width = 200,
+	width = 300,
 	height = 12,
 	fontsize = 10,
     point = "CENTER",
@@ -23,7 +23,7 @@ addon_data.target.default_settings = {
     show_left_text = true,
     show_right_text = true,
 	show_offhand = true,
-    show_border = true,
+    show_border = false,
     classic_bars = true,
     fill_empty = true,
     main_r = 0.8, main_g = 0.1, main_b = 0.1, main_a = 1.0,
@@ -441,7 +441,7 @@ addon_data.target.InitializeVisuals = function()
     frame:SetScript("OnDragStart", addon_data.target.OnFrameDragStart)
     frame:SetScript("OnDragStop", addon_data.target.OnFrameDragStop)
     -- Create the backplane
-    frame.backplane = CreateFrame("Frame", addon_name .. "TargetBackdropFrame", frame)
+    frame.backplane = CreateFrame("Frame", addon_name .. "TargetBackdropFrame", frame, "BackdropTemplate")
     frame.backplane:SetPoint('TOPLEFT', -9, 9)
     frame.backplane:SetPoint('BOTTOMRIGHT', 9, -9)
     frame.backplane:SetFrameStrata('BACKGROUND')

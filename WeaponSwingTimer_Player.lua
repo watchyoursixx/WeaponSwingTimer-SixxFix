@@ -9,7 +9,7 @@ addon_data.player = {}
 
 addon_data.player.default_settings = {
 	enabled = true,
-	width = 200,
+	width = 300,
 	height = 12,
 	fontsize = 10,
     point = "CENTER",
@@ -23,7 +23,7 @@ addon_data.player.default_settings = {
     show_left_text = true,
     show_right_text = true,
 	show_offhand = true,
-    show_border = true,
+    show_border = false,
     classic_bars = true,
     fill_empty = true,
     main_r = 0.1, main_g = 0.1, main_b = 0.9, main_a = 1.0,
@@ -40,6 +40,7 @@ addon_data.player.prev_main_weapon_speed = 2
 addon_data.player.main_weapon_speed = 2
 addon_data.player.main_weapon_id = GetInventoryItemID("player", 16)
 addon_data.player.main_speed_changed = false
+addon_data.player.extra_attacks_flag = false
 
 addon_data.player.off_swing_timer = 0.00001
 addon_data.player.prev_off_weapon_speed = 2
@@ -92,7 +93,10 @@ addon_data.player.OnUpdate = function(elapsed)
             local main_multiplier = addon_data.player.main_weapon_speed / addon_data.player.prev_main_weapon_speed
             addon_data.player.main_swing_timer = addon_data.player.main_swing_timer * main_multiplier
             if addon_data.player.has_offhand then
-                local off_multiplier = (addon_data.player.off_weapon_speed / addon_data.player.prev_off_weapon_speed)
+				if addon_data.player.prev_off_weapon_speed == 0 then
+					addon_data.player.prev_off_weapon_speed = 2
+				end
+                local off_multiplier = addon_data.player.off_weapon_speed / addon_data.player.prev_off_weapon_speed
                 addon_data.player.off_swing_timer = addon_data.player.off_swing_timer * off_multiplier
             end
         end
@@ -125,12 +129,20 @@ end
 addon_data.player.OnCombatLogUnfiltered = function(combat_info)
     local _, event, _, source_guid, _, _, _, dest_guid, _, _, _, _, spell_name, _ = unpack(combat_info)
     if (source_guid == addon_data.player.guid) then
+	
+	-- added check for extra attacks that would accidently reset the swing timer, reset by a sucessful
+		if (event == "SPELL_EXTRA_ATTACKS") then
+			addon_data.player.extra_attacks_flag = true
+		end
         if (event == "SWING_DAMAGE") then
             local _, _, _, _, _, _, _, _, _, is_offhand = select(12, unpack(combat_info))
             if is_offhand then
                 addon_data.player.ResetOffSwingTimer()
             else
-                addon_data.player.ResetMainSwingTimer()
+				if (addon_data.player.extra_attacks_flag == false) then
+					addon_data.player.ResetMainSwingTimer()
+				end
+				addon_data.player.extra_attacks_flag = false
             end
         elseif (event == "SWING_MISSED") then
             local miss_type, is_offhand = select(12, unpack(combat_info))
@@ -193,7 +205,11 @@ addon_data.player.UpdateMainWeaponSpeed = function()
 end
 
 addon_data.player.UpdateOffWeaponSpeed = function()
-    addon_data.player.prev_off_weapon_speed = addon_data.player.off_weapon_speed
+	if addon_data.player.off_weapon_speed == nil then
+		addon_data.player.prev_off_weapon_speed = 2
+	else
+		addon_data.player.prev_off_weapon_speed = addon_data.player.off_weapon_speed
+	end
     _, addon_data.player.off_weapon_speed = UnitAttackSpeed("player")
     -- Check to see if we have an off-hand
     if (not addon_data.player.off_weapon_speed) or (addon_data.player.off_weapon_speed == 0) then
@@ -414,7 +430,7 @@ addon_data.player.InitializeVisuals = function()
     frame:SetScript("OnDragStart", addon_data.player.OnFrameDragStart)
     frame:SetScript("OnDragStop", addon_data.player.OnFrameDragStop)
     -- Create the backplane and border
-    frame.backplane = CreateFrame("Frame", addon_name .. "PlayerBackdropFrame", frame)
+    frame.backplane = CreateFrame("Frame", addon_name .. "PlayerBackdropFrame", frame, "BackdropTemplate")
     frame.backplane:SetPoint('TOPLEFT', -9, 9)
     frame.backplane:SetPoint('BOTTOMRIGHT', 9, -9)
     frame.backplane:SetFrameStrata('BACKGROUND')

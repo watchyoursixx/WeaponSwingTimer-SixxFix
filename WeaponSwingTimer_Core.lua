@@ -11,14 +11,14 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "5.2.2"
+local version = "7.1.1"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
                      
 addon_data.core.default_settings = {
     one_frame = false,
-    welcome_message = true
+	welcome_message = true
 }
 
 addon_data.core.in_combat = false
@@ -115,7 +115,7 @@ swing_reset_spells['HUNTER'] = {
     -- --[[ Mongoose Bite ]]
     -- --[[ Multi-Shot ]]
     -- --[[ Rapid Fire ]]
-    --[[ Raptor Strike ]]               2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266,
+    --[[ Raptor Strike ]]               2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266, 27014
     -- --[[ Readiness ]]
     -- --[[ Revive Pet ]]
     -- --[[ Scare Beast ]]
@@ -530,6 +530,7 @@ local function LoadAllSettings()
     addon_data.player.LoadSettings()
     addon_data.target.LoadSettings()
     addon_data.hunter.LoadSettings()
+	addon_data.castbar.LoadSettings()
 end
 
 addon_data.core.RestoreAllDefaults = function()
@@ -537,12 +538,14 @@ addon_data.core.RestoreAllDefaults = function()
     addon_data.player.RestoreDefaults()
     addon_data.target.RestoreDefaults()
     addon_data.hunter.RestoreDefaults()
+	addon_data.castbar.RestoreDefaults()
 end
 
 local function InitializeAllVisuals()
     addon_data.player.InitializeVisuals()
     addon_data.target.InitializeVisuals()
     addon_data.hunter.InitializeVisuals()
+	addon_data.castbar.InitializeVisuals()
     addon_data.config.InitializeVisuals()
 end
 
@@ -551,6 +554,7 @@ addon_data.core.UpdateAllVisualsOnSettingsChange = function()
     addon_data.player.UpdateVisualsOnSettingsChange()
     addon_data.target.UpdateVisualsOnSettingsChange()
     addon_data.hunter.UpdateVisualsOnSettingsChange()
+	addon_data.castbar.UpdateVisualsOnSettingsChange()
 end
 
 addon_data.core.LoadSettings = function()
@@ -576,6 +580,7 @@ local function CoreFrame_OnUpdate(self, elapsed)
     addon_data.player.OnUpdate(elapsed)
     addon_data.target.OnUpdate(elapsed)
     addon_data.hunter.OnUpdate(elapsed)
+	addon_data.castbar.OnUpdate(elapsed)
 end
 
 addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
@@ -586,7 +591,10 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
                 addon_data.target.main_swing_timer = min_swing_time
             end
             if not is_offhand then
-                addon_data.player.ResetMainSwingTimer()
+                if (addon_data.player.extra_attacks_flag == false) then
+			addon_data.player.ResetMainSwingTimer()
+		end
+		addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end
@@ -606,7 +614,10 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
     else
         if unit == "player" then
             if not is_offhand then
-                addon_data.player.ResetMainSwingTimer()
+                if (addon_data.player.extra_attacks_flag == false) then
+			addon_data.player.ResetMainSwingTimer()
+		end
+		addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end 
@@ -627,7 +638,7 @@ addon_data.core.SpellHandler = function(unit, spell_id)
     for class, spell_table in pairs(swing_reset_spells) do
         if player_class == class then
             for spell_index, curr_spell_id in ipairs(spell_table) do
-                if spell_id == curr_spell_id then
+				if spell_id == curr_spell_id then
                     if unit == "player" then
                         addon_data.player.ResetMainSwingTimer()
                     elseif unit == "target" then
@@ -663,8 +674,8 @@ local function OnAddonLoaded(self)
     addon_data.player.ZeroizeSwingTimers()
     addon_data.target.ZeroizeSwingTimers()
 	
-	if character_core_settings.welcome_message then
-		addon_data.utils.PrintMsg(load_message)
+    if character_core_settings.welcome_message then	
+		addon_data.utils.PrintMsg(load_message)	
 	end
 end
 
@@ -685,19 +696,23 @@ local function CoreFrame_OnEvent(self, event, ...)
         addon_data.player.OnCombatLogUnfiltered(combat_info)
         addon_data.target.OnCombatLogUnfiltered(combat_info)
 		addon_data.hunter.OnCombatLogUnfiltered(combat_info)
+		addon_data.castbar.OnCombatLogUnfiltered(combat_info)
     elseif event == "UNIT_INVENTORY_CHANGED" then
         addon_data.player.OnInventoryChange()
         addon_data.target.OnInventoryChange()
+		addon_data.hunter.OnInventoryChange()
     elseif event == "START_AUTOREPEAT_SPELL" then
         addon_data.hunter.OnStartAutorepeatSpell()
     elseif event == "STOP_AUTOREPEAT_SPELL" then
         addon_data.hunter.OnStopAutorepeatSpell()
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         addon_data.hunter.OnUnitSpellCastSucceeded(args[1], args[3])
+		addon_data.castbar.OnUnitSpellCastSucceeded(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_FAILED" then
-        addon_data.hunter.OnUnitSpellCastFailed(args[1], args[3])
+		addon_data.castbar.OnUnitSpellCastFailed(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-        addon_data.hunter.OnUnitSpellCastInterrupted(args[1], args[3])
+		addon_data.hunter.OnUnitSpellCastInterrupted(args[1], args[3])
+		addon_data.castbar.OnUnitSpellCastInterrupted(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_FAILED_QUIET" then
         addon_data.hunter.OnUnitSpellCastFailedQuiet(args[1], args[3])
     end
