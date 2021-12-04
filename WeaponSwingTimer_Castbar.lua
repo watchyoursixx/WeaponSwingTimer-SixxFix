@@ -8,18 +8,19 @@ addon_data.castbar.shot_spell_ids = {
 	[19506] = {spell_name = L["Trueshot Aura"], rank = 1, cast_time = nil, cooldown = nil},
 	[20905] = {spell_name = L["Trueshot Aura"], rank = 2, cast_time = nil, cooldown = nil},
 	[20906] = {spell_name = L["Trueshot Aura"], rank = 3, cast_time = nil, cooldown = nil},
-    [2643] = {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.45, cooldown = 10},
-    [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.45, cooldown = 10},
-    [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.45, cooldown = 10},
-    [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.45, cooldown = 10},
-    [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.45, cooldown = 10},
-	[27021] = {spell_name = L["Multi-Shot"], rank = 6, cast_time = 0.45, cooldown = 10},
-    [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 2.61, cooldown = 6},
-    [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 2.61, cooldown = 6},
-    [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 2.61, cooldown = 6},
-    [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 2.61, cooldown = 6},
-    [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 2.61, cooldown = 6},
-    [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 2.61, cooldown = 6},
+    [2643] = {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.5, cooldown = 10},
+    [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.5, cooldown = 10},
+    [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.5, cooldown = 10},
+    [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.5, cooldown = 10},
+    [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.5, cooldown = 10},
+	[27021] = {spell_name = L["Multi-Shot"], rank = 6, cast_time = 0.5, cooldown = 10},
+    [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 3, cooldown = 6},
+    [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 3, cooldown = 6},
+    [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 3, cooldown = 6},
+    [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 3, cooldown = 6},
+    [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 3, cooldown = 6},
+    [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 3, cooldown = 6},
+    [27065] = {spell_name = L["Aimed Shot"], rank = 7, cast_time = 3, cooldown = 6},
     [5019] = {spell_name = L["Shoot"], rank = nil, cast_time = nil, cooldown = nil}
 }
 --- is spell multi-shot defined by spell_id
@@ -34,7 +35,7 @@ end
 --- is spell aimed shot defined by spell_id
 addon_data.castbar.is_spell_aimed_shot = function(spell_id)
     if (spell_id == 19434) or (spell_id == 20900) or (spell_id == 20901) or 
-       (spell_id == 20902) or (spell_id == 20903) or (spell_id == 20904) then
+       (spell_id == 20902) or (spell_id == 20903) or (spell_id == 20904) or (spell_id == 27065) then
             return true
     else
             return false
@@ -59,9 +60,10 @@ addon_data.castbar.default_settings = {
 	x_offset = 0,
 	y_offset = 0,
 	in_combat_alpha = 1.0,
-	ooc_alpha = 0.5,
+	--ooc_alpha = 0.5,
 	backplane_alpha = 0.5,
     show_cast_text = true,
+    show_aimedshot_cast_bar = true,
     show_multishot_cast_bar = true,
     show_latency_bars = false,
     show_border = false
@@ -121,7 +123,7 @@ addon_data.castbar.StartCastingSpell = function(spell_id)
                     addon_data.castbar.casting = true
             end
 
-			if (not addon_data.castbar.casting_shot) and (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+			if (not addon_data.castbar.casting_shot) and (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) or (addon_data.castbar.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) then
 				addon_data.castbar.cast_start_time = GetTime()
 				addon_data.castbar.casting_shot = true
 				addon_data.castbar.casting_spell_id = spell_id
@@ -195,7 +197,8 @@ addon_data.castbar.UpdateCastTimer = function(elapsed)
 end
 
 addon_data.castbar.OnUpdate = function(elapsed)
-    if character_castbar_settings.enabled then
+	local _, class, _ = UnitClass("player")
+    if character_castbar_settings.enabled and (class == "HUNTER") then
 		local curr_time = GetTime()
         -- Update the cast bar timers
         if addon_data.castbar.casting_shot then
@@ -217,8 +220,7 @@ addon_data.castbar.OnCombatLogUnfiltered = function(combat_info)
 		if event == "SPELL_CAST_START" then
 		  
 				addon_data.hunter.FeignStatus = false
-				
-				if addon_data.castbar.is_spell_multi_shot(spellID) then
+				if addon_data.castbar.is_spell_multi_shot(spellID) or addon_data.castbar.is_spell_aimed_shot(spellID) then
 					addon_data.castbar.StartCastingSpell(spellID)
 					
 				end
@@ -260,7 +262,9 @@ addon_data.castbar.OnUnitSpellCastSucceeded = function(unit, spell_id)
 			addon_data.castbar.casting_spell_id = 0
             addon_data.castbar.casting_shot = false
 			-- only show green bar overlay if setting is enabled
-			if (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+			local spell_aimed_enabled = (addon_data.castbar.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar)
+			local spell_multi_enabled = (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar)
+			if (spell_aimed_enabled or spell_multi_enabled) then
 				addon_data.castbar.frame.spell_bar:SetVertexColor(0, 0.5, 0, 1)
 				addon_data.castbar.frame.spell_bar:SetWidth(character_castbar_settings.width)
 				addon_data.castbar.frame.spell_bar_text:SetText("0.0")
@@ -275,7 +279,7 @@ addon_data.castbar.OnUnitSpellCastFailed = function(unit, spell_id)
     local settings = character_castbar_settings
     local frame = addon_data.castbar.frame
 	-- only care about if multi fails to cast, so ignore others
-    if unit == 'player' and (addon_data.castbar.is_spell_multi_shot(spell_id)) then
+    if unit == 'player' and (addon_data.castbar.is_spell_multi_shot(spell_id) or addon_data.castbar.is_spell_aimed_shot(spell_id)) then
 
         addon_data.castbar.last_failed_time = GetTime()
         addon_data.castbar.casting = false
@@ -283,11 +287,13 @@ addon_data.castbar.OnUnitSpellCastFailed = function(unit, spell_id)
 		addon_data.castbar.initial_pushback_time = 0
 		addon_data.castbar.hitcount = 0
 		
-        if addon_data.castbar.casting_spell_id > 0 and (addon_data.castbar.is_spell_multi_shot(spell_id)) then
+        local spell_aimed_enabled = (addon_data.castbar.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar)
+		local spell_multi_enabled = (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar)
+        if (addon_data.castbar.casting_spell_id > 0) and (spell_aimed_enabled or spell_multi_enabled) then
 		
             addon_data.castbar.casting_shot = false
             addon_data.castbar.casting_spell_id = 0
-			if (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+			if spell_aimed_enabled or spell_multi_enabled then
 				addon_data.castbar.frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
 				if character_castbar_settings.show_text then
 					frame.spell_text_center:SetText(L["Failed"])
@@ -301,18 +307,20 @@ end
 addon_data.castbar.OnUnitSpellCastInterrupted = function(unit, spell_id)
     local settings = character_castbar_settings
 	local frame = addon_data.castbar.frame
-	if unit == 'player' and (addon_data.castbar.is_spell_multi_shot(spell_id)) then
+	if unit == 'player' and (addon_data.castbar.is_spell_multi_shot(spell_id) or addon_data.castbar.is_spell_aimed_shot(spell_id)) then
 	
         addon_data.castbar.casting = false
 		addon_data.castbar.pushbackValue = 1
 		addon_data.castbar.initial_pushback_time = 0
 		addon_data.castbar.hitcount = 0
 		
-        if addon_data.castbar.casting_spell_id > 0 and (addon_data.castbar.is_spell_multi_shot(spell_id)) then
+		local spell_aimed_enabled = (addon_data.castbar.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar)
+		local spell_multi_enabled = (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar)
+        if (addon_data.castbar.casting_spell_id > 0) and (spell_aimed_enabled or spell_multi_enabled) then
             addon_data.castbar.casting_shot = false
             addon_data.castbar.casting_spell_id = 0
 			
-			if (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) then
+			if spell_aimed_enabled or spell_multi_enabled then
 				frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
 				if settings.show_text then
 					frame.spell_text_center:SetText(L["Interrupted"])
@@ -369,14 +377,21 @@ addon_data.castbar.UpdateVisualsOnUpdate = function()
 	end
 	else
 		frame.spell_bar:SetVertexColor(0.2, 0.2, 0.2, 1)
-        frame:SetAlpha(settings.ooc_alpha)
+		frame:SetSize(settings.width, settings.height)
+        if not (settings.is_locked) then
+			frame.spell_text_center:SetText(L["Spell Bar Unlocked"])
+			frame:SetAlpha(1)
+		else
+			frame:SetAlpha(0)
+		end
     end
 end
 
 addon_data.castbar.UpdateVisualsOnSettingsChange = function()
     local settings = character_castbar_settings
     local frame = addon_data.castbar.frame
-	if settings.show_multishot_cast_bar then
+	local _, class, _ = UnitClass("player")
+	if (settings.show_multishot_cast_bar or settings.show_aimedshot_cast_bar) and (class == "HUNTER") then
         frame:Show()
         frame:ClearAllPoints()
         frame:SetPoint(settings.point, UIParent, settings.rel_point, settings.x_offset, settings.y_offset)
@@ -393,7 +408,7 @@ addon_data.castbar.UpdateVisualsOnSettingsChange = function()
                 tile = true, tileSize = 16, edgeSize = 16, 
                 insets = { left = 8, right = 8, top = 8, bottom = 8}})
         end
-		frame:SetAlpha(settings.ooc_alpha)
+		frame:SetAlpha(1)
         frame.backplane:SetBackdropColor(0,0,0,settings.backplane_alpha)
 
         frame.spell_bar_text:SetPoint("TOPRIGHT", -5, -(settings.height / 2) + (settings.fontsize / 2))
@@ -454,7 +469,7 @@ end
 addon_data.castbar.InitializeVisuals = function()
     local settings = character_castbar_settings
     -- Create the frame
-    addon_data.castbar.frame = CreateFrame("Frame", addon_name .. "HunterAutoshotFrame", UIParent)
+    addon_data.castbar.frame = CreateFrame("Frame", addon_name .. "HunterCastbarFrame", UIParent)
     local frame = addon_data.castbar.frame
     frame:SetMovable(true)
     frame:EnableMouse(not settings.is_locked)
@@ -503,6 +518,7 @@ end
 addon_data.castbar.UpdateConfigPanelValues = function()
     local panel = addon_data.castbar.config_frame
     local settings = character_castbar_settings
+    panel.show_aimedshot_cast_bar_checkbox:SetChecked(settings.show_aimedshot_cast_bar)
     panel.show_multishot_cast_bar_checkbox:SetChecked(settings.show_multishot_cast_bar)
     panel.show_latency_bar_checkbox:SetChecked(settings.show_latency_bars)
     panel.show_casttext_checkbox:SetChecked(settings.show_cast_text)
@@ -519,10 +535,15 @@ addon_data.castbar.UpdateConfigPanelValues = function()
         
     panel.in_combat_alpha_slider:SetValue(settings.in_combat_alpha)
     panel.in_combat_alpha_slider.editbox:SetCursorPosition(0)
-    panel.ooc_alpha_slider:SetValue(settings.ooc_alpha)
-    panel.ooc_alpha_slider.editbox:SetCursorPosition(0)
+    -- panel.ooc_alpha_slider:SetValue(settings.ooc_alpha)
+    -- panel.ooc_alpha_slider.editbox:SetCursorPosition(0)
     panel.backplane_alpha_slider:SetValue(settings.backplane_alpha)
     panel.backplane_alpha_slider.editbox:SetCursorPosition(0)
+end
+
+addon_data.castbar.ShowAimedShotCastBarCheckBoxOnClick = function(self)
+    character_castbar_settings.show_aimedshot_cast_bar = self:GetChecked()
+    addon_data.castbar.UpdateVisualsOnSettingsChange()
 end
 
 addon_data.castbar.ShowMultiShotCastBarCheckBoxOnClick = function(self)
@@ -570,10 +591,10 @@ addon_data.castbar.CombatAlphaOnValChange = function(self)
     addon_data.castbar.UpdateVisualsOnSettingsChange()
 end
 
-addon_data.castbar.OOCAlphaOnValChange = function(self)
-    character_castbar_settings.ooc_alpha = tonumber(self:GetValue())
-    addon_data.castbar.UpdateVisualsOnSettingsChange()
-end
+-- addon_data.castbar.OOCAlphaOnValChange = function(self)
+    -- character_castbar_settings.ooc_alpha = tonumber(self:GetValue())
+    -- addon_data.castbar.UpdateVisualsOnSettingsChange()
+-- end
 
 addon_data.castbar.BackplaneAlphaOnValChange = function(self)
     character_castbar_settings.backplane_alpha = tonumber(self:GetValue())
@@ -650,16 +671,16 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         0.05,
         addon_data.castbar.CombatAlphaOnValChange)
     panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 405, -90)
-    -- Out Of Combat Alpha Slider
-    panel.ooc_alpha_slider = addon_data.config.SliderFactory(
-        "CastBarOOCAlphaSlider",
-        panel,
-        L["Out of Combat Alpha"],
-        0,
-        1,
-        0.05,
-        addon_data.castbar.OOCAlphaOnValChange)
-    panel.ooc_alpha_slider:SetPoint("TOPLEFT", 405, -140)
+    -- -- Out Of Combat Alpha Slider
+    -- panel.ooc_alpha_slider = addon_data.config.SliderFactory(
+        -- "CastBarOOCAlphaSlider",
+        -- panel,
+        -- L["Out of Combat Alpha"],
+        -- 0,
+        -- 1,
+        -- 0.05,
+        -- addon_data.castbar.OOCAlphaOnValChange)
+    -- panel.ooc_alpha_slider:SetPoint("TOPLEFT", 405, -140)
     -- Backplane Alpha Slider
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
         "CastBarBackplaneAlphaSlider",
@@ -671,6 +692,15 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         addon_data.castbar.BackplaneAlphaOnValChange)
     panel.backplane_alpha_slider:SetPoint("TOPLEFT", 405, -190)
     
+    -- Show Aimed Shot Cast Bar Checkbox
+    panel.show_aimedshot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
+        "HunterShowAimedShotCastBarCheckBox",
+        panel,
+        L["Aimed Shot cast bar"],
+        L["Allows the cast bar to show Aimed Shot casts."],
+        addon_data.castbar.ShowAimedShotCastBarCheckBoxOnClick)
+    panel.show_aimedshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -110)
+
     -- Show Multi Shot Cast Bar Checkbox
     panel.show_multishot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowMultiShotCastBarCheckBox",
