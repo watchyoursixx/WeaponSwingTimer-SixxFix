@@ -115,7 +115,7 @@ swing_reset_spells['HUNTER'] = {
     -- --[[ Mongoose Bite ]]
     -- --[[ Multi-Shot ]]
     -- --[[ Rapid Fire ]]
-    --[[ Raptor Strike ]]               2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266, 27014
+    --[[ Raptor Strike ]]               2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266
     -- --[[ Readiness ]]
     -- --[[ Revive Pet ]]
     -- --[[ Scare Beast ]]
