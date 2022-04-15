@@ -22,6 +22,7 @@ addon_data.hunter.shot_spell_ids = {
     [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 3, cooldown = 6},
     [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 3, cooldown = 6},
     [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 3, cooldown = 6},
+	[27065] = {spell_name = L["Aimed Shot"], rank = 7, cast_time = 3, cooldown = 6},
     [5019] = {spell_name = L["Shoot"], rank = nil, cast_time = nil, cooldown = nil}
 }
 --- is spell multi-shot defined by spell_id
@@ -36,7 +37,7 @@ end
 --- is spell aimed shot defined by spell_id
 addon_data.hunter.is_spell_aimed_shot = function(spell_id)
     if (spell_id == 19434) or (spell_id == 20900) or (spell_id == 20901) or 
-       (spell_id == 20902) or (spell_id == 20903) or (spell_id == 20904) then
+       (spell_id == 20902) or (spell_id == 20903) or (spell_id == 20904) or (spell_id == 27065) then
             return true
     else
             return false
@@ -235,7 +236,7 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
         if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
-            addon_data.hunter.ResetShotTimer()
+            addon_data.hunter.ResetShotTimer()			
         end
     end
     -- If the shot timer is less than the auto cast time then the auto shot is ready
@@ -341,8 +342,11 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 				return
 			end
 			if addon_data.hunter.is_spell_aimed_shot(spell_id) then
-
-				addon_data.hunter.FeignDeath()
+				addon_data.hunter.FeignFullReset = false
+                addon_data.hunter.last_shot_time = GetTime()
+                addon_data.hunter.ResetShotTimer()
+				addon_data.hunter.casting_auto = false
+				
 			end
             if addon_data.hunter.is_spell_auto_shot(spell_id) or addon_data.hunter.is_spell_shoot(spell_id) then
 				addon_data.hunter.FeignFullReset = false
@@ -380,8 +384,8 @@ addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
 	addon_data.hunter.casting = false
 	if unit == 'player' and addon_data.hunter.is_spell_auto_shot(spell_id) then
 		addon_data.hunter.casting_auto = false
-		addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
-		addon_data.hunter.ResetShotTimer()
+		--addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
+		--addon_data.hunter.ResetShotTimer()
 	end
 	
 end

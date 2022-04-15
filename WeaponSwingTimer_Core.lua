@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "6.4.0"
+local version = "6.5.2"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -495,7 +495,7 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Disarm ]]
     -- --[[ Execute ]]
     -- --[[ Hamstring ]]
-    --[[ Heroic Strike ]]           78, 284, 285, 1608, 11564, 11565, 11566, 11567, 25286, 30324,
+    --[[ Heroic Strike ]]           78, 284, 285, 1608, 11564, 11565, 11566, 11567, 25286, 29707, 30324,
     -- --[[ Intercept ]]
     -- --[[ Intimidating Shout ]]
     -- --[[ Last Stand ]]
@@ -515,7 +515,7 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Shoot Bow ]]
     -- --[[ Shoot Crossbow ]]
     -- --[[ Shoot Gun ]]
-    --[[ Slam ]]                    1464, 8820, 11604, 11605, 25241
+    --[[ Slam ]]                    1464, 8820, 11604, 11605, 25241, 25242
     -- --[[ Sunder Armor ]]
     -- --[[ Sweeping Strikes ]]
     -- --[[ Taunt ]]
@@ -590,7 +590,10 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
                 addon_data.target.main_swing_timer = min_swing_time
             end
             if not is_offhand then
-                addon_data.player.ResetMainSwingTimer()
+                if (addon_data.player.extra_attacks_flag == false) then
+			addon_data.player.ResetMainSwingTimer()
+		end
+		addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end
@@ -610,7 +613,10 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
     else
         if unit == "player" then
             if not is_offhand then
-                addon_data.player.ResetMainSwingTimer()
+                if (addon_data.player.extra_attacks_flag == false) then
+			addon_data.player.ResetMainSwingTimer()
+		end
+		addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end 
