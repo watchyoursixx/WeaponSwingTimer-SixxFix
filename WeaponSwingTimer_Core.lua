@@ -601,8 +601,11 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
                 * 0.4
             end
             if not is_offhand then
-                print("test")
-			    addon_data.player.ResetMainSwingTimer()
+		-- resets swing timer if it's not an extra attack, attempt to fix random resets mid-swing
+		if (addon_data.player.extra_attacks_flag == false) then
+			addon_data.player.ResetMainSwingTimer()
+		end
+		addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end
