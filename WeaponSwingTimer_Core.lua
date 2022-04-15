@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "6.5.2"
+local version = "6.5.4"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -649,7 +649,9 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
             else
                 addon_data.target.ResetOffSwingTimer()
             end 
-        else
+        elseif unit == "target" then
+            -- do nothing
+	else
             addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
     end
