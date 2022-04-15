@@ -30,9 +30,6 @@ addon_data.player.default_settings = {
     main_text_r = 1.0, main_text_g = 1.0, main_text_b = 1.0, main_text_a = 1.0,
     off_r = 0.1, off_g = 0.1, off_b = 0.9, off_a = 1.0,
     off_text_r = 1.0, off_text_g = 1.0, off_text_b = 1.0, off_text_a = 1.0,
-	pala_show_blood = false,
-	pala_show_command = false,
-	pala_offset = 6,
 }
 
 addon_data.player.class = UnitClass("player")[2]
@@ -243,25 +240,9 @@ addon_data.player.UpdateVisualsOnUpdate = function()
             main_speed = 2
         end
         -- Update the main bars width
-        local main_width = math.min(settings.width - (settings.width * (main_timer / main_speed)), settings.width)
-		local pala_blood_width, pala_command_width = 0, 0
-		local _, _, class = UnitClass("player")
-		if class == 2 -- paladin
-		then
-			pala_blood_width = math.floor(math.min(settings.width - (settings.width * ( 0.4 / main_speed)), settings.width)+0.5) -- 0.4s for seal twist
-			local _, _, _, gcd, _,  _, _ = GetSpellInfo(19750)
-			if (not gcd) or (gcd > 1500) then
-				gcd = 1500
-			end
-			pala_command_width = math.floor(math.min(settings.width - (settings.width * ((gcd / 1000 ) / main_speed)), settings.width)+0.5)
-		else
-			frame.pala_blood_marker:Hide()
-			frame.pala_command_marker:Hide()
-		end
+        main_width = math.min(settings.width - (settings.width * (main_timer / main_speed)), settings.width)
         if not settings.fill_empty then
             main_width = settings.width - main_width + 0.001
-            pala_blood_width = settings.width - pala_blood_width + 0.001
-            pala_command_width = settings.width - pala_command_width + 0.001
         end
         frame.main_bar:SetWidth(main_width)
         frame.main_spark:SetPoint('TOPLEFT', main_width - 8, 0)
@@ -270,8 +251,6 @@ addon_data.player.UpdateVisualsOnUpdate = function()
         else
             frame.main_spark:Show()
         end
-        frame.pala_blood_marker:SetPoint('TOPLEFT', pala_blood_width, settings.pala_offset)
-        frame.pala_command_marker:SetPoint('TOPLEFT', pala_command_width, settings.pala_offset)
         -- Update the main bars text
         frame.main_left_text:SetText(L["Main-Hand"])
         frame.main_right_text:SetText(tostring(addon_data.utils.SimpleRound(main_timer, 0.1)))
@@ -360,20 +339,6 @@ addon_data.player.UpdateVisualsOnSettingsChange = function()
         end
         frame.main_bar:SetVertexColor(settings.main_r, settings.main_g, settings.main_b, settings.main_a)
         frame.main_spark:SetSize(16, settings.height)
-		if (settings.pala_show_blood)
-		then
-			frame.pala_blood_marker:SetSize(1, settings.height+2*settings.pala_offset)
-			frame.pala_blood_marker:Show()
-		else
-			frame.pala_blood_marker:Hide()
-		end
-		if (settings.pala_show_command)
-		then
-			frame.pala_command_marker:SetSize(1, settings.height+2*settings.pala_offset)
-			frame.pala_command_marker:Show()
-		else
-			frame.pala_command_marker:Hide()
-		end
         frame.main_left_text:SetPoint("TOPLEFT", 2, -(settings.height / 2) + (settings.fontsize / 2))
         frame.main_left_text:SetTextColor(settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
 		frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
@@ -501,11 +466,6 @@ addon_data.player.InitializeVisuals = function()
     frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.off_right_text:SetJustifyV("CENTER")
     frame.off_right_text:SetJustifyH("RIGHT")
-	-- Paladin sparks
-    frame.pala_blood_marker = frame:CreateTexture(nil,"BORDER")
-    frame.pala_blood_marker:SetColorTexture(1, 0.996, 0.722, 1.0)
-    frame.pala_command_marker = frame:CreateTexture(nil,"BORDER")
-    frame.pala_command_marker:SetColorTexture(1.0, 0.0, 0.0, 0.8)
     -- Show it off
     addon_data.player.UpdateVisualsOnSettingsChange()
     addon_data.player.UpdateVisualsOnUpdate()
@@ -526,8 +486,6 @@ addon_data.player.UpdateConfigPanelValues = function()
     panel.fill_empty_checkbox:SetChecked(settings.fill_empty)
     panel.show_left_text_checkbox:SetChecked(settings.show_left_text)
     panel.show_right_text_checkbox:SetChecked(settings.show_right_text)
-    panel.show_paladin_blood_checkbox:SetChecked(settings.pala_show_blood)
-    panel.show_paladin_command_checkbox:SetChecked(settings.pala_show_command)
     panel.width_editbox:SetText(tostring(settings.width))
     panel.width_editbox:SetCursorPosition(0)
     panel.height_editbox:SetText(tostring(settings.height))
@@ -552,8 +510,6 @@ addon_data.player.UpdateConfigPanelValues = function()
     panel.ooc_alpha_slider.editbox:SetCursorPosition(0)
     panel.backplane_alpha_slider:SetValue(settings.backplane_alpha)
     panel.backplane_alpha_slider.editbox:SetCursorPosition(0)
-    panel.pala_offset_slider:SetValue(settings.pala_offset)
-    panel.pala_offset_slider.editbox:SetCursorPosition(0)
 end
 
 addon_data.player.EnabledCheckBoxOnClick = function(self)
@@ -588,16 +544,6 @@ end
 
 addon_data.player.ShowRightTextCheckBoxOnClick = function(self)
     character_player_settings.show_right_text = self:GetChecked()
-    addon_data.player.UpdateVisualsOnSettingsChange()
-end
-
-addon_data.player.ShowPaladinBloodCheckBoxOnClick = function(self)
-    character_player_settings.pala_show_blood = self:GetChecked()
-    addon_data.player.UpdateVisualsOnSettingsChange()
-end
-
-addon_data.player.ShowPaladinCommandCheckBoxOnClick = function(self)
-    character_player_settings.pala_show_command = self:GetChecked()
     addon_data.player.UpdateVisualsOnSettingsChange()
 end
 
@@ -745,11 +691,6 @@ addon_data.player.BackplaneAlphaOnValChange = function(self)
     addon_data.player.UpdateVisualsOnSettingsChange()
 end
 
-addon_data.player.PaladinOffsetOnValChange = function(self)
-    character_player_settings.pala_offset = tonumber(self:GetValue())
-    addon_data.player.UpdateVisualsOnSettingsChange()
-end
-
 addon_data.player.CreateConfigPanel = function(parent_panel)
     addon_data.player.config_frame = CreateFrame("Frame", addon_name .. "PlayerConfigPanel", parent_panel)
     local panel = addon_data.player.config_frame
@@ -816,22 +757,6 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         L["Enables the player's right side text."],
         addon_data.player.ShowRightTextCheckBoxOnClick)
     panel.show_right_text_checkbox:SetPoint("TOPLEFT", 10, -160)
-    -- Show Paladin Seal Twist Checkbox
-    panel.show_paladin_blood_checkbox = addon_data.config.CheckBoxFactory(
-        "PlayerShowPaladingBloodCheckBox",
-        panel,
-        L["Show Paladin Twist"],
-        L["Show 0.4s marker before swing to help with seal twisting. Apply seal after this."],
-        addon_data.player.ShowPaladinBloodCheckBoxOnClick)
-    panel.show_paladin_blood_checkbox:SetPoint("TOPLEFT", 10, -180)
-    -- Show Paladin Seal Twist Checkbox GCD
-    panel.show_paladin_command_checkbox = addon_data.config.CheckBoxFactory(
-        "PlayerShowPaladinCommandCheckBox",
-        panel,
-        L["Show Paladin GCD"],
-        L["Show GCD marker before swing to help with seal twisting. Apply first seal before this."],
-        addon_data.player.ShowPaladinCommandCheckBoxOnClick)
-    panel.show_paladin_command_checkbox:SetPoint("TOPLEFT", 10, -200)
     
     -- Width EditBox
     panel.width_editbox = addon_data.config.EditBoxFactory(
@@ -942,16 +867,6 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         0.05,
         addon_data.player.BackplaneAlphaOnValChange)
     panel.backplane_alpha_slider:SetPoint("TOPLEFT", 405, -160)
-    -- Backplane Alpha Slider
-    panel.pala_offset_slider = addon_data.config.SliderFactory(
-        "PlayerPalaOffsetSlider",
-        panel,
-        L["Paladin Marker offset"],
-        0,
-        30,
-        1,
-        addon_data.player.PaladinOffsetOnValChange)
-    panel.pala_offset_slider:SetPoint("TOPLEFT", 405, -210)
     
     -- Return the final panel
     addon_data.player.UpdateConfigPanelValues()

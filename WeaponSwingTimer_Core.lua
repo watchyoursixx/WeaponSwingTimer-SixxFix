@@ -582,48 +582,25 @@ local function CoreFrame_OnUpdate(self, elapsed)
 	addon_data.castbar.OnUpdate(elapsed)
 end
 
-addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
+addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
     if miss_type == "PARRY" then
         if unit == "player" then
-            -- parry haste calculations:
-            -- if swing is below 20%, do nothing.
-            -- if swing is between 20% and 60%, reduce by 20%.
-            -- if swing is above 60%, reduce by 40%.
             min_swing_time = addon_data.target.main_weapon_speed * 0.2
-            med_swing_time = addon_data.target.main_weapon_speed * 0.6
-            if min_swing_time >= addon_data.target.main_swing_timer then
-            -- do nothing
-        elseif (min_swing_time < addon_data.target.main_swing_timer) and (addon_data.target.main_swing_timer < med_swing_time) then
-                addon_data.target.main_swing_timer = addon_data.target.main_swing_timer 
-                * 0.2
-            elseif addon_data.target.main_swing_timer >= med_swing_time then
-                addon_data.target.main_swing_timer = addon_data.target.main_swing_timer 
-                * 0.4
+            if addon_data.target.main_swing_timer > min_swing_time then
+                addon_data.target.main_swing_timer = min_swing_time
             end
             if not is_offhand then
-		-- resets swing timer if it's not an extra attack, attempt to fix random resets mid-swing
-		if (addon_data.player.extra_attacks_flag == false) then
+                if (addon_data.player.extra_attacks_flag == false) then
 			addon_data.player.ResetMainSwingTimer()
 		end
 		addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end
-        elseif unit == "target" and is_player then
-            -- parry haste calculations:
-            -- if swing is below 20%, do nothing.
-            -- if swing is between 20% and 60%, reduce by 20%.
-            -- if swing is above 60%, reduce by 40%.
+        elseif unit == "target" then
             min_swing_time = addon_data.player.main_weapon_speed * 0.2
-            med_swing_time = addon_data.player.main_weapon_speed * 0.6
-            if min_swing_time >= addon_data.player.main_swing_timer then
-            -- do nothing
-            elseif (min_swing_time < addon_data.player.main_swing_timer) and (addon_data.player.main_swing_timer < med_swing_time) then
-                addon_data.player.main_swing_timer = addon_data.player.main_swing_timer 
-                * 0.2
-            elseif addon_data.player.main_swing_timer >= med_swing_time then
-                addon_data.player.main_swing_timer = addon_data.player.main_swing_timer 
-                * 0.4
+            if addon_data.player.main_swing_timer > min_swing_time then
+                addon_data.player.main_swing_timer = min_swing_time
             end
             if not is_offhand then
                 addon_data.target.ResetMainSwingTimer()
