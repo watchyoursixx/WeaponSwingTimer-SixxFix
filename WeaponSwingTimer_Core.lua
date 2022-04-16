@@ -593,7 +593,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
             med_swing_time = addon_data.target.main_weapon_speed * 0.6
             if min_swing_time >= addon_data.target.main_swing_timer then
             -- do nothing
-        elseif (min_swing_time < addon_data.target.main_swing_timer) and (addon_data.target.main_swing_timer < med_swing_time) then
+	    elseif (min_swing_time < addon_data.target.main_swing_timer) and (addon_data.target.main_swing_timer < med_swing_time) then
                 addon_data.target.main_swing_timer = addon_data.target.main_swing_timer 
                 * 0.2
             elseif addon_data.target.main_swing_timer >= med_swing_time then
