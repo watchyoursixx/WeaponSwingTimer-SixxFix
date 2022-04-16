@@ -589,8 +589,9 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
             -- if swing is below 20%, do nothing.
             -- if swing is between 20% and 60%, reduce by 20%.
             -- if swing is above 60%, reduce by 40%.
-            min_swing_time = addon_data.target.main_weapon_speed * 0.2
-            med_swing_time = addon_data.target.main_weapon_speed * 0.6
+            local min_swing_time = addon_data.target.main_weapon_speed * 0.2
+            local med_swing_time = addon_data.target.main_weapon_speed * 0.6
+
             if min_swing_time >= addon_data.target.main_swing_timer then
             -- do nothing
 	    elseif (min_swing_time < addon_data.target.main_swing_timer) and (addon_data.target.main_swing_timer < med_swing_time) then
@@ -614,8 +615,9 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
             -- if swing is below 20%, do nothing.
             -- if swing is between 20% and 60%, reduce by 20%.
             -- if swing is above 60%, reduce by 40%.
-            min_swing_time = addon_data.player.main_weapon_speed * 0.2
-            med_swing_time = addon_data.player.main_weapon_speed * 0.6
+            local min_swing_time = addon_data.player.main_weapon_speed * 0.2
+            local med_swing_time = addon_data.player.main_weapon_speed * 0.6
+
             if min_swing_time >= addon_data.player.main_swing_timer then
             -- do nothing
             elseif (min_swing_time < addon_data.player.main_swing_timer) and (addon_data.player.main_swing_timer < med_swing_time) then
