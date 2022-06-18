@@ -593,7 +593,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
 
             if min_swing_time >= addon_data.target.main_swing_timer then
                 -- do nothing
-	    else
+			else
                 addon_data.target.main_swing_timer = addon_data.target.main_swing_timer - (addon_data.target.main_weapon_speed * 0.4)
 
                 if addon_data.target.main_swing_timer < min_swing_time then
@@ -601,11 +601,11 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
                 end
             end
             if not is_offhand then
-		-- resets swing timer if it's not an extra attack, attempt to fix random resets mid-swing
-		if (addon_data.player.extra_attacks_flag == false) then
-			addon_data.player.ResetMainSwingTimer()
-		end
-		addon_data.player.extra_attacks_flag = false
+			-- resets swing timer if it's not an extra attack, attempt to fix random resets mid-swing
+				if (addon_data.player.extra_attacks_flag == false) then
+					addon_data.player.ResetMainSwingTimer()
+				end
+			addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end
@@ -618,7 +618,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
 
             if min_swing_time >= addon_data.player.main_swing_timer then
                 -- do nothing
-	    else
+			else
                 addon_data.player.main_swing_timer = addon_data.player.main_swing_timer - (addon_data.player.main_weapon_speed * 0.4)
 
                 if addon_data.player.main_swing_timer < min_swing_time then
@@ -630,6 +630,8 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
             else
                 addon_data.target.ResetOffSwingTimer()
             end
+		elseif unit == "target" then
+            -- do nothing
         else
             addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
@@ -649,9 +651,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
             else
                 addon_data.target.ResetOffSwingTimer()
             end 
-        elseif unit == "target" then
-            -- do nothing
-	else
+		else
             addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
     end
