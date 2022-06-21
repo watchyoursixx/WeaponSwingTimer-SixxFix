@@ -308,6 +308,7 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
 				addon_data.hunter.StartCastingSpell(spellID)
 				
 				if addon_data.hunter.is_spell_auto_shot(spellID) then
+				        addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
 					addon_data.hunter.casting_auto = true
 				end
 				if spellID == 34120 or addon_data.hunter.is_spell_multi_shot(spellID) then
@@ -423,7 +424,7 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             frame:SetAlpha(settings.ooc_alpha)
         end
         if not settings.one_bar then
-            if addon_data.hunter.auto_shot_ready then
+            if addon_data.hunter.auto_shot_ready and addon_data.hunter.casting_auto then
                 frame.shot_bar:SetVertexColor(settings.auto_cast_r, settings.auto_cast_g, settings.auto_cast_b, settings.auto_cast_a)
                 new_width = settings.width * (auto_cast_time - shot_timer) / auto_cast_time
                 frame.multishot_clip_bar:Hide()
