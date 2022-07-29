@@ -226,6 +226,7 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 		addon_data.hunter.shot_timer = shot_timer - elapsed
 	end
 	addon_data.hunter.auto_cast_time = 0.01
+	addon_data.hunter.UpdateRangeCastSpeedModifier()
 	
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
