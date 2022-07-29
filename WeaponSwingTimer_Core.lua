@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "6.5.4"
+local version = "8.0.1"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -52,7 +52,7 @@ swing_reset_spells['DRUID'] = {
     -- --[[ Innervate ]]
     -- --[[ Insect Storm ]]
     -- --[[ Mark of the Wild ]]
-    --[[ Maul ]]                        6807, 6808, 6809, 8972, 9745, 9880, 9881
+    --[[ Maul ]]                        6807, 6808, 6809, 8972, 9745, 9880, 9881, 26996, 48479, 48480
     -- --[[ Moonfire ]]
     -- --[[ Moonkin Form ]]
     -- --[[ Nature's Grasp ]]
@@ -114,7 +114,7 @@ swing_reset_spells['HUNTER'] = {
     -- --[[ Mongoose Bite ]]
     -- --[[ Multi-Shot ]]
     -- --[[ Rapid Fire ]]
-    --[[ Raptor Strike ]]               2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266, 27014
+    --[[ Raptor Strike ]]               2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266, 27014, 48995, 48996
     -- --[[ Readiness ]]
     -- --[[ Revive Pet ]]
     -- --[[ Scare Beast ]]
@@ -488,14 +488,14 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Bloodthirst ]]
     -- --[[ Challenging Shout ]]
     -- --[[ Charge ]]
-    --[[ Cleave ]]                  845, 7369, 11608, 11609, 20569, 25231,
+    --[[ Cleave ]]                  845, 7369, 11608, 11609, 20569, 25231, 47519, 47520,
     -- --[[ Death Wish ]]
     -- --[[ Defensive Stance ]]
     -- --[[ Demoralizing Shout ]]
     -- --[[ Disarm ]]
     -- --[[ Execute ]]
     -- --[[ Hamstring ]]
-    --[[ Heroic Strike ]]           78, 284, 285, 1608, 11564, 11565, 11566, 11567, 25286, 29707, 30324,
+    --[[ Heroic Strike ]]           78, 284, 285, 1608, 11564, 11565, 11566, 11567, 25286, 29707, 30324, 47450, 47449,
     -- --[[ Intercept ]]
     -- --[[ Intimidating Shout ]]
     -- --[[ Last Stand ]]
@@ -515,7 +515,7 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Shoot Bow ]]
     -- --[[ Shoot Crossbow ]]
     -- --[[ Shoot Gun ]]
-    --[[ Slam ]]                    1464, 8820, 11604, 11605, 25241, 25242
+    -- --[[ Slam ]]                    1464, 8820, 11604, 11605, 25241, 25242
     -- --[[ Sunder Armor ]]
     -- --[[ Sweeping Strikes ]]
     -- --[[ Taunt ]]
