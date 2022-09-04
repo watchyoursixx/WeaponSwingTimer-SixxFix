@@ -160,7 +160,9 @@ addon_data.hunter.FeignDeath = function()
     addon_data.hunter.last_shot_time = GetTime()
 	if not addon_data.hunter.FeignFullReset then
 		range_speed, _, _, _, _, _ = UnitRangedDamage("player")
-		addon_data.hunter.range_speed = range_speed - 0.45 * addon_data.hunter.range_cast_speed_modifer + 0.15
+
+		addon_data.hunter.range_speed = range_speed + 0.15
+
 		addon_data.hunter.FeignFullReset = true
 	end
     addon_data.hunter.ResetShotTimer()
@@ -227,7 +229,7 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 	end
 	addon_data.hunter.auto_cast_time = 0.01
 	addon_data.hunter.UpdateRangeCastSpeedModifier()
-	
+
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
         if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
