@@ -794,5 +794,265 @@ addon_data.ranged_DB.item_ids = {
 	[35108] = {base_speed = 1.9},    -- Brutal Gladiator's War Edge
 	[186050] = {base_speed = 1.4},    -- Communal Wand
 	[186056] = {base_speed = 2.7},    -- Communal Bow
-	[186069] = {base_speed = 1.8}    -- Communal Knives
+	[186069] = {base_speed = 1.8},    -- Communal Knives
+	[50733] = {base_speed = 3},          --  "Fal'inrush, Defender of Quel'thalas"
+    [50638] = {base_speed = 2.8},          --  Zod's Repeating Longbow
+    [50684] = {base_speed = 1.8},          --  Corpse-Impaling Spike
+    [51395] = {base_speed = 3},          --  Wrathful Gladiator's Recurve
+    [50631] = {base_speed = 1.8},          --  Nightmare Ender
+    [51412] = {base_speed = 3},          --  Wrathful Gladiator's Repeater
+    [51450] = {base_speed = 3},          --  Wrathful Gladiator's Shotgun
+    [49981] = {base_speed = 3},          --  "Fal'inrush, Defender of Quel'thalas"
+    [51940] = {base_speed = 3},          --  Windrunner's Heartseeker
+    [50034] = {base_speed = 2.8},          --  Zod's Repeating Longbow
+    [50444] = {base_speed = 2.1},          --  Rowan's Rifle of Silver Bullets
+    [51394] = {base_speed = 3},          --  Wrathful Gladiator's Longbow
+    [51927] = {base_speed = 2.9},          --  Njorndar Bone Bow
+    [50033] = {base_speed = 1.8},          --  Corpse-Impaling Spike
+    [51451] = {base_speed = 1.9},          --  Wrathful Gladiator's Wand of Alacrity
+    [51845] = {base_speed = 3},          --  Stakethrower
+    [50204] = {base_speed = 2},          --  Wand of the Drowned Contessa
+    [50472] = {base_speed = 1.8},          --  Nightmare Ender
+    [51410] = {base_speed = 1.9},          --  Wrathful Gladiator's Touch of Defeat
+    [51852] = {base_speed = 1.9},          --  Wand of Ruby Claret
+    [51449] = {base_speed = 3},          --  Wrathful Gladiator's Rifle
+    [51834] = {base_speed = 2.6},          --  Dreamhunter's Carbine
+    [51411] = {base_speed = 3},          --  Wrathful Gladiator's Heavy Crossbow
+    [51532] = {base_speed = 1.9},          --  Wrathful Gladiator's Baton of Light
+    [51838] = {base_speed = 2.2},          --  Lana'thel's Bloody Nail
+    [51531] = {base_speed = 1.9},          --  Wrathful Gladiator's Piercing Touch
+    [47521] = {base_speed = 2.9},          --  BRK-1000
+    [51802] = {base_speed = 3},          --  Windrunner's Heartseeker
+    [46995] = {base_speed = 2.8},          --  Talonstrike
+    [47428] = {base_speed = 2.8},          --  Death's Head Crossbow
+    [47523] = {base_speed = 2.9},          --  Fezzik's Autocannon
+    [48422] = {base_speed = 3},          --  Relentless Gladiator's Repeater
+    [48420] = {base_speed = 3},          --  Relentless Gladiator's Recurve
+    [48424] = {base_speed = 3},          --  Relentless Gladiator's Shotgun
+    [50776] = {base_speed = 2.9},          --  Njorndar Bone Bow
+    [51385] = {base_speed = 3},          --  Stakethrower
+    [51326] = {base_speed = 1.9},          --  Wand of Ruby Claret
+    [51553] = {base_speed = 2.2},          --  Lana'thel's Bloody Nail
+    [51561] = {base_speed = 2.6},          --  Dreamhunter's Carbine
+    [48711] = {base_speed = 2.8},          --  "Rhok'shalla, the Shadow's Bane"
+    [48697] = {base_speed = 2.8},          --  Frenzystrike Longbow
+    [46994] = {base_speed = 2.8},          --  Talonstrike
+    [42487] = {base_speed = 3},          --  Relentless Gladiator's Rifle
+    [42515] = {base_speed = 1.9},          --  Relentless Gladiator's Baton of Light
+    [48052] = {base_speed = 2.9},          --  Darkmaw Crossbow
+    [42504] = {base_speed = 1.9},          --  Relentless Gladiator's Touch of Defeat
+    [42492] = {base_speed = 3},          --  Relentless Gladiator's Longbow
+    [48022] = {base_speed = 2.8},          --  Widebarrel Flintlock
+    [47950] = {base_speed = 2.8},          --  The Diplomat
+    [47267] = {base_speed = 2.8},          --  Death's Head Crossbow
+    [49493] = {base_speed = 2.9},          --  Rifled Blastershot Launcher
+    [42498] = {base_speed = 3},          --  Relentless Gladiator's Heavy Crossbow
+    [42521] = {base_speed = 1.9},          --  Relentless Gladiator's Piercing Touch
+    [47658] = {base_speed = 1.8},          --  Brimstone Igniter
+    [47922] = {base_speed = 1.8},          --  Rod of Imprisoned Souls
+    [47995] = {base_speed = 1.8},          --  Scepter of Imprisoned Souls
+    [49185] = {base_speed = 1.9},          --  Relentless Gladiator's Wand of Alacrity
+    [47975] = {base_speed = 2.9},          --  Baelgun's Heavy Crossbow
+    [45938] = {base_speed = 3},          --  Furious Gladiator's Recurve
+    [45570] = {base_speed = 2.8},          --  Skyforge Crossbow
+    [45937] = {base_speed = 3},          --  Furious Gladiator's Shotgun
+    [45939] = {base_speed = 3},          --  Furious Gladiator's Repeater
+    [45327] = {base_speed = 2.8},          --  Siren's Cry
+    [50262] = {base_speed = 3},          --  Felglacier Bolter
+    [42491] = {base_speed = 3},          --  Furious Gladiator's Longbow
+    [45257] = {base_speed = 1.8},          --  Quartz Crystal Wand
+    [45261] = {base_speed = 2.9},          --  Giant's Bane
+    [47612] = {base_speed = 1.8},          --  Rod of Imprisoned Souls
+    [47741] = {base_speed = 2.9},          --  Baelgun's Heavy Crossbow
+    [50291] = {base_speed = 2.1},          --  Soulsplinter
+    [42514] = {base_speed = 1.9},          --  Furious Gladiator's Baton of Light
+    [45870] = {base_speed = 3},          --  Magnetized Projectile Emitter
+    [49305] = {base_speed = 2.9},          --  Snub-Nose Blastershot Launcher
+    [42486] = {base_speed = 3},          --  Furious Gladiator's Rifle
+    [42520] = {base_speed = 1.9},          --  Furious Gladiator's Piercing Touch
+    [45294] = {base_speed = 1.8},          --  Petrified Ivy Sprig
+    [47883] = {base_speed = 2.8},          --  Widebarrel Flintlock
+    [47740] = {base_speed = 2.8},          --  The Diplomat
+    [42503] = {base_speed = 1.9},          --  Furious Gladiator's Touch of Defeat
+    [47907] = {base_speed = 2.9},          --  Darkmaw Crossbow
+    [45137] = {base_speed = 2.9},          --  Veranus' Bane
+    [45511] = {base_speed = 1.8},          --  Scepter of Lost Souls
+    [45170] = {base_speed = 2},          --  Scepter of Creation
+    [42496] = {base_speed = 3},          --  Furious Gladiator's Heavy Crossbow
+    [47856] = {base_speed = 1.8},          --  Scepter of Imprisoned Souls
+    [40385] = {base_speed = 2.9},          --  Envoy of Mortality
+    [49844] = {base_speed = 3},          --  Crypt Fiend Slayer
+    [45872] = {base_speed = 2.9},          --  Avalanche
+    [46339] = {base_speed = 2.9},          --  Mimiron's Repeater
+    [49813] = {base_speed = 2.9},          --  Rimebane Rifle
+    [45309] = {base_speed = 2.8},          --  Rifle of the Platinum Guard
+    [49852] = {base_speed = 1.8},          --  Coffin Nail
+    [47568] = {base_speed = 3},          --  True-aim Long Rifle
+    [46018] = {base_speed = 2.9},          --  Deliverance
+    [46342] = {base_speed = 2.9},          --  Golemheart Longbow
+    [45713] = {base_speed = 1.8},          --  Nurturing Touch
+    [40265] = {base_speed = 2.8},          --  Arrowsong
+    [39426] = {base_speed = 1.8},          --  Wand of the Archlich
+    [39712] = {base_speed = 1.8},          --  Gemmed Wand of the Nerubians
+    [39419] = {base_speed = 2.9},          --  Nerubian Conquerer
+    [40346] = {base_speed = 2.8},          --  Final Voyage
+    [42490] = {base_speed = 3},          --  Deadly Gladiator's Longbow
+    [40284] = {base_speed = 1.8},          --  Plague Igniter
+    [42485] = {base_speed = 3},          --  Deadly Gladiator's Rifle
+    [40335] = {base_speed = 2},          --  Touch of Horror
+    [42519] = {base_speed = 1.9},          --  Deadly Gladiator's Piercing Touch
+    [40245] = {base_speed = 2},          --  Fading Glow
+    [42502] = {base_speed = 1.9},          --  Deadly Gladiator's Touch of Defeat
+    [42513] = {base_speed = 1.9},          --  Deadly Gladiator's Baton of Light
+    [42495] = {base_speed = 3},          --  Deadly Gladiator's Heavy Crossbow
+    [34149] = {base_speed = 1.3},          --  Lightstave
+    [34146] = {base_speed = 1.4},          --  Red Death
+    [44504] = {base_speed = 2.8},          --  Nesingwary 4000
+    [37191] = {base_speed = 2.8},          --  Drake-Mounted Crossbow
+    [39296] = {base_speed = 2.8},          --  Accursed Bow of the Elite
+    [37238] = {base_speed = 1.8},          --  Rod of the Fallen Monarch
+    [41168] = {base_speed = 2},          --  Armor Plated Combat Shotgun
+    [45130] = {base_speed = 2.9},          --  Blunderbuss of Khaz Modan
+    [37177] = {base_speed = 1.8},          --  Wand of the San'layn
+    [42489] = {base_speed = 3},          --  Hateful Gladiator's Longbow
+    [45210] = {base_speed = 2.9},          --  Sen'jin Beakblade Longrifle
+    [43284] = {base_speed = 2.9},          --  Amanitar Skullbow
+    [37692] = {base_speed = 2.9},          --  Pierce's Pistol
+    [42501] = {base_speed = 1.9},          --  Hateful Gladiator's Touch of Defeat
+    [37619] = {base_speed = 1.8},          --  Wand of Ahn'kahet
+    [42445] = {base_speed = 3},          --  Savage Gladiator's Longbow
+    [42511] = {base_speed = 1.9},          --  Savage Gladiator's Baton of Light
+    [44245] = {base_speed = 2.9},          --  Zombie Sweeper Shotgun
+    [37615] = {base_speed = 2.9},          --  Titanium Compound Bow
+    [42447] = {base_speed = 3},          --  Savage Gladiator's Rifle
+    [39473] = {base_speed = 1.8},          --  Contortion
+    [42517] = {base_speed = 1.9},          --  Savage Gladiator's Piercing Touch
+    [42446] = {base_speed = 3},          --  Savage Gladiator's Heavy Crossbow
+    [42448] = {base_speed = 1.9},          --  Savage Gladiator's Touch of Defeat
+    [42484] = {base_speed = 3},          --  Hateful Gladiator's Rifle
+    [42494] = {base_speed = 3},          --  Hateful Gladiator's Heavy Crossbow
+    [42518] = {base_speed = 1.9},          --  Hateful Gladiator's Piercing Touch
+    [37626] = {base_speed = 1.8},          --  Wand of Sseratus
+    [42512] = {base_speed = 1.9},          --  Hateful Gladiator's Baton of Light
+    [34145] = {base_speed = 1.4},          --  Rod of Devastation
+    [34148] = {base_speed = 1.3},          --  Purified Silverstave
+    [37050] = {base_speed = 3},          --  Trophy Gatherer
+    [36989] = {base_speed = 1.8},          --  Ancient Measuring Rod
+    [44108] = {base_speed = 1.8},          --  Shinygem Rod
+    [37038] = {base_speed = 1.8},          --  Brazier Igniter
+    [44214] = {base_speed = 1.6},          --  Purifying Torch
+    [36994] = {base_speed = 2.8},          --  Projectile Activator
+    [36668] = {base_speed = 1.7},          --  Mindless Wand
+    [36640] = {base_speed = 2.7},          --  Scourge Crossbow
+    [36654] = {base_speed = 2.7},          --  Harsh-Winter Rifle
+    [36626] = {base_speed = 2.7},          --  Military Compound Bow
+    [35590] = {base_speed = 2.6},          --  Drakkari Hunting Bow
+    [36667] = {base_speed = 1.7},          --  Solid Ice Wand
+    [36639] = {base_speed = 2.7},          --  Brutal Ballista
+    [36653] = {base_speed = 2.7},          --  Precipice Longrifle
+    [36625] = {base_speed = 2.7},          --  Massive Recurved Bow
+    [35645] = {base_speed = 2.7},          --  Prison Warden's Shotgun
+    [35652] = {base_speed = 1.8},          --  Incessant Torch
+    [34147] = {base_speed = 1.3},          --  Silverstave
+    [34139] = {base_speed = 1.4},          --  Enchanted Crimson Wand
+    [34138] = {base_speed = 1.3},          --  Enchanted White Wand
+    [34144] = {base_speed = 1.4},          --  Branch of Destruction
+    [42822] = {base_speed = 2.6},          --  K3 Pachyderm Prevention Device
+    [36624] = {base_speed = 2.7},          --  Shrieking Bow
+    [43828] = {base_speed = 1.8},          --  Touch of Light
+    [43186] = {base_speed = 1.6},          --  Iceshrieker's Touch
+    [36652] = {base_speed = 2.7},          --  Stocky Shotgun
+    [43185] = {base_speed = 1.8},          --  Wand of Chilled Renewal
+    [36638] = {base_speed = 2.7},          --  Bloody Crossbow
+    [36666] = {base_speed = 1.7},          --  Polar Wand
+    [42858] = {base_speed = 2.8},          --  Crossbow of the Storms
+    [37824] = {base_speed = 1.5},          --  Gwyneth's Runed Dragonwand
+    [36623] = {base_speed = 2.7},          --  Harnessed Longbow
+    [36665] = {base_speed = 1.7},          --  Wasteland Wand
+    [36651] = {base_speed = 2.7},          --  Muzzled Musket
+    [36637] = {base_speed = 2.7},          --  Horrific Crossbow
+    [39688] = {base_speed = 2.9},          --  Mark "S" Boomstick
+    [36636] = {base_speed = 2.7},          --  Arbalest Crossbow
+    [38464] = {base_speed = 2.1},          --  Gnomish Magician's Quill
+    [38456] = {base_speed = 3.1},          --  Sin'dorei Recurve Bow
+    [36622] = {base_speed = 2.7},          --  Acute Shortbow
+    [38460] = {base_speed = 2.1},          --  Charged Wand of the Cleft
+    [36664] = {base_speed = 1.7},          --  Chilled Wand
+    [36650] = {base_speed = 2.7},          --  Mammoth Gun
+    [38457] = {base_speed = 3.1},          --  Sawed-off Hand Cannon
+    [39487] = {base_speed = 2.8},          --  Dragon Slayer's Shortbow
+    [37809] = {base_speed = 2.7},          --  Roc-Feather Longbow
+    [39486] = {base_speed = 2.9},          --  Hemet's Trophy Gun
+    [36621] = {base_speed = 2.7},          --  Advanced Flatbow
+    [36635] = {base_speed = 2.7},          --  Marvelous Crossbow
+    [36663] = {base_speed = 1.7},          --  Ancient Wand
+    [36649] = {base_speed = 2.7},          --  Tundra Rifle
+    [39488] = {base_speed = 2.2},          --  Nesingwary Brush Burner
+    [35617] = {base_speed = 1.8},          --  Wand of Shimmering Scales
+    [36662] = {base_speed = 1.7},          --  Voodoo Wand
+    [39818] = {base_speed = 1.5},          --  Frigid Crossbow
+    [36648] = {base_speed = 2.7},          --  Trapper's Rifle
+    [36620] = {base_speed = 2.7},          --  Tracking Bow
+    [36634] = {base_speed = 2.7},          --  Pain Repeater
+    [39829] = {base_speed = 3},          --  High-Strung Bow
+    [36619] = {base_speed = 2.7},          --  Astral Light Bow
+    [36633] = {base_speed = 2.7},          --  Palisade Crossbow
+    [39119] = {base_speed = 2.9},          --  Bondsniper
+    [36661] = {base_speed = 1.7},          --  Enigmatic Wand
+    [39131] = {base_speed = 3.1},          --  Warbling Crossbow
+    [36647] = {base_speed = 2.7},          --  Noisy Blaster
+    [36660] = {base_speed = 1.7},          --  Melted Wand
+    [36632] = {base_speed = 2.7},          --  Slingshot Crossbow
+    [36618] = {base_speed = 2.7},          --  Twisted Longbow
+    [36646] = {base_speed = 2.7},          --  Haggard Gun
+    [38356] = {base_speed = 2.1},          --  Venture Battle Wand
+    [38207] = {base_speed = 1.8},          --  Wand of Purifying Fire
+    [36659] = {base_speed = 1.7},          --  Shivery Wand
+    [36617] = {base_speed = 2.7},          --  Yielding Bow
+    [38177] = {base_speed = 2.8},          --  Siege Captain's Gun
+    [38202] = {base_speed = 2.1},          --  Twig of Happy Reminders
+    [36631] = {base_speed = 2.7},          --  Horned Crossbow
+    [38194] = {base_speed = 3.1},          --  Mageslayer Rifle
+    [38206] = {base_speed = 1.6},          --  Wand of Blinding Light
+    [36645] = {base_speed = 2.7},          --  Tuskarr Boomstick
+    [38150] = {base_speed = 2.8},          --  Imported Ironshod Crossbow
+    [38172] = {base_speed = 2.8},          --  Crossbow of the Hardened Ranger
+    [38157] = {base_speed = 3},          --  Longbow of the Ruby Rider
+	[36613] = {base_speed = 2.7},          --  Honorable Longbow
+    [36627] = {base_speed = 2.7},          --  Composite Crossbow
+    [36655] = {base_speed = 1.7},          --  Pearled Wand
+    [36641] = {base_speed = 2.7},          --  Bound Musket
+    [36614] = {base_speed = 2.7},          --  Yew Bow
+    [38241] = {base_speed = 3.1},          --  Fury of the Raging Dragon
+    [37122] = {base_speed = 2.7},          --  Taut Driftwood Bow
+    [36656] = {base_speed = 1.7},          --  Darkened Wand
+    [35829] = {base_speed = 2.9},          --  Coldspike Longbow
+    [38208] = {base_speed = 2.9},          --  Valiance Longbow
+    [35827] = {base_speed = 1.6},          --  Regal Sceptre
+    [35811] = {base_speed = 3},          --  Elekk-Horn Crossbow
+    [35856] = {base_speed = 3},          --  Hair-Trigger Blunderbuss
+    [36642] = {base_speed = 2.7},          --  Flintlock Gun
+    [36882] = {base_speed = 2.9},          --  Warsong Longbow
+    [37023] = {base_speed = 2.9},          --  Compact Arrow Launcher
+    [35826] = {base_speed = 1.7},          --  Whelpling-Skull Zapper
+    [36628] = {base_speed = 2.7},          --  Under-Arm Crossbow
+    [37044] = {base_speed = 2.8},          --  Amphibious Speargun
+    [36657] = {base_speed = 1.7},          --  Vicious Wand
+    [36643] = {base_speed = 2.7},          --  Tracker's Musket
+    [37047] = {base_speed = 1.4},          --  Branch of Everlasting Flame
+    [36629] = {base_speed = 2.7},          --  Ferocious Crossbow
+    [37049] = {base_speed = 2.7},          --  Lost Marksman's Rifle
+    [37078] = {base_speed = 1.6},          --  Rod of the Crimson Keeper
+    [36615] = {base_speed = 2.7},          --  Expert's Longbow
+    [39073] = {base_speed = 1.6},          --  Root of the Everlasting
+    [36616] = {base_speed = 2.7},          --  Dutiful Longbow
+    [37016] = {base_speed = 1.6},          --  Wand of the Keeper
+    [33080] = {base_speed = 2.7},          --  Monster - Gun - Outland Raid D04
+    [36644] = {base_speed = 2.7},          --  Inelegant Musket
+    [49022] = {base_speed = 3},          --  Monster - Ancient Amani Longbow (Light Blue)
+    [36658] = {base_speed = 1.7},          --  Extinguished Spark
+    [37015] = {base_speed = 1.9},          --  Dowsing Rod
+    [49158] = {base_speed = 3},          --  Monster - Ancient Amani Longbow (Dark)
+    [36630] = {base_speed = 2.7},          --  Sinewed Crossbow
+    [37018] = {base_speed = 3},          --  G.E.H.T.A.
 }

@@ -255,10 +255,6 @@ addon_data.castbar.OnUnitSpellCastSucceeded = function(unit, spell_id)
         if addon_data.castbar.shot_spell_ids[spell_id] then
             spell_name = addon_data.castbar.shot_spell_ids[spell_id].spell_name
 
-			if addon_data.castbar.is_spell_aimed_shot(spell_id) then
-
-				addon_data.hunter.FeignDeath()
-			end
 			addon_data.castbar.casting_spell_id = 0
             addon_data.castbar.casting_shot = false
 			-- only show green bar overlay if setting is enabled
