@@ -69,7 +69,7 @@ addon_data.hunter.default_settings = {
 	show_autoshot_delay_timer = true,
     show_border = false,
     classic_bars = true,
-    one_bar = false,
+    one_bar = true,
     cooldown_r = 0.95, cooldown_g = 0.95, cooldown_b = 0.95, cooldown_a = 1.0,
 }
 --- Initializing variables for calculations and function calls
@@ -180,8 +180,7 @@ addon_data.hunter.UpdateRangeCastSpeedModifier = function()
 			addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
 		end
 	else
-		range_speed, _, _, _, _, percent = UnitRangedDamage("player")
-		--print(percent)
+		local range_speed, _, _, _, _, percent = UnitRangedDamage("player")
 		-- added case for if range speed returns nil or 0
 		if range_speed == nil or range_speed == 0 then
 			range_speed = 1
@@ -225,9 +224,15 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 	else
 		addon_data.hunter.shot_timer = shot_timer - elapsed
 	end
-	addon_data.hunter.auto_cast_time = 0.01
-	addon_data.hunter.UpdateRangeCastSpeedModifier()
-    
+
+    if class == "WARLOCK" or class == "MAGE" or class == "PRIEST" then
+		addon_data.hunter.auto_cast_time = 0.5
+	else
+		addon_data.hunter.auto_cast_time = 0.01
+	    addon_data.hunter.UpdateRangeCastSpeedModifier()
+	end
+	
+
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
         if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
@@ -244,9 +249,6 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
     else
          addon_data.hunter.auto_shot_ready = false
     end
-	if addon_data.hunter.spell_GCD_Time + 1.5 > curr_time then
-		addon_data.hunter.spell_GCD = 1.5 - (curr_time - addon_data.hunter.spell_GCD_Time)
-	end
 end
 
 addon_data.hunter.OnUpdate = function(elapsed)
@@ -304,10 +306,6 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
 				
 				if addon_data.hunter.is_spell_auto_shot(spellID) then
 					addon_data.hunter.casting_auto = true
-				end
-				if spellID == 34120 or addon_data.hunter.is_spell_multi_shot(spellID) then
-					addon_data.hunter.spell_GCD = 1.5
-					addon_data.hunter.spell_GCD_Time = GetTime()
 				end
 				
 		return end
@@ -414,11 +412,8 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             if addon_data.hunter.auto_shot_ready then
                 
             else
-                if addon_data.hunter.spell_GCD > 0.5 then
-					frame.shot_bar:SetVertexColor(0.8, 0.64, 0, 1)
-				else
-					frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
-				end
+				frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
+				
                 new_width = settings.width * (shot_timer / range_speed)
                 
             end
@@ -427,11 +422,7 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             end
             frame.shot_bar:SetWidth(math.min(new_width, settings.width))
         else
-		    if addon_data.hunter.spell_GCD > 0.2 then
-				frame.shot_bar:SetVertexColor(0.8, 0.64, 0, 1)
-			else
-				frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
-			end
+			frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
             timer_width = settings.width * ((addon_data.hunter.range_speed - addon_data.hunter.shot_timer) / addon_data.hunter.range_speed)
             
             frame.shot_bar:SetWidth(math.min(timer_width, settings.width))

@@ -2,7 +2,7 @@ local addon_name, addon_data = ...
 
 --- define addon structure from the above local variable
 addon_data.ranged_DB = {}
---- declare array for ranks of all abilities, cast times, cooldown, based on spell ID
+--- declare array for weapon ids used for calculating ranged haste
 addon_data.ranged_DB.item_ids = {
 	[1046] = {base_speed = 1.9},    -- Deprecated Light Blunderbuss
 	[1047] = {base_speed = 2.4},    -- Deprecated Heavy Blunderbuss
@@ -994,7 +994,7 @@ addon_data.ranged_DB.item_ids = {
     [36648] = {base_speed = 2.7},          --  Trapper's Rifle
     [36620] = {base_speed = 2.7},          --  Tracking Bow
     [36634] = {base_speed = 2.7},          --  Pain Repeater
-    [39829] = {base_speed = 3},          --  High-Strung Bow
+    [39829] = {base_speed = 3},            --  High-Strung Bow
     [36619] = {base_speed = 2.7},          --  Astral Light Bow
     [36633] = {base_speed = 2.7},          --  Palisade Crossbow
     [39119] = {base_speed = 2.9},          --  Bondsniper
@@ -1017,7 +1017,7 @@ addon_data.ranged_DB.item_ids = {
     [36645] = {base_speed = 2.7},          --  Tuskarr Boomstick
     [38150] = {base_speed = 2.8},          --  Imported Ironshod Crossbow
     [38172] = {base_speed = 2.8},          --  Crossbow of the Hardened Ranger
-    [38157] = {base_speed = 3},          --  Longbow of the Ruby Rider
+    [38157] = {base_speed = 3},            --  Longbow of the Ruby Rider
 	[36613] = {base_speed = 2.7},          --  Honorable Longbow
     [36627] = {base_speed = 2.7},          --  Composite Crossbow
     [36655] = {base_speed = 1.7},          --  Pearled Wand
@@ -1029,8 +1029,8 @@ addon_data.ranged_DB.item_ids = {
     [35829] = {base_speed = 2.9},          --  Coldspike Longbow
     [38208] = {base_speed = 2.9},          --  Valiance Longbow
     [35827] = {base_speed = 1.6},          --  Regal Sceptre
-    [35811] = {base_speed = 3},          --  Elekk-Horn Crossbow
-    [35856] = {base_speed = 3},          --  Hair-Trigger Blunderbuss
+    [35811] = {base_speed = 3},            --  Elekk-Horn Crossbow
+    [35856] = {base_speed = 3},            --  Hair-Trigger Blunderbuss
     [36642] = {base_speed = 2.7},          --  Flintlock Gun
     [36882] = {base_speed = 2.9},          --  Warsong Longbow
     [37023] = {base_speed = 2.9},          --  Compact Arrow Launcher
@@ -1049,10 +1049,11 @@ addon_data.ranged_DB.item_ids = {
     [37016] = {base_speed = 1.6},          --  Wand of the Keeper
     [33080] = {base_speed = 2.7},          --  Monster - Gun - Outland Raid D04
     [36644] = {base_speed = 2.7},          --  Inelegant Musket
-    [49022] = {base_speed = 3},          --  Monster - Ancient Amani Longbow (Light Blue)
+    [49022] = {base_speed = 3},            --  Monster - Ancient Amani Longbow (Light Blue)
     [36658] = {base_speed = 1.7},          --  Extinguished Spark
     [37015] = {base_speed = 1.9},          --  Dowsing Rod
-    [49158] = {base_speed = 3},          --  Monster - Ancient Amani Longbow (Dark)
+    [49158] = {base_speed = 3},            --  Monster - Ancient Amani Longbow (Dark)
     [36630] = {base_speed = 2.7},          --  Sinewed Crossbow
-    [37018] = {base_speed = 3},          --  G.E.H.T.A.
+    [37018] = {base_speed = 3},            --  G.E.H.T.A.
+	[199714] = {base_speed = 2.7},     	   --  Collective Bow
 }

@@ -44,6 +44,8 @@ addon_data.player.main_weapon_speed = 2
 addon_data.player.main_weapon_id = GetInventoryItemID("player", 16)
 addon_data.player.main_speed_changed = false
 addon_data.player.extra_attacks_flag = false
+addon_data.player.pause_swing = false
+addon_data.player.pause_time = 0
 
 addon_data.player.off_swing_timer = 0.00001
 addon_data.player.prev_off_weapon_speed = 2
@@ -134,11 +136,18 @@ end
 addon_data.player.OnCombatLogUnfiltered = function(combat_info)
     local _, event, _, source_guid, _, _, _, dest_guid, _, _, _, _, spell_name, _ = unpack(combat_info)
     if (source_guid == addon_data.player.guid) then
-	
+
 	-- added check for extra attacks that would accidently reset the swing timer, reset by a sucessful
 		if (event == "SPELL_EXTRA_ATTACKS") then
 			addon_data.player.extra_attacks_flag = true
 		end
+        if (event == "SPELL_CAST_START" and spell_name == L["Slam"]) then
+            addon_data.player.pause_swing = true
+            addon_data.player.pause_time = GetTime()
+        end
+        if (event == "SPELL_CAST_SUCCESS" and spell_name == L["Slam"]) then
+            addon_data.player.pause_swing = false
+        end
         if (event == "SWING_DAMAGE") then
             local _, _, _, _, _, _, _, _, _, is_offhand = select(12, unpack(combat_info))
             if is_offhand then
@@ -177,7 +186,10 @@ end
 
 addon_data.player.UpdateMainSwingTimer = function(elapsed)
     if character_player_settings.enabled then
-        if addon_data.player.main_swing_timer > 0 then
+        -- delay the swing timer while slam pause is true
+        if addon_data.player.pause_swing == true then 
+            addon_data.player.main_swing_timer = addon_data.player.main_swing_timer;
+        elseif addon_data.player.main_swing_timer > 0 then
             addon_data.player.main_swing_timer = addon_data.player.main_swing_timer - elapsed
             if addon_data.player.main_swing_timer < 0 then
                 addon_data.player.main_swing_timer = 0
@@ -189,7 +201,10 @@ end
 addon_data.player.UpdateOffSwingTimer = function(elapsed)
     if character_player_settings.enabled then
         if addon_data.player.has_offhand then
-            if addon_data.player.off_swing_timer > 0 then
+            -- delay the swing timer while slam pause is true
+            if addon_data.player.pause_swing == true then 
+                addon_data.player.off_swing_timer = addon_data.player.off_swing_timer;
+            elseif addon_data.player.off_swing_timer > 0 then
                 addon_data.player.off_swing_timer = addon_data.player.off_swing_timer - elapsed
                 if addon_data.player.off_swing_timer < 0 then
                     addon_data.player.off_swing_timer = 0
@@ -227,6 +242,29 @@ addon_data.player.UpdateOffWeaponSpeed = function()
     else
         addon_data.player.off_speed_changed = false
     end
+end
+
+addon_data.player.OnUnitSpellCastInterrupted = function(unit, spell_id)
+    
+    if addon_data.player.pause_swing == true then
+        local curr_time = GetTime()
+        local offset = curr_time - addon_data.player.pause_time
+
+        if offset <= addon_data.player.main_swing_timer then
+            addon_data.player.main_swing_timer = addon_data.player.main_swing_timer - offset
+        elseif offset > addon_data.player.main_swing_timer then
+            addon_data.player.main_swing_timer = addon_data.player.main_swing_timer - offset + addon_data.player.main_weapon_speed
+        end
+        if addon_data.player.has_offhand == true then
+            if offset <= addon_data.player.off_swing_timer then
+                addon_data.player.off_swing_timer = addon_data.player.off_swing_timer - offset
+            elseif offset > addon_data.player.off_swing_timer then
+                addon_data.player.off_swing_timer = addon_data.player.off_swing_timer - offset + addon_data.player.off_weapon_speed
+            end
+        end
+        addon_data.player.pause_swing = false
+    end
+
 end
 
 --[[============================================================================================]]--
