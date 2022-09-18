@@ -160,9 +160,7 @@ addon_data.hunter.FeignDeath = function()
     addon_data.hunter.last_shot_time = GetTime()
 	if not addon_data.hunter.FeignFullReset then
 		range_speed, _, _, _, _, _ = UnitRangedDamage("player")
-
 		addon_data.hunter.range_speed = range_speed + 0.15
-
 		addon_data.hunter.FeignFullReset = true
 	end
     addon_data.hunter.ResetShotTimer()
@@ -198,7 +196,7 @@ end
 addon_data.hunter.ResetShotTimer = function()
     -- The timer is reset to either the auto cast time or the difference between the time since the last shot and the current time depending on which is larger
     local curr_time = GetTime()
-    local range_speed = addon_data.hunter.range_speed - 0.45 * addon_data.hunter.range_cast_speed_modifer
+    local range_speed = addon_data.hunter.range_speed
 	
     if (curr_time + 0.05 - addon_data.hunter.last_shot_time) > (range_speed - addon_data.hunter.auto_cast_time) then
 		addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
@@ -229,7 +227,7 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 	end
 	addon_data.hunter.auto_cast_time = 0.01
 	addon_data.hunter.UpdateRangeCastSpeedModifier()
-
+    
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
         if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
@@ -361,7 +359,7 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 					addon_data.hunter.shot_timer = addon_data.hunter.shot_timer * 
 											(new_range_speed / addon_data.hunter.range_speed)
 				end
-				addon_data.hunter.range_speed = new_range_speed - 0.45 * addon_data.hunter.range_cast_speed_modifer
+				addon_data.hunter.range_speed = new_range_speed
 				addon_data.hunter.range_auto_speed_modified = addon_data.hunter.range_cast_speed_modifer
 			end
 		end
