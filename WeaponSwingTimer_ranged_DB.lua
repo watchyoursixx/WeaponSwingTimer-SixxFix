@@ -1056,4 +1056,6 @@ addon_data.ranged_DB.item_ids = {
     [36630] = {base_speed = 2.7},          --  Sinewed Crossbow
     [37018] = {base_speed = 3},            --  G.E.H.T.A.
 	[199714] = {base_speed = 2.7},     	   --  Collective Bow
+	[42946] = {base_speed = 2.8},    	   --  Charmed Ancient Bone Bow
+	[44093] = {base_speed = 2.9}, 		   --  Upgraded Dwarven Hand Cannon
 }

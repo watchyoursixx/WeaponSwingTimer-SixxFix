@@ -215,7 +215,7 @@ swing_reset_spells['PALADIN'] = {
     -- --[[ Divine Intervention ]]
     -- --[[ Divine Protection ]]
     -- --[[ Divine Shield ]]
-    -- --[[ Exorcism ]]
+    --[[ Exorcism ]]           879, 5614, 5615, 10312, 10313, 10314, 27138, 48800,
     -- --[[ Fire Resistance Aura ]]
     -- --[[ Flash of Light ]]
     -- --[[ Frost Resistance Aura ]]
@@ -227,7 +227,7 @@ swing_reset_spells['PALADIN'] = {
     -- --[[ Greater Blessing of Wisdom ]]
     -- --[[ Hammer of Justice ]]
     -- --[[ Hammer of Wrath ]]
-    -- --[[ Holy Light ]]
+    --[[ Holy Light ]]         635, 639, 647, 1026, 1042, 3472, 10328, 10329, 25292, 27135, 27136, 48781,
     -- --[[ Holy Shield ]]
     -- --[[ Holy Shock ]]
     -- --[[ Holy Wrath ]]
@@ -496,6 +496,7 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Execute ]]
     -- --[[ Hamstring ]]
     --[[ Heroic Strike ]]           78, 284, 285, 1608, 11564, 11565, 11566, 11567, 25286, 29707, 30324, 47450, 47449,
+    --[[ Heroic Throw ]]            57755,
     -- --[[ Intercept ]]
     -- --[[ Intimidating Shout ]]
     -- --[[ Last Stand ]]
@@ -523,7 +524,9 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Thunder Clap ]]
     -- --[[ Whirlwind ]]
 }
-
+swing_reset_spells['DEATHKNIGHT'] = {
+    --[[ Rune Strike ]]        56815,
+}
 local function LoadAllSettings()
     addon_data.core.LoadSettings()
     addon_data.player.LoadSettings()
