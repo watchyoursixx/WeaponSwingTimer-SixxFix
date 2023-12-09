@@ -11,7 +11,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "7.1.1"
+local version = "7.2.1"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
