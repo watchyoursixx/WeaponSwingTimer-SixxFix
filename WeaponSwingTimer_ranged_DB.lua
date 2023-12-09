@@ -793,5 +793,12 @@ addon_data.ranged_DB.item_ids = {
 	[35108] = {base_speed = 1.9},    -- Brutal Gladiator's War Edge
 	[186050] = {base_speed = 1.4},    -- Communal Wand
 	[186056] = {base_speed = 2.7},    -- Communal Bow
-	[186069] = {base_speed = 1.8}    -- Communal Knives
+	[186069] = {base_speed = 1.8},    -- Communal Knives
+	[209534] = {base_speed = 2.8},    -- Azshari Arbalest
+	[209688] = {base_speed = 2.5},    -- Bael Modan Blunderbuss
+	[209563] = {base_speed = 2.9},    -- Naga Heartrender
+	[212581] = {base_speed = 2.4},    -- Outrunner's Bow
+	[212585] = {base_speed = 2.4},    -- Outrider's Bow
+	[209830] = {base_speed = 1.9},    -- Ironhide Arbalest
+	[211445] = {base_speed = 2.4}    -- Barbaric Recurve
 }

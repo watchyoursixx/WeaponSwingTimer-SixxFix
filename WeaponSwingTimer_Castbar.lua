@@ -110,7 +110,8 @@ end
 addon_data.castbar.StartCastingSpell = function(spell_id)
     local settings = character_castbar_settings
     if (GetTime() - addon_data.castbar.last_failed_time) > 0 then
-        if not addon_data.castbar.casting and UnitCanAttack('player', 'target') then
+        if not addon_data.castbar.casting and UnitCanAttack('player', 'target') 
+            or addon_data.castbar.is_spell_aimed_shot(spell_id) then
             spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
             if cast_time == nil then
 			
