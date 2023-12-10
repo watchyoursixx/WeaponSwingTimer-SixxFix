@@ -110,8 +110,7 @@ end
 addon_data.castbar.StartCastingSpell = function(spell_id)
     local settings = character_castbar_settings
     if (GetTime() - addon_data.castbar.last_failed_time) > 0 then
-        if not addon_data.castbar.casting and UnitCanAttack('player', 'target') 
-            or addon_data.castbar.is_spell_aimed_shot(spell_id) then
+        if not addon_data.castbar.casting and UnitCanAttack('player', 'target') then
             spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
             if cast_time == nil then
 			
@@ -128,6 +127,7 @@ addon_data.castbar.StartCastingSpell = function(spell_id)
 				addon_data.castbar.casting_spell_id = spell_id
 				addon_data.castbar.pushbackValue = 1
 				addon_data.castbar.initial_pushback_time = 0
+                addon_data.castbar.hitcount = 0
 				addon_data.castbar.initial_cast_time = cast_time
                     
 				addon_data.castbar.cast_timer = 0
@@ -219,14 +219,8 @@ addon_data.castbar.OnCombatLogUnfiltered = function(combat_info)
 		if event == "SPELL_CAST_START" then
 		  
 				addon_data.hunter.FeignStatus = false
-
-				if name == L["Multi-Shot"] then
-					spellID = 25294
-                    addon_data.castbar.StartCastingSpell(spellID)
-				end
-				if name == L["Aimed Shot"] then
-					spellID = 20904
-                    addon_data.castbar.StartCastingSpell(spellID)
+				if addon_data.castbar.is_spell_multi_shot(spellID) or addon_data.castbar.is_spell_aimed_shot(spellID) then
+					addon_data.castbar.StartCastingSpell(spellID)
 					
 				end
 				
@@ -446,7 +440,7 @@ addon_data.castbar.UpdateVisualsOnSettingsChange = function()
 end
 
 addon_data.castbar.OnFrameDragStart = function()
-    if not character_hunter_settings.is_locked then
+    if not character_castbar_settings.is_locked then
         addon_data.castbar.frame:StartMoving()
     end
 end

@@ -77,8 +77,8 @@ addon_data.hunter.default_settings = {
 addon_data.hunter.shooting = false
 -- added check below for range speed to default 3 on initialize 
 addon_data.hunter.range_speed = 3
-addon_data.hunter.auto_cast_time = 0.50
-addon_data.hunter.shot_timer = 0.50
+addon_data.hunter.auto_cast_time = 0.52
+addon_data.hunter.shot_timer = 0.52
 addon_data.hunter.last_shot_time = GetTime()
 addon_data.hunter.auto_shot_ready = true
 addon_data.hunter.FeignStatus = false
@@ -88,6 +88,7 @@ addon_data.hunter.base_speed = 1
 addon_data.hunter.spell_GCD = 0
 addon_data.hunter.spell_GCD_Time = 0
 
+addon_data.hunter.casting = false
 addon_data.hunter.casting_auto = false
 addon_data.hunter.range_cast_speed_modifer = 1
 
@@ -98,7 +99,7 @@ addon_data.hunter.has_moved = false
 addon_data.hunter.StartCastingSpell = function(spell_id)
     local settings = character_hunter_settings
 
-    if not addon_data.castbar.casting and UnitCanAttack('player', 'target') then
+    if not addon_data.hunter.casting and UnitCanAttack('player', 'target') then
         spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
         if cast_time == nil then
 			
@@ -106,7 +107,7 @@ addon_data.hunter.StartCastingSpell = function(spell_id)
         end
         if not addon_data.hunter.is_spell_auto_shot(spell_id) and 
 			not addon_data.hunter.is_spell_shoot(spell_id) and cast_time > 0 then
-               addon_data.castbar.casting = true
+               addon_data.hunter.casting = true
         end
 	end
 end
@@ -159,6 +160,7 @@ addon_data.hunter.FeignDeath = function()
     addon_data.hunter.last_shot_time = GetTime()
 	if not addon_data.hunter.FeignFullReset then
 		local weapon_id = GetInventoryItemID("player", 18)
+		addon_data.hunter.range_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed + 0.15
 		addon_data.hunter.FeignFullReset = true
 	end
     addon_data.hunter.ResetShotTimer()
@@ -174,7 +176,7 @@ addon_data.hunter.UpdateRangeCastSpeedModifier = function()
 		-- added case for if no ranged equipped
 		if weapon_id == nil then
 			addon_data.hunter.base_speed = 1
-        else
+		else
 			addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
 		end
 	else
@@ -194,15 +196,16 @@ addon_data.hunter.ResetShotTimer = function()
     -- The timer is reset to either the auto cast time or the difference between the time since the last shot and the current time depending on which is larger
     local curr_time = GetTime()
     local range_speed = addon_data.hunter.range_speed
+	
     if (curr_time + 0.05 - addon_data.hunter.last_shot_time) > (range_speed - addon_data.hunter.auto_cast_time) then
 		addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
 		addon_data.hunter.auto_shot_ready = true
 		
-    elseif curr_time ~= addon_data.hunter.last_shot_time and not addon_data.castbar.casting then
+    elseif curr_time ~= addon_data.hunter.last_shot_time and not addon_data.hunter.casting then
         addon_data.hunter.shot_timer = curr_time - addon_data.hunter.last_shot_time
         addon_data.hunter.auto_shot_ready = false
 		
-	elseif addon_data.castbar.casting then
+	elseif addon_data.hunter.casting then
 		if (curr_time - addon_data.hunter.last_shot_time) > (3 * addon_data.hunter.range_cast_speed_modifer) then
 			addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
 		end
@@ -222,14 +225,14 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 		addon_data.hunter.shot_timer = shot_timer - elapsed
 	end
 	if class == "WARLOCK" or class == "MAGE" or class == "PRIEST" then
-		addon_data.hunter.auto_cast_time = 0.5
+		addon_data.hunter.auto_cast_time = 0.52
 	else
 		addon_data.hunter.UpdateRangeCastSpeedModifier()
-		addon_data.hunter.auto_cast_time = 0.5 * addon_data.hunter.range_cast_speed_modifer
+		addon_data.hunter.auto_cast_time = 0.52 * addon_data.hunter.range_cast_speed_modifer
 	end
+	
     -- If the player moved then the timer resets
-    if addon_data.hunter.has_moved or addon_data.castbar.casting then
-		addon_data.hunter.casting_auto = false
+    if addon_data.hunter.has_moved or addon_data.hunter.casting then
         if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
             addon_data.hunter.ResetShotTimer()			
         end
@@ -245,6 +248,9 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
          addon_data.hunter.auto_shot_ready = false
     end
 
+	if addon_data.hunter.spell_GCD_Time + 1.5 > curr_time then
+		addon_data.hunter.spell_GCD = 1.5 - (curr_time - addon_data.hunter.spell_GCD_Time)
+	end
 end
 
 addon_data.hunter.OnUpdate = function(elapsed)
@@ -257,6 +263,7 @@ addon_data.hunter.OnUpdate = function(elapsed)
 			addon_data.hunter.FeignDeath()
 			addon_data.hunter.FeignStatus = false
 		end
+	
         -- Update the Auto Shot timer based on the updated settings
         addon_data.hunter.UpdateAutoShotTimer(elapsed)
         -- Update the visuals
@@ -302,6 +309,10 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
 				if addon_data.hunter.is_spell_auto_shot(spellID) then
 					addon_data.hunter.casting_auto = true
 				end
+				if spellID == 34120 or addon_data.hunter.is_spell_multi_shot(spellID) then
+					addon_data.hunter.spell_GCD = 1.5
+					addon_data.hunter.spell_GCD_Time = GetTime()
+				end
 				
 		return end
 	
@@ -317,9 +328,9 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 
 	local settings = character_hunter_settings
 
-    if unit == 'player' then
+	if unit == 'player' then
 	
-	    addon_data.castbar.casting = false
+	    addon_data.hunter.casting = false
         -- If the spell is Auto Shot then reset the shot timer
         if addon_data.hunter.shot_spell_ids[spell_id] then
             spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
@@ -332,11 +343,9 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 			end
 			if addon_data.castbar.is_spell_aimed_shot(spell_id) then
 
-				addon_data.castbar.pushbackValue = 1
-				addon_data.castbar.initial_pushback_time = 0
-				addon_data.castbar.hitcount = 0
 				addon_data.hunter.ResetShotTimer()
 				addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
+                
 			end
             if addon_data.hunter.is_spell_auto_shot(spell_id) or addon_data.hunter.is_spell_shoot(spell_id) then
 				addon_data.hunter.FeignFullReset = false
@@ -371,7 +380,7 @@ end
 addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
     local settings = character_castbar_settings
 	
-	addon_data.castbar.casting = false
+	addon_data.hunter.casting = false
 	if unit == 'player' and addon_data.hunter.is_spell_auto_shot(spell_id) then
 		addon_data.hunter.casting_auto = false
 		--addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
@@ -387,15 +396,13 @@ addon_data.hunter.OnUnitSpellCastFailedQuiet = function(unit, spell_id)
 	local curr_time = GetTime()
     if settings.show_autoshot_delay_timer and unit == "player" and addon_data.hunter.is_spell_auto_shot(spell_id) then
         
-		if not addon_data.castbar.casting and addon_data.hunter.shooting 
+		if not addon_data.hunter.casting and addon_data.hunter.shooting 
 		   and (curr_time - addon_data.hunter.last_shot_time) > (addon_data.hunter.range_speed - addon_data.hunter.auto_cast_time) then
 			
 			addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time + 0.5
 		end
     end
 end
-
-
 
 --- Updating and initializing visuals
 --- ---------------------------------
@@ -420,7 +427,11 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
                 new_width = settings.width * (auto_cast_time - shot_timer) / auto_cast_time
                 frame.multishot_clip_bar:Hide()
             else
-                frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
+                if addon_data.hunter.spell_GCD > 0.5 then
+					frame.shot_bar:SetVertexColor(0.8, 0.64, 0, 1)
+				else
+					frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
+				end
                 new_width = settings.width * ((shot_timer - auto_cast_time) / (range_speed - auto_cast_time))
                 if settings.show_multishot_clip_bar then
                     frame.multishot_clip_bar:Show()
@@ -433,6 +444,11 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             end
             frame.shot_bar:SetWidth(math.min(new_width, settings.width))
         else
+		    if addon_data.hunter.spell_GCD > 0.2 then
+				frame.shot_bar:SetVertexColor(0.8, 0.64, 0, 1)
+			else
+				frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
+			end
             timer_width = settings.width * ((addon_data.hunter.range_speed - addon_data.hunter.shot_timer) / addon_data.hunter.range_speed)
             if addon_data.hunter.auto_shot_ready then
                 auto_shot_cast_width = settings.width * (addon_data.hunter.shot_timer / addon_data.hunter.range_speed)
@@ -448,12 +464,6 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             end
             frame.shot_bar:SetWidth(math.min(timer_width, settings.width))
             frame.auto_shot_cast_bar:SetWidth(math.max(auto_shot_cast_width, 0.001))
-			-- if addon_data.hunter.casting_auto == true then
-				-- frame.auto_shot_cast_bar:SetVertexColor(0.04, 0.15, 0.98, settings.auto_cast_a)
-				-- print("test")
-			-- else
-				-- frame.auto_shot_cast_bar:SetVertexColor(settings.auto_cast_r, settings.auto_cast_g, settings.auto_cast_b, settings.auto_cast_a)
-			-- end
         end
 		frame:SetSize(settings.width, settings.height)
     end
@@ -555,6 +565,7 @@ addon_data.hunter.InitializeVisuals = function()
     -- Create the frame
     addon_data.hunter.frame = CreateFrame("Frame", addon_name .. "HunterAutoshotFrame", UIParent)
     local frame = addon_data.hunter.frame
+	
     frame:SetMovable(true)
     frame:EnableMouse(not settings.is_locked)
     frame:RegisterForDrag("LeftButton")

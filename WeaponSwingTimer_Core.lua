@@ -1,7 +1,6 @@
 local addon_name, addon_data = ...
 local L = addon_data.localization_table
 
-
 addon_data.core = {}
 
 addon_data.core.core_frame = CreateFrame("Frame", addon_name .. "CoreFrame", UIParent)
@@ -11,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "7.2.1"
+local version = "7.2.2"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -583,31 +582,56 @@ local function CoreFrame_OnUpdate(self, elapsed)
 	addon_data.castbar.OnUpdate(elapsed)
 end
 
-addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
+addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
     if miss_type == "PARRY" then
         if unit == "player" then
-            min_swing_time = addon_data.target.main_weapon_speed * 0.2
-            if addon_data.target.main_swing_timer > min_swing_time then
-                addon_data.target.main_swing_timer = min_swing_time
+            -- parry haste calculations:
+            -- if swing is below 20%, do nothing.
+            -- if swing is above 20%, reduce by 40% of main_weapon_speed
+            -- if new swing is below 20%, set to 20% (parry cannot reduce swing timer below 20%)
+            local min_swing_time = addon_data.target.main_weapon_speed * 0.2
+
+            if min_swing_time >= addon_data.target.main_swing_timer then
+                -- do nothing
+			else
+                addon_data.target.main_swing_timer = addon_data.target.main_swing_timer - (addon_data.target.main_weapon_speed * 0.4)
+
+                if addon_data.target.main_swing_timer < min_swing_time then
+                    addon_data.target.main_swing_timer = min_swing_time
+                end
             end
             if not is_offhand then
-                if (addon_data.player.extra_attacks_flag == false) then
-			addon_data.player.ResetMainSwingTimer()
-		end
-		addon_data.player.extra_attacks_flag = false
+			-- resets swing timer if it's not an extra attack, attempt to fix random resets mid-swing
+				if (addon_data.player.extra_attacks_flag == false) then
+					addon_data.player.ResetMainSwingTimer()
+				end
+			addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end
-        elseif unit == "target" then
-            min_swing_time = addon_data.player.main_weapon_speed * 0.2
-            if addon_data.player.main_swing_timer > min_swing_time then
-                addon_data.player.main_swing_timer = min_swing_time
+        elseif unit == "target" and is_player then
+            -- parry haste calculations:
+            -- if swing is below 20%, do nothing.
+            -- if swing is above 20%, reduce by 40% of main_weapon_speed
+            -- if new swing is below 20%, set to 20% (parry cannot reduce swing timer below 20%)
+            local min_swing_time = addon_data.player.main_weapon_speed * 0.2
+
+            if min_swing_time >= addon_data.player.main_swing_timer then
+                -- do nothing
+			else
+                addon_data.player.main_swing_timer = addon_data.player.main_swing_timer - (addon_data.player.main_weapon_speed * 0.4)
+
+                if addon_data.player.main_swing_timer < min_swing_time then
+                    addon_data.player.main_swing_timer = min_swing_time
+                end
             end
             if not is_offhand then
                 addon_data.target.ResetMainSwingTimer()
             else
                 addon_data.target.ResetOffSwingTimer()
             end
+		elseif unit == "target" then
+            -- do nothing
         else
             addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
@@ -627,7 +651,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
             else
                 addon_data.target.ResetOffSwingTimer()
             end 
-        else
+		else
             addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
     end
@@ -639,6 +663,7 @@ addon_data.core.SpellHandler = function(unit, spell_id)
         if player_class == class then
             for spell_index, curr_spell_id in ipairs(spell_table) do
 				if spell_id == curr_spell_id then
+				
                     if unit == "player" then
                         addon_data.player.ResetMainSwingTimer()
                     elseif unit == "target" then
