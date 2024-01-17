@@ -801,5 +801,8 @@ addon_data.ranged_DB.item_ids = {
 	[212581] = {base_speed = 2.4},    -- Outrunner's Bow
 	[212585] = {base_speed = 2.4},    -- Outrider's Bow
 	[209830] = {base_speed = 1.9},    -- Ironhide Arbalest
+	[209674] = {base_speed = 1.2},    -- Phoenix Ignition
+	[209571] = {base_speed = 1.9},    -- Deadlight
+	[211461] = {base_speed = 1.5},    -- Inscribed Gravestone Scepter
 	[211445] = {base_speed = 2.4}    -- Barbaric Recurve
 }
