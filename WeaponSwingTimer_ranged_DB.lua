@@ -804,5 +804,15 @@ addon_data.ranged_DB.item_ids = {
 	[209674] = {base_speed = 1.2},    -- Phoenix Ignition
 	[209571] = {base_speed = 1.9},    -- Deadlight
 	[211461] = {base_speed = 1.5},    -- Inscribed Gravestone Scepter
+	[216516] = {base_speed = 1.8},    -- Bloodlash Bow
+	[213356] = {base_speed = 2.9},    -- Thermaplugg's Custom Blaster
+	[217295] = {base_speed = 1.4},    -- Necrotic Wand
+	[213559] = {base_speed = 1.5},    -- Mechanostrider Gear Shifter
+	[213355] = {base_speed = 2.0},    -- Falco's Sting
+	[217287] = {base_speed = 2.0},    -- Greater Mystic Wand
+	[213293] = {base_speed = 2.3},    -- Hi-tech Supergun Mk.VII
+	[213411] = {base_speed = 2.0},    -- Izzleflick's Inextinguishable Igniter
+	[217314] = {base_speed = 1.7},    -- Moonsight Rifle
+	[217315] = {base_speed = 2.6},    -- Precision Bow
 	[211445] = {base_speed = 2.4}    -- Barbaric Recurve
 }
