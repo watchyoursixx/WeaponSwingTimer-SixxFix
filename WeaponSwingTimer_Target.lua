@@ -250,32 +250,46 @@ addon_data.target.UpdateVisualsOnUpdate = function()
             main_speed = 2
         end
         -- Update the main bars width
-        main_width = math.min(settings.width - (settings.width * (main_timer / main_speed)), settings.width)
+        local main_width = math.min(settings.width - (settings.width * (main_timer / main_speed)), settings.width)
         if not settings.fill_empty then
             main_width = settings.width - main_width + 0.001
         end
-        frame.main_bar:SetWidth(main_width)
-        frame.main_spark:SetPoint('TOPLEFT', main_width - 8, 0)
-        if main_width == settings.width or not settings.classic_bars or main_width == 0.001 then
-            frame.main_spark:Hide()
-        else
-            frame.main_spark:Show()
+        if frame.main_bar then
+            frame.main_bar:SetWidth(main_width)
+        end
+        if frame.main_spark then
+            frame.main_spark:SetPoint('TOPLEFT', main_width - 8, 0)
+            if main_width == settings.width or not settings.classic_bars or main_width == 0.001 then
+                frame.main_spark:Hide()
+            else
+                frame.main_spark:Show()
+            end
         end
         -- Update the main bars text
-        frame.main_left_text:SetText(L["Main-Hand"])
-        frame.main_right_text:SetText(tostring(addon_data.utils.SimpleRound(main_timer, 0.1)))
+        if frame.main_left_text then
+            frame.main_left_text:SetText(L["Main-Hand"])
+        end
+        if frame.main_right_text then
+            frame.main_right_text:SetText(tostring(addon_data.utils.SimpleRound(main_timer, 0.1)))
+        end
         -- Update the off hand bar
         if addon_data.target.has_offhand and settings.show_offhand then
-            frame.off_bar:Show()
-            if settings.show_left_text then
-                frame.off_left_text:Show()
-            else
-                frame.off_left_text:Hide()
+            if frame.off_bar then
+                frame.off_bar:Show()
             end
-            if settings.show_right_text then
-                frame.off_right_text:Show()
-            else
-                frame.off_right_text:Hide()
+            if frame.off_left_text then
+                if settings.show_left_text then
+                    frame.off_left_text:Show()
+                else
+                    frame.off_left_text:Hide()
+                end
+            end
+            if frame.off_right_text then
+                if settings.show_right_text then
+                    frame.off_right_text:Show()
+                else
+                    frame.off_right_text:Hide()
+                end
             end
             local off_speed = addon_data.target.off_weapon_speed
             local off_timer = addon_data.target.off_swing_timer
@@ -284,24 +298,38 @@ addon_data.target.UpdateVisualsOnUpdate = function()
                 off_speed = 2
             end
             -- Update the off-hand bar's width
-            off_width = math.min(settings.width - (settings.width * (off_timer / off_speed)), settings.width)
+            local off_width = math.min(settings.width - (settings.width * (off_timer / off_speed)), settings.width)
             if not settings.fill_empty then
                 off_width = settings.width - off_width + 0.001
             end
-            frame.off_bar:SetWidth(off_width)
-            frame.off_spark:SetPoint('BOTTOMLEFT', off_width - 8, 0)
-            if off_width == settings.width or not settings.classic_bars or off_width == 0.001 then
-                frame.off_spark:Hide()
-            else
-                frame.off_spark:Show()
+            if frame.off_bar then
+                frame.off_bar:SetWidth(off_width)
+            end
+            if frame.off_spark then
+                frame.off_spark:SetPoint('BOTTOMLEFT', off_width - 8, 0)
+                if off_width == settings.width or not settings.classic_bars or off_width == 0.001 then
+                    frame.off_spark:Hide()
+                else
+                    frame.off_spark:Show()
+                end
             end
             -- Update the off-hand bar's text
-            frame.off_left_text:SetText(L["Off-Hand"])
-            frame.off_right_text:SetText(tostring(addon_data.utils.SimpleRound(off_timer, 0.1)))
+            if frame.off_left_text then
+                frame.off_left_text:SetText(L["Off-Hand"])
+            end
+            if frame.off_right_text then
+                frame.off_right_text:SetText(tostring(addon_data.utils.SimpleRound(off_timer, 0.1)))
+            end
         else
-            frame.off_bar:Hide()
-            frame.off_left_text:Hide()
-            frame.off_right_text:Hide()
+            if frame.off_bar then
+                frame.off_bar:Hide()
+            end
+            if frame.off_left_text then
+                frame.off_left_text:Hide()
+            end
+            if frame.off_right_text then
+                frame.off_right_text:Hide()
+            end
         end
         -- Update the frame's appearance based on settings
         if addon_data.target.has_offhand and character_target_settings.show_offhand then
@@ -457,12 +485,12 @@ addon_data.target.InitializeVisuals = function()
     -- Create the main hand bar left text
     frame.main_left_text = frame:CreateFontString(nil, "OVERLAY")
     frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.main_left_text:SetJustifyV("CENTER")
+    frame.main_left_text:SetJustifyV("MIDDLE")
     frame.main_left_text:SetJustifyH("LEFT")
     -- Create the main hand bar right text
     frame.main_right_text = frame:CreateFontString(nil, "OVERLAY")
     frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.main_right_text:SetJustifyV("CENTER")
+    frame.main_right_text:SetJustifyV("MIDDLE")
     frame.main_right_text:SetJustifyH("RIGHT")
     -- Create the off hand bar
     frame.off_bar = frame:CreateTexture(nil,"ARTWORK")
@@ -472,12 +500,12 @@ addon_data.target.InitializeVisuals = function()
     -- Create the off hand bar left text
     frame.off_left_text = frame:CreateFontString(nil, "OVERLAY")
     frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.off_left_text:SetJustifyV("CENTER")
+    frame.off_left_text:SetJustifyV("MIDDLE")
     frame.off_left_text:SetJustifyH("LEFT")
     -- Create the off hand bar right text
     frame.off_right_text = frame:CreateFontString(nil, "OVERLAY")
     frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.off_right_text:SetJustifyV("CENTER")
+    frame.off_right_text:SetJustifyV("MIDDLE")
     frame.off_right_text:SetJustifyH("RIGHT")
     -- Show it off
     addon_data.target.UpdateVisualsOnSettingsChange()
@@ -884,4 +912,3 @@ addon_data.target.CreateConfigPanel = function(parent_panel)
     addon_data.target.UpdateConfigPanelValues()
     return panel
 end
-
