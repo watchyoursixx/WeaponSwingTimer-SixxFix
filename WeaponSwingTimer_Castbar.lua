@@ -8,25 +8,23 @@ addon_data.castbar.shot_spell_ids = {
 	[19506] = {spell_name = L["Trueshot Aura"], rank = 1, cast_time = nil, cooldown = nil},
 	[20905] = {spell_name = L["Trueshot Aura"], rank = 2, cast_time = nil, cooldown = nil},
 	[20906] = {spell_name = L["Trueshot Aura"], rank = 3, cast_time = nil, cooldown = nil},
-    [2643] = {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.5, cooldown = 10},
+    [2643] =  {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.5, cooldown = 10},
     [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.5, cooldown = 10},
     [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.5, cooldown = 10},
     [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.5, cooldown = 10},
     [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.5, cooldown = 10},
-	[27021] = {spell_name = L["Multi-Shot"], rank = 6, cast_time = 0.5, cooldown = 10},
-    [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 3, cooldown = 6},
-    [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 3, cooldown = 6},
-    [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 3, cooldown = 6},
-    [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 3, cooldown = 6},
-    [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 3, cooldown = 6},
-    [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 3, cooldown = 6},
-    [27065] = {spell_name = L["Aimed Shot"], rank = 7, cast_time = 3, cooldown = 6},
+    [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 3.5, cooldown = 6},
+    [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 3.5, cooldown = 6},
+    [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 3.5, cooldown = 6},
+    [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 3.5, cooldown = 6},
+    [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 3.5, cooldown = 6},
+    [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 3.5, cooldown = 6},
     [5019] = {spell_name = L["Shoot"], rank = nil, cast_time = nil, cooldown = nil}
 }
 --- is spell multi-shot defined by spell_id
 addon_data.castbar.is_spell_multi_shot = function(spell_id)
     if (spell_id == 2643) or (spell_id == 14288) or (spell_id == 14289) or 
-       (spell_id == 14290) or (spell_id == 25294) or (spell_id == 27021) then
+       (spell_id == 14290) or (spell_id == 25294) then
             return true
     else
             return false
@@ -34,8 +32,9 @@ addon_data.castbar.is_spell_multi_shot = function(spell_id)
 end
 --- is spell aimed shot defined by spell_id
 addon_data.castbar.is_spell_aimed_shot = function(spell_id)
+
     if (spell_id == 19434) or (spell_id == 20900) or (spell_id == 20901) or 
-       (spell_id == 20902) or (spell_id == 20903) or (spell_id == 20904) or (spell_id == 27065) then
+       (spell_id == 20902) or (spell_id == 20903) or (spell_id == 20904) then
             return true
     else
             return false
@@ -110,7 +109,6 @@ end
 -- Selection of starting a timer for casting multi and handling of stopping auto timer from starting
 addon_data.castbar.StartCastingSpell = function(spell_id)
     local settings = character_castbar_settings
-
     if (GetTime() - addon_data.castbar.last_failed_time) > 0 then
         if not addon_data.castbar.casting and UnitCanAttack('player', 'target') then
             spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
@@ -129,6 +127,7 @@ addon_data.castbar.StartCastingSpell = function(spell_id)
 				addon_data.castbar.casting_spell_id = spell_id
 				addon_data.castbar.pushbackValue = 1
 				addon_data.castbar.initial_pushback_time = 0
+                addon_data.castbar.hitcount = 0
 				addon_data.castbar.initial_cast_time = cast_time
                     
 				addon_data.castbar.cast_timer = 0
@@ -255,10 +254,6 @@ addon_data.castbar.OnUnitSpellCastSucceeded = function(unit, spell_id)
         if addon_data.castbar.shot_spell_ids[spell_id] then
             spell_name = addon_data.castbar.shot_spell_ids[spell_id].spell_name
 
-			if addon_data.castbar.is_spell_aimed_shot(spell_id) then
-
-				addon_data.hunter.FeignDeath()
-			end
 			addon_data.castbar.casting_spell_id = 0
             addon_data.castbar.casting_shot = false
 			-- only show green bar overlay if setting is enabled
@@ -487,7 +482,7 @@ addon_data.castbar.InitializeVisuals = function()
     -- Create the spell bar text
     frame.spell_bar_text = frame:CreateFontString(nil,"OVERLAY")
     frame.spell_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.spell_bar_text:SetJustifyV("CENTER")
+    frame.spell_bar_text:SetJustifyV("MIDDLE")
     frame.spell_bar_text:SetJustifyH("CENTER")
     -- Create the spell spark
     frame.spell_spark = frame:CreateTexture(nil,"OVERLAY")
@@ -496,7 +491,7 @@ addon_data.castbar.InitializeVisuals = function()
     frame.spell_text_center = frame:CreateFontString(nil,"OVERLAY")
     frame.spell_text_center:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.spell_text_center:SetTextColor(1, 1, 1, 1)
-    frame.spell_text_center:SetJustifyV("CENTER")
+    frame.spell_text_center:SetJustifyV("MIDDLE")
     frame.spell_text_center:SetJustifyH("LEFT")
     -- Create the latency bar
     frame.cast_latency = frame:CreateTexture(nil,"OVERLAY")
