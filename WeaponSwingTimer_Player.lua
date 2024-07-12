@@ -91,8 +91,6 @@ addon_data.player.OnUpdate = function(elapsed)
         if addon_data.player.off_weapon_speed == 0 then
             addon_data.player.off_weapon_speed = 2
         end
-		
-			
         -- If the weapon speed changed for either hand then a buff occured and we need to modify the timers
         if addon_data.player.main_speed_changed or addon_data.player.off_speed_changed then
             local main_multiplier = addon_data.player.main_weapon_speed / addon_data.player.prev_main_weapon_speed
@@ -248,15 +246,19 @@ addon_data.player.UpdateVisualsOnUpdate = function()
 		local _, _, class = UnitClass("player")
 		if class == 2 -- paladin
 		then
-			pala_blood_width = math.floor(math.min(settings.width - (settings.width * ( 0.4 / main_speed)), settings.width)+0.5) -- 0.4s for seal twist
+			pala_blood_width = math.floor(math.min(settings.width - (settings.width * ( 0.4 / main_speed)), settings.width) + 0.5) -- 0.4s for seal twist
 			local _, _, _, gcd, _,  _, _ = GetSpellInfo(19750)
 			if (not gcd) or (gcd > 1500) then
 				gcd = 1500
 			end
-			pala_command_width = math.floor(math.min(settings.width - (settings.width * ((gcd / 1000 ) / main_speed)), settings.width)+0.5)
+			pala_command_width = math.floor(math.min(settings.width - (settings.width * ((gcd / 1000) / main_speed)), settings.width) + 0.5)
 		else
-			frame.pala_blood_marker:Hide()
-			frame.pala_command_marker:Hide()
+			if frame.pala_blood_marker then
+				frame.pala_blood_marker:Hide()
+			end
+			if frame.pala_command_marker then
+				frame.pala_command_marker:Hide()
+			end
 		end
         if not settings.fill_empty then
             main_width = settings.width - main_width + 0.001
@@ -479,12 +481,12 @@ addon_data.player.InitializeVisuals = function()
     -- Create the main hand bar left text
     frame.main_left_text = frame:CreateFontString(nil, "OVERLAY")
     frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.main_left_text:SetJustifyV("CENTER")
+    frame.main_left_text:SetJustifyV("MIDDLE")
     frame.main_left_text:SetJustifyH("LEFT")
     -- Create the main hand bar right text
     frame.main_right_text = frame:CreateFontString(nil, "OVERLAY")
     frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.main_right_text:SetJustifyV("CENTER")
+    frame.main_right_text:SetJustifyV("MIDDLE")
     frame.main_right_text:SetJustifyH("RIGHT")
     -- Create the off hand bar
     frame.off_bar = frame:CreateTexture(nil,"ARTWORK")
@@ -494,12 +496,12 @@ addon_data.player.InitializeVisuals = function()
     -- Create the off hand bar left text
     frame.off_left_text = frame:CreateFontString(nil, "OVERLAY")
     frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.off_left_text:SetJustifyV("CENTER")
+    frame.off_left_text:SetJustifyV("MIDDLE")
     frame.off_left_text:SetJustifyH("LEFT")
     -- Create the off hand bar right text
     frame.off_right_text = frame:CreateFontString(nil, "OVERLAY")
     frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.off_right_text:SetJustifyV("CENTER")
+    frame.off_right_text:SetJustifyV("MIDDLE")
     frame.off_right_text:SetJustifyH("RIGHT")
 	-- Paladin sparks
     frame.pala_blood_marker = frame:CreateTexture(nil,"BORDER")
@@ -957,4 +959,3 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
     addon_data.player.UpdateConfigPanelValues()
     return panel
 end
-

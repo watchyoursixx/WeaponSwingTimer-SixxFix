@@ -10,25 +10,23 @@ addon_data.hunter.shot_spell_ids = {
 	[19506] = {spell_name = L["Trueshot Aura"], rank = 1, cast_time = nil, cooldown = nil},
 	[20905] = {spell_name = L["Trueshot Aura"], rank = 2, cast_time = nil, cooldown = nil},
 	[20906] = {spell_name = L["Trueshot Aura"], rank = 3, cast_time = nil, cooldown = nil},
-    [2643] = {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.45, cooldown = 10},
-    [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.45, cooldown = 10},
-    [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.45, cooldown = 10},
-    [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.45, cooldown = 10},
-    [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.45, cooldown = 10},
-	[27021] = {spell_name = L["Multi-Shot"], rank = 6, cast_time = 0.45, cooldown = 10},
-    [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 3, cooldown = 6},
-    [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 3, cooldown = 6},
-    [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 3, cooldown = 6},
-    [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 3, cooldown = 6},
-    [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 3, cooldown = 6},
-    [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 3, cooldown = 6},
-	[27065] = {spell_name = L["Aimed Shot"], rank = 7, cast_time = 3, cooldown = 6},
+    [2643] =  {spell_name = L["Multi-Shot"], rank = 1, cast_time = 0.5, cooldown = 10},
+    [14288] = {spell_name = L["Multi-Shot"], rank = 2, cast_time = 0.5, cooldown = 10},
+    [14289] = {spell_name = L["Multi-Shot"], rank = 3, cast_time = 0.5, cooldown = 10},
+    [14290] = {spell_name = L["Multi-Shot"], rank = 4, cast_time = 0.5, cooldown = 10},
+    [25294] = {spell_name = L["Multi-Shot"], rank = 5, cast_time = 0.5, cooldown = 10},
+    [19434] = {spell_name = L["Aimed Shot"], rank = 1, cast_time = 3.5, cooldown = 6},
+    [20900] = {spell_name = L["Aimed Shot"], rank = 2, cast_time = 3.5, cooldown = 6},
+    [20901] = {spell_name = L["Aimed Shot"], rank = 3, cast_time = 3.5, cooldown = 6},
+    [20902] = {spell_name = L["Aimed Shot"], rank = 4, cast_time = 3.5, cooldown = 6},
+    [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 3.5, cooldown = 6},
+    [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 3.5, cooldown = 6},
     [5019] = {spell_name = L["Shoot"], rank = nil, cast_time = nil, cooldown = nil}
 }
 --- is spell multi-shot defined by spell_id
 addon_data.hunter.is_spell_multi_shot = function(spell_id)
     if (spell_id == 2643) or (spell_id == 14288) or (spell_id == 14289) or 
-       (spell_id == 14290) or (spell_id == 25294) or (spell_id == 27021) then
+       (spell_id == 14290) or (spell_id == 25294) then
             return true
     else
             return false
@@ -37,7 +35,7 @@ end
 --- is spell aimed shot defined by spell_id
 addon_data.hunter.is_spell_aimed_shot = function(spell_id)
     if (spell_id == 19434) or (spell_id == 20900) or (spell_id == 20901) or 
-       (spell_id == 20902) or (spell_id == 20903) or (spell_id == 20904) or (spell_id == 27065) then
+       (spell_id == 20902) or (spell_id == 20903) or (spell_id == 20904) then
             return true
     else
             return false
@@ -94,7 +92,6 @@ addon_data.hunter.casting = false
 addon_data.hunter.casting_auto = false
 addon_data.hunter.range_cast_speed_modifer = 1
 
-addon_data.hunter.range_weapon_id = 0
 addon_data.hunter.has_moved = false
 
 -- handling of stopping auto timer from starting
@@ -146,14 +143,7 @@ end
 addon_data.hunter.OnInventoryChange = function()
 	local _, class, _ = UnitClass("player")
 	if (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK") then
-		addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
-		local weapon_id = addon_data.hunter.range_weapon_id
-	
-		if weapon_id == nil then
-			addon_data.hunter.base_speed = 1
-		else
-			addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
-		end
+		addon_data.hunter.base_speed = addon_data.GetRangedBaseSpeed()
 	end
 end	
 
@@ -161,8 +151,7 @@ end
 addon_data.hunter.FeignDeath = function()
     addon_data.hunter.last_shot_time = GetTime()
 	if not addon_data.hunter.FeignFullReset then
-		local weapon_id = GetInventoryItemID("player", 18)
-		addon_data.hunter.range_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed + 0.15
+		addon_data.hunter.range_speed = addon_data.GetRangedBaseSpeed() + 0.15
 		addon_data.hunter.FeignFullReset = true
 	end
     addon_data.hunter.ResetShotTimer()
@@ -173,14 +162,7 @@ addon_data.hunter.UpdateRangeCastSpeedModifier = function()
 	local _, class, _ = UnitClass("player")
 	
 	if addon_data.hunter.base_speed == 1 and (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK") then 
-		addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
-		local weapon_id = addon_data.hunter.range_weapon_id
-		-- added case for if no ranged equipped
-		if weapon_id == nil then
-			addon_data.hunter.base_speed = 1
-		else
-			addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
-		end
+		addon_data.hunter.base_speed = addon_data.GetRangedBaseSpeed()
 	else
 		range_speed, _, _, _, _, _ = UnitRangedDamage("player")
 		-- added case for if range speed returns nil or 0
@@ -249,6 +231,7 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
     else
          addon_data.hunter.auto_shot_ready = false
     end
+
 	if addon_data.hunter.spell_GCD_Time + 1.5 > curr_time then
 		addon_data.hunter.spell_GCD = 1.5 - (curr_time - addon_data.hunter.spell_GCD_Time)
 	end
@@ -264,7 +247,7 @@ addon_data.hunter.OnUpdate = function(elapsed)
 			addon_data.hunter.FeignDeath()
 			addon_data.hunter.FeignStatus = false
 		end
-		
+	
         -- Update the Auto Shot timer based on the updated settings
         addon_data.hunter.UpdateAutoShotTimer(elapsed)
         -- Update the visuals
@@ -328,6 +311,7 @@ end
 addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 
 	local settings = character_hunter_settings
+
 	if unit == 'player' then
 	
 	    addon_data.hunter.casting = false
@@ -341,12 +325,11 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 				addon_data.hunter.FeignDeath()
 				return
 			end
-			if addon_data.hunter.is_spell_aimed_shot(spell_id) then
-				addon_data.hunter.FeignFullReset = false
-                addon_data.hunter.last_shot_time = GetTime()
-                addon_data.hunter.ResetShotTimer()
-				addon_data.hunter.casting_auto = false
-				
+			if addon_data.castbar.is_spell_aimed_shot(spell_id) then
+
+				addon_data.hunter.ResetShotTimer()
+				addon_data.hunter.shot_timer = addon_data.hunter.auto_cast_time
+                
 			end
             if addon_data.hunter.is_spell_auto_shot(spell_id) or addon_data.hunter.is_spell_shoot(spell_id) then
 				addon_data.hunter.FeignFullReset = false
@@ -582,7 +565,7 @@ addon_data.hunter.InitializeVisuals = function()
     -- Create the shot bar text
     frame.shot_bar_text = frame:CreateFontString(nil,"OVERLAY")
     frame.shot_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.shot_bar_text:SetJustifyV("CENTER")
+    frame.shot_bar_text:SetJustifyV("MIDDLE")
     frame.shot_bar_text:SetJustifyH("CENTER")
     -- Create the multishot clip bar
     frame.multishot_clip_bar = frame:CreateTexture(nil,"OVERLAY")
