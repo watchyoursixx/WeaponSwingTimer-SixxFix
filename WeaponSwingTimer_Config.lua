@@ -9,6 +9,7 @@ addon_data.config.OnDefault = function()
 end
 
 addon_data.config.InitializeVisuals = function()
+
     -- Add the parent panel
     addon_data.config.config_parent_panel = CreateFrame("Frame", "MyFrame", UIParent)
     local panel = addon_data.config.config_parent_panel
@@ -24,7 +25,10 @@ addon_data.config.InitializeVisuals = function()
 
     panel.name = "WeaponSwingTimer"
     panel.default = addon_data.config.OnDefault
-
+    local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
+    category.ID = panel.name
+    Settings.RegisterAddOnCategory(category)
+    
     -- Add the melee panel
     panel.config_melee_panel = CreateFrame("Frame", nil, panel)
     panel.config_melee_panel:SetSize(1, 1)
@@ -37,50 +41,21 @@ addon_data.config.InitializeVisuals = function()
     panel.config_melee_panel.name = L["Melee Settings"]
     panel.config_melee_panel.parent = panel.name
     panel.config_melee_panel.default = addon_data.config.OnDefault
-
+    Settings.RegisterCanvasLayoutSubcategory(category, panel.config_melee_panel, panel.config_melee_panel.name)
+    
     -- Add the hunter panel
     panel.config_hunter_panel = CreateFrame("Frame", nil, panel)
     panel.config_hunter_panel:SetSize(1, 1)
     panel.config_hunter_panel.hunter_panel = addon_data.hunter.CreateConfigPanel(panel.config_hunter_panel)
     panel.config_hunter_panel.hunter_panel:SetPoint('TOPLEFT', 0, 0)
     panel.config_hunter_panel.hunter_panel:SetSize(1, 1)
-    panel.config_hunter_panel.castbar_panel = addon_data.castbar.CreateConfigPanel(panel.config_hunter_panel)
-    panel.config_hunter_panel.castbar_panel:SetPoint('TOPLEFT', 0, -235)
+    panel.config_hunter_panel.castbar_panel = addon_data.castbar.CreateConfigPanel(panel.config_hunter_panel)	
+    panel.config_hunter_panel.castbar_panel:SetPoint('TOPLEFT', 0, -235)	
     panel.config_hunter_panel.castbar_panel:SetSize(1, 1)
     panel.config_hunter_panel.name = L["Hunter & Wand Settings"]
     panel.config_hunter_panel.parent = panel.name
     panel.config_hunter_panel.default = addon_data.config.OnDefault
-
-    -- Register settings panel - try multiple approaches for compatibility
-    local registered = false
-
-    -- Try new Settings API (Dragonflight+)
-    if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then
-        local success = pcall(function()
-            local category = Settings.RegisterCanvasLayoutCategory(panel, "WeaponSwingTimer")
-            Settings.RegisterAddOnCategory(category)
-
-            local meleeSubcat = Settings.RegisterCanvasLayoutSubcategory(category, panel.config_melee_panel, L["Melee Settings"])
-            Settings.RegisterAddOnCategory(meleeSubcat)
-            local hunterSubcat = Settings.RegisterCanvasLayoutSubcategory(category, panel.config_hunter_panel, L["Hunter & Wand Settings"])
-            Settings.RegisterAddOnCategory(hunterSubcat)
-        end)
-        if success then
-            registered = true
-        end
-    end
-
-    -- Fallback to old Interface Options API
-    if not registered and InterfaceOptions_AddCategory then
-        local success = pcall(function()
-            InterfaceOptions_AddCategory(panel)
-            InterfaceOptions_AddCategory(panel.config_melee_panel)
-            InterfaceOptions_AddCategory(panel.config_hunter_panel)
-        end)
-        if success then
-            registered = true
-        end
-    end
+    Settings.RegisterCanvasLayoutSubcategory(category, panel.config_hunter_panel, panel.config_hunter_panel.name)
     
 
 end
@@ -145,14 +120,6 @@ addon_data.config.SliderFactory = function(g_name, parent, title, min_val, max_v
     local editbox = CreateFrame("EditBox", "$parentEditBox", slider, "InputBoxTemplate")
     slider:SetMinMaxValues(min_val, max_val)
     slider:SetValueStep(val_step)
-    slider.text = _G[addon_name .. g_name .. "Text"]
-    slider.text:SetText(title)
-    slider.textLow = _G[addon_name .. g_name .. "Low"]
-    slider.textHigh = _G[addon_name .. g_name .. "High"]
-    slider.textLow:SetText(floor(min_val))
-    slider.textHigh:SetText(floor(max_val))
-    slider.textLow:SetTextColor(0.8,0.8,0.8)
-    slider.textHigh:SetTextColor(0.8,0.8,0.8)
     slider:SetObeyStepOnDrag(true)
     editbox:SetSize(45,30)
     editbox:ClearAllPoints()
@@ -253,3 +220,5 @@ addon_data.config.CreateConfigPanel = function(parent_panel)
     addon_data.config.UpdateConfigValues()
     return panel
 end
+
+
