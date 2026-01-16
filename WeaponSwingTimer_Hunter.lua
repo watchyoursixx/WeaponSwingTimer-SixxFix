@@ -582,7 +582,7 @@ addon_data.hunter.InitializeVisuals = function()
     -- Create the shot bar text
     frame.shot_bar_text = frame:CreateFontString(nil,"OVERLAY")
     frame.shot_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.shot_bar_text:SetJustifyV("CENTER")
+    frame.shot_bar_text:SetJustifyV("MIDDLE")
     frame.shot_bar_text:SetJustifyH("CENTER")
     -- Create the multishot clip bar
     frame.multishot_clip_bar = frame:CreateTexture(nil,"OVERLAY")

@@ -479,12 +479,12 @@ addon_data.player.InitializeVisuals = function()
     -- Create the main hand bar left text
     frame.main_left_text = frame:CreateFontString(nil, "OVERLAY")
     frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.main_left_text:SetJustifyV("CENTER")
+    frame.main_left_text:SetJustifyV("MIDDLE")
     frame.main_left_text:SetJustifyH("LEFT")
     -- Create the main hand bar right text
     frame.main_right_text = frame:CreateFontString(nil, "OVERLAY")
     frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.main_right_text:SetJustifyV("CENTER")
+    frame.main_right_text:SetJustifyV("MIDDLE")
     frame.main_right_text:SetJustifyH("RIGHT")
     -- Create the off hand bar
     frame.off_bar = frame:CreateTexture(nil,"ARTWORK")
@@ -494,12 +494,12 @@ addon_data.player.InitializeVisuals = function()
     -- Create the off hand bar left text
     frame.off_left_text = frame:CreateFontString(nil, "OVERLAY")
     frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.off_left_text:SetJustifyV("CENTER")
+    frame.off_left_text:SetJustifyV("MIDDLE")
     frame.off_left_text:SetJustifyH("LEFT")
     -- Create the off hand bar right text
     frame.off_right_text = frame:CreateFontString(nil, "OVERLAY")
     frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.off_right_text:SetJustifyV("CENTER")
+    frame.off_right_text:SetJustifyV("MIDDLE")
     frame.off_right_text:SetJustifyH("RIGHT")
 	-- Paladin sparks
     frame.pala_blood_marker = frame:CreateTexture(nil,"BORDER")

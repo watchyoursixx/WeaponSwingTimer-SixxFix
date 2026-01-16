@@ -487,7 +487,7 @@ addon_data.castbar.InitializeVisuals = function()
     -- Create the spell bar text
     frame.spell_bar_text = frame:CreateFontString(nil,"OVERLAY")
     frame.spell_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.spell_bar_text:SetJustifyV("CENTER")
+    frame.spell_bar_text:SetJustifyV("MIDDLE")
     frame.spell_bar_text:SetJustifyH("CENTER")
     -- Create the spell spark
     frame.spell_spark = frame:CreateTexture(nil,"OVERLAY")
@@ -496,7 +496,7 @@ addon_data.castbar.InitializeVisuals = function()
     frame.spell_text_center = frame:CreateFontString(nil,"OVERLAY")
     frame.spell_text_center:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
     frame.spell_text_center:SetTextColor(1, 1, 1, 1)
-    frame.spell_text_center:SetJustifyV("CENTER")
+    frame.spell_text_center:SetJustifyV("MIDDLE")
     frame.spell_text_center:SetJustifyH("LEFT")
     -- Create the latency bar
     frame.cast_latency = frame:CreateTexture(nil,"OVERLAY")

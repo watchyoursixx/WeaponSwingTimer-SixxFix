@@ -9,7 +9,6 @@ addon_data.config.OnDefault = function()
 end
 
 addon_data.config.InitializeVisuals = function()
-
     -- Add the parent panel
     addon_data.config.config_parent_panel = CreateFrame("Frame", "MyFrame", UIParent)
     local panel = addon_data.config.config_parent_panel
@@ -25,8 +24,7 @@ addon_data.config.InitializeVisuals = function()
 
     panel.name = "WeaponSwingTimer"
     panel.default = addon_data.config.OnDefault
-    InterfaceOptions_AddCategory(panel)
-    
+
     -- Add the melee panel
     panel.config_melee_panel = CreateFrame("Frame", nil, panel)
     panel.config_melee_panel:SetSize(1, 1)
@@ -39,21 +37,50 @@ addon_data.config.InitializeVisuals = function()
     panel.config_melee_panel.name = L["Melee Settings"]
     panel.config_melee_panel.parent = panel.name
     panel.config_melee_panel.default = addon_data.config.OnDefault
-    InterfaceOptions_AddCategory(panel.config_melee_panel)
-    
+
     -- Add the hunter panel
     panel.config_hunter_panel = CreateFrame("Frame", nil, panel)
     panel.config_hunter_panel:SetSize(1, 1)
     panel.config_hunter_panel.hunter_panel = addon_data.hunter.CreateConfigPanel(panel.config_hunter_panel)
     panel.config_hunter_panel.hunter_panel:SetPoint('TOPLEFT', 0, 0)
     panel.config_hunter_panel.hunter_panel:SetSize(1, 1)
-    panel.config_hunter_panel.castbar_panel = addon_data.castbar.CreateConfigPanel(panel.config_hunter_panel)	
-    panel.config_hunter_panel.castbar_panel:SetPoint('TOPLEFT', 0, -235)	
+    panel.config_hunter_panel.castbar_panel = addon_data.castbar.CreateConfigPanel(panel.config_hunter_panel)
+    panel.config_hunter_panel.castbar_panel:SetPoint('TOPLEFT', 0, -235)
     panel.config_hunter_panel.castbar_panel:SetSize(1, 1)
     panel.config_hunter_panel.name = L["Hunter & Wand Settings"]
     panel.config_hunter_panel.parent = panel.name
     panel.config_hunter_panel.default = addon_data.config.OnDefault
-    InterfaceOptions_AddCategory(panel.config_hunter_panel)
+
+    -- Register settings panel - try multiple approaches for compatibility
+    local registered = false
+
+    -- Try new Settings API (Dragonflight+)
+    if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then
+        local success = pcall(function()
+            local category = Settings.RegisterCanvasLayoutCategory(panel, "WeaponSwingTimer")
+            Settings.RegisterAddOnCategory(category)
+
+            local meleeSubcat = Settings.RegisterCanvasLayoutSubcategory(category, panel.config_melee_panel, L["Melee Settings"])
+            Settings.RegisterAddOnCategory(meleeSubcat)
+            local hunterSubcat = Settings.RegisterCanvasLayoutSubcategory(category, panel.config_hunter_panel, L["Hunter & Wand Settings"])
+            Settings.RegisterAddOnCategory(hunterSubcat)
+        end)
+        if success then
+            registered = true
+        end
+    end
+
+    -- Fallback to old Interface Options API
+    if not registered and InterfaceOptions_AddCategory then
+        local success = pcall(function()
+            InterfaceOptions_AddCategory(panel)
+            InterfaceOptions_AddCategory(panel.config_melee_panel)
+            InterfaceOptions_AddCategory(panel.config_hunter_panel)
+        end)
+        if success then
+            registered = true
+        end
+    end
     
 
 end
@@ -61,7 +88,7 @@ end
 addon_data.config.TextFactory = function(parent, text, size)
     local text_obj = parent:CreateFontString(nil, "ARTWORK")
     text_obj:SetFont("Fonts/FRIZQT__.ttf", size)
-    text_obj:SetJustifyV("CENTER")
+    text_obj:SetJustifyV("MIDDLE")
     text_obj:SetJustifyH("CENTER")
     text_obj:SetText(text)
     return text_obj
@@ -96,7 +123,7 @@ addon_data.config.EditBoxFactory = function(g_name, parent, title, w, h, enter_f
     edit_box_obj:SetAutoFocus(false)
     edit_box_obj:SetMaxLetters(4)
     edit_box_obj:SetJustifyH("CENTER")
-	edit_box_obj:SetJustifyV("CENTER")
+	edit_box_obj:SetJustifyV("MIDDLE")
     edit_box_obj:SetFontObject(GameFontNormal)
     edit_box_obj:SetScript("OnEnterPressed", function(self)
         enter_func(self)

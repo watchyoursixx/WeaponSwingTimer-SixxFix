@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "6.5.4"
+local version = "6.5.7"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -544,7 +544,7 @@ local function InitializeAllVisuals()
     addon_data.player.InitializeVisuals()
     addon_data.target.InitializeVisuals()
     addon_data.hunter.InitializeVisuals()
-	addon_data.castbar.InitializeVisuals()
+    addon_data.castbar.InitializeVisuals()
     addon_data.config.InitializeVisuals()
 end
 
@@ -679,8 +679,7 @@ addon_data.core.SpellHandler = function(unit, spell_id)
 end
 
 local function OnAddonLoaded(self)
-    -- Attach the rest of the events and scripts to the core frame
-    addon_data.core.core_frame:SetScript("OnUpdate", CoreFrame_OnUpdate)
+    -- Register events first (OnUpdate registered after visuals are initialized)
     addon_data.core.core_frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     addon_data.core.core_frame:RegisterEvent("PLAYER_REGEN_DISABLED")
     addon_data.core.core_frame:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -695,6 +694,8 @@ local function OnAddonLoaded(self)
     -- Load the settings for the core and all timers
     LoadAllSettings()
     InitializeAllVisuals()
+    -- Now that visuals are initialized, attach the OnUpdate script
+    addon_data.core.core_frame:SetScript("OnUpdate", CoreFrame_OnUpdate)
     -- Any other misc operations that happen at the start
     addon_data.player.ZeroizeSwingTimers()
     addon_data.target.ZeroizeSwingTimers()
@@ -748,8 +749,13 @@ SLASH_WEAPONSWINGTIMER_CONFIG1 = "/WeaponSwingTimer"
 SLASH_WEAPONSWINGTIMER_CONFIG2 = "/weaponswingtimer"
 SLASH_WEAPONSWINGTIMER_CONFIG3 = "/wst"
 SlashCmdList["WEAPONSWINGTIMER_CONFIG"] = function(option)
-    InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
-    InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
+    if Settings and Settings.OpenToCategory then
+        Settings.OpenToCategory("WeaponSwingTimer")
+    elseif InterfaceOptionsFrame_OpenToCategory then
+        -- Fallback for older clients (called twice to work around a known bug)
+        InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
+        InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
+    end
 end
 
 -- Setup the core of the addon (This is like calling main in C)
