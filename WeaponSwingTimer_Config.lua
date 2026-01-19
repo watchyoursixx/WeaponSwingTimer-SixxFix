@@ -171,17 +171,16 @@ addon_data.config.ShowColorPicker = function(settings, name, foreground_texture,
     local start_a = settings[name .. "_a"]
 
     local function Apply()
-        local name_r, name_g, name_b = ColorPickerFrame:GetColorRGB()
-        local name_a = 1 - OpacitySliderFrame:GetValue()
+        local new_r, new_g, new_b = ColorPickerFrame:GetColorRGB()
+        local new_a = 1 - OpacitySliderFrame:GetValue()
 
-        settings[name .. "_r"] = name_r
-        settings[name .. "_g"] = name_g
-        settings[name .. "_b"] = name_b
-        settings[name .. "_a"] = name_a
+        settings[name .. "_r"] = new_r
+        settings[name .. "_g"] = new_g
+        settings[name .. "_b"] = new_b
+        settings[name .. "_a"] = new_a
 
-        foreground_texture:SetColorTexture(name_r, name_g, name_b, name_a)
-
-        if on_change then on_change() end
+        foreground_texture:SetColorTexture(new_r, new_g, new_b, new_a)
+        if on_change then on_change(new_r, new_g, new_b, new_a) end
     end
 
     ColorPickerFrame:SetupColorPickerAndShow({
@@ -199,8 +198,7 @@ addon_data.config.ShowColorPicker = function(settings, name, foreground_texture,
             settings[name .. "_a"] = start_a
 
             foreground_texture:SetColorTexture(start_r, start_g, start_b, start_a)
-
-            if on_change then on_change() end
+            if on_change then on_change(start_r, start_g, start_b, start_a) end
         end,
     })
 end

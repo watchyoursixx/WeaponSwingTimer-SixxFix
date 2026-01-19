@@ -589,7 +589,7 @@ addon_data.target.MainColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_target_settings,
         "main",
-        addon_data.target.config_frame.cooldown_color_picker.foreground,
+        addon_data.target.config_frame.main_color_picker.foreground,
         addon_data.target.UpdateVisualsOnSettingsChange
     )
 end
@@ -598,8 +598,11 @@ addon_data.target.MainTextColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_target_settings,
         "main_text",
-        addon_data.target.config_frame.cooldown_color_picker.foreground,
-        addon_data.target.UpdateVisualsOnSettingsChange
+        addon_data.target.config_frame.main_text_color_picker.foreground,
+        function(r, g, b, a)
+            addon_data.target.frame.main_left_text:SetTextColor(r, g, b, a)
+            addon_data.target.frame.main_right_text:SetTextColor(r, g, b, a)
+        end
     )
 end
 
@@ -607,7 +610,7 @@ addon_data.target.OffColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_target_settings,
         "off",
-        addon_data.target.config_frame.cooldown_color_picker.foreground,
+        addon_data.target.config_frame.off_color_picker.foreground,
         addon_data.target.UpdateVisualsOnSettingsChange
     )
 end
@@ -616,8 +619,11 @@ addon_data.target.OffTextColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_target_settings,
         "off_text",
-        addon_data.target.config_frame.cooldown_color_picker.foreground,
-        addon_data.target.UpdateVisualsOnSettingsChange
+        addon_data.target.config_frame.off_text_color_picker.foreground,
+        function(r, g, b, a)
+            addon_data.target.frame.off_left_text:SetTextColor(r, g, b, a)
+            addon_data.target.frame.off_right_text:SetTextColor(r, g, b, a)
+        end
     )
 end
 

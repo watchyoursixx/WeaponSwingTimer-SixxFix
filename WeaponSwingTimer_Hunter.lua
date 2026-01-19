@@ -704,7 +704,7 @@ addon_data.hunter.AutoShotCastColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_hunter_settings,
         "auto_cast",
-        addon_data.hunter.config_frame.cooldown_color_picker.foreground,
+        addon_data.hunter.config_frame.auto_cast_color_picker.foreground,
         addon_data.hunter.UpdateVisualsOnSettingsChange
     )
 end
@@ -713,7 +713,7 @@ addon_data.hunter.MultiClipColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_hunter_settings,
         "clip",
-        addon_data.hunter.config_frame.cooldown_color_picker.foreground,
+        addon_data.hunter.config_frame.clip_color_picker.foreground,
         addon_data.hunter.UpdateVisualsOnSettingsChange
     )
 end

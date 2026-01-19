@@ -628,7 +628,7 @@ addon_data.player.MainColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_player_settings,
         "main",
-        addon_data.player.config_frame.cooldown_color_picker.foreground,
+        addon_data.player.config_frame.main_color_picker.foreground,
         addon_data.player.UpdateVisualsOnSettingsChange
     )
 end
@@ -637,8 +637,11 @@ addon_data.player.MainTextColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_player_settings,
         "main_text",
-        addon_data.player.config_frame.cooldown_color_picker.foreground,
-        addon_data.player.UpdateVisualsOnSettingsChange
+        addon_data.player.config_frame.main_text_color_picker.foreground,
+        function(r, g, b, a)
+            addon_data.player.frame.main_left_text:SetTextColor(r, g, b, a)
+            addon_data.player.frame.main_right_text:SetTextColor(r, g, b, a)
+        end
     )
 end
 
@@ -646,7 +649,7 @@ addon_data.player.OffColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_player_settings,
         "off",
-        addon_data.player.config_frame.cooldown_color_picker.foreground,
+        addon_data.player.config_frame.off_color_picker.foreground,
         addon_data.player.UpdateVisualsOnSettingsChange
     )
 end
@@ -655,8 +658,11 @@ addon_data.player.OffTextColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_player_settings,
         "off_text",
-        addon_data.player.config_frame.cooldown_color_picker.foreground,
-        addon_data.player.UpdateVisualsOnSettingsChange
+        addon_data.player.config_frame.off_text_color_picker.foreground,
+        function(r, g, b, a)
+            addon_data.player.frame.off_left_text:SetTextColor(r, g, b, a)
+            addon_data.player.frame.off_right_text:SetTextColor(r, g, b, a)
+        end
     )
 end
 
