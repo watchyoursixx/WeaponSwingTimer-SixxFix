@@ -164,6 +164,47 @@ addon_data.config.color_picker_factory = function(g_name, parent, r, g, b, a, te
     return color_picker
 end
 
+addon_data.config.ShowColorPicker = function(settings, name, foreground_texture, on_change)
+    local start_r = settings[name .. "_r"]
+    local start_g = settings[name .. "_g"]
+    local start_b = settings[name .. "_b"]
+    local start_a = settings[name .. "_a"]
+
+    local function Apply()
+        local name_r, name_g, name_b = ColorPickerFrame:GetColorRGB()
+        local name_a = 1 - OpacitySliderFrame:GetValue()
+
+        settings[name .. "_r"] = name_r
+        settings[name .. "_g"] = name_g
+        settings[name .. "_b"] = name_b
+        settings[name .. "_a"] = name_a
+
+        foreground_texture:SetColorTexture(name_r, name_g, name_b, name_a)
+
+        if on_change then on_change() end
+    end
+
+    ColorPickerFrame:SetupColorPickerAndShow({
+        r = start_r,
+        g = start_g,
+        b = start_b,
+        hasOpacity = true,
+        opacity = 1 - start_a,
+        swatchFunc = Apply,
+        opacityFunc = Apply,
+        cancelFunc = function()
+            settings[name .. "_r"] = start_r
+            settings[name .. "_g"] = start_g
+            settings[name .. "_b"] = start_b
+            settings[name .. "_a"] = start_a
+
+            foreground_texture:SetColorTexture(start_r, start_g, start_b, start_a)
+
+            if on_change then on_change() end
+        end,
+    })
+end
+
 addon_data.config.UpdateConfigValues = function()
     local panel = addon_data.config.config_frame
     local settings = character_player_settings
