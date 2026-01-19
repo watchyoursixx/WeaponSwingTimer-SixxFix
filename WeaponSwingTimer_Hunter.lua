@@ -709,75 +709,30 @@ addon_data.hunter.YOffsetEditBoxOnEnter = function(self)
 end
 
 addon_data.hunter.CooldownColorPickerOnClick = function()
-    local settings = character_hunter_settings
-    local function CooldownOnActionFunc(restore)
-        local settings = character_hunter_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
-        end
-        settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a = new_r, new_g, new_b, new_a
-        addon_data.hunter.config_frame.cooldown_color_picker.foreground:SetColorTexture(
-            settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
-        addon_data.hunter.UpdateVisualsOnSettingsChange()
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        CooldownOnActionFunc, CooldownOnActionFunc, CooldownOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.cooldown_a
-    ColorPickerFrame:SetColorRGB(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b)
-    ColorPickerFrame.previousValues = {settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a}
-    ColorPickerFrame:Show()
+    addon_data.config.ShowColorPicker(
+        character_hunter_settings,
+        "cooldown",
+        addon_data.hunter.config_frame.cooldown_color_picker.foreground,
+        addon_data.hunter.UpdateVisualsOnSettingsChange
+    )
 end
 
 addon_data.hunter.AutoShotCastColorPickerOnClick = function()
-    local settings = character_hunter_settings
-    local function AutoShotCastOnActionFunc(restore)
-        local settings = character_hunter_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
-        end
-        settings.auto_cast_r, settings.auto_cast_g, settings.auto_cast_b, settings.auto_cast_a = new_r, new_g, new_b, new_a
-        addon_data.hunter.config_frame.autoshot_cast_color_picker.foreground:SetColorTexture(
-            settings.auto_cast_r, settings.auto_cast_g, settings.auto_cast_b, settings.auto_cast_a)
-        addon_data.hunter.UpdateVisualsOnSettingsChange()
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        AutoShotCastOnActionFunc, AutoShotCastOnActionFunc, AutoShotCastOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.auto_cast_a
-    ColorPickerFrame:SetColorRGB(settings.auto_cast_r, settings.auto_cast_g, settings.auto_cast_b)
-    ColorPickerFrame.previousValues = {settings.auto_cast_r, settings.auto_cast_g, settings.auto_cast_b, settings.auto_cast_a}
-    ColorPickerFrame:Show()
+    addon_data.config.ShowColorPicker(
+        character_hunter_settings,
+        "auto_cast",
+        addon_data.hunter.config_frame.auto_cast_color_picker.foreground,
+        addon_data.hunter.UpdateVisualsOnSettingsChange
+    )
 end
 
 addon_data.hunter.MultiClipColorPickerOnClick = function()
-    local settings = character_hunter_settings
-    local function MultiClipOnActionFunc(restore)
-        local settings = character_hunter_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
-        end
-        settings.clip_r, settings.clip_g, settings.clip_b, settings.clip_a = new_r, new_g, new_b, new_a
-        addon_data.hunter.frame.multishot_clip_bar:SetColorTexture(settings.clip_r, settings.clip_g, settings.clip_b, settings.clip_a)
-        addon_data.hunter.config_frame.multi_clip_color_picker.foreground:SetColorTexture(
-            settings.clip_r, settings.clip_g, settings.clip_b, settings.clip_a)
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        MultiClipOnActionFunc, MultiClipOnActionFunc, MultiClipOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.clip_a
-    ColorPickerFrame:SetColorRGB(settings.clip_r, settings.clip_g, settings.clip_b)
-    ColorPickerFrame.previousValues = {settings.clip_r, settings.clip_g, settings.clip_b, settings.clip_a}
-    ColorPickerFrame:Show()
+    addon_data.config.ShowColorPicker(
+        character_hunter_settings,
+        "clip",
+        addon_data.hunter.config_frame.clip_color_picker.foreground,
+        addon_data.hunter.UpdateVisualsOnSettingsChange
+    )
 end
 
 addon_data.hunter.CombatAlphaOnValChange = function(self)
