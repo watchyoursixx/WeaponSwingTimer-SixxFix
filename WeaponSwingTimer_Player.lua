@@ -243,10 +243,7 @@ addon_data.player.UpdateVisualsOnUpdate = function()
             main_speed = 2
         end
         -- Update the main bars width
-
         local main_width = math.min(settings.width - (settings.width * (main_timer / main_speed)), settings.width)
-
-
 		local pala_blood_width, pala_command_width = 0, 0
 		local _, _, class = UnitClass("player")
 		if class == 2 -- paladin
