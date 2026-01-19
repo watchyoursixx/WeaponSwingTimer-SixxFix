@@ -392,6 +392,7 @@ addon_data.castbar.UpdateVisualsOnSettingsChange = function()
     local frame = addon_data.castbar.frame
 	local _, class, _ = UnitClass("player")
 	if (settings.show_multishot_cast_bar or settings.show_aimedshot_cast_bar) and (class == "HUNTER") then
+        frame:EnableMouse(not settings.is_locked)
         frame:Show()
         frame:ClearAllPoints()
         frame:SetPoint(settings.point, UIParent, settings.rel_point, settings.x_offset, settings.y_offset)

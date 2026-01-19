@@ -94,7 +94,6 @@ addon_data.hunter.casting = false
 addon_data.hunter.casting_auto = false
 addon_data.hunter.range_cast_speed_modifer = 1
 
-addon_data.hunter.range_weapon_id = 0
 addon_data.hunter.has_moved = false
 
 -- handling of stopping auto timer from starting
@@ -102,7 +101,7 @@ addon_data.hunter.StartCastingSpell = function(spell_id)
     local settings = character_hunter_settings
 
     if not addon_data.hunter.casting and UnitCanAttack('player', 'target') then
-        spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
+        local spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
         if cast_time == nil then
 			
             return 
@@ -118,7 +117,7 @@ addon_data.hunter.LoadSettings = function()
     -- If the carried over settings dont exist then make them
     if not character_hunter_settings then
         character_hunter_settings = {}
-        _, class, _ = UnitClass("player")
+        local _, class, _ = UnitClass("player")
         character_hunter_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
     end
     -- If the carried over settings aren't set then set them to the defaults
@@ -136,7 +135,7 @@ addon_data.hunter.RestoreDefaults = function()
     for setting, value in pairs(addon_data.hunter.default_settings) do
         character_hunter_settings[setting] = value
     end
-    _, class, _ = UnitClass("player")
+    local _, class, _ = UnitClass("player")
     character_hunter_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
     addon_data.hunter.UpdateVisualsOnSettingsChange()
     addon_data.hunter.UpdateConfigPanelValues()
@@ -146,14 +145,7 @@ end
 addon_data.hunter.OnInventoryChange = function()
 	local _, class, _ = UnitClass("player")
 	if (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK") then
-		addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
-		local weapon_id = addon_data.hunter.range_weapon_id
-	
-		if weapon_id == nil then
-			addon_data.hunter.base_speed = 1
-		else
-			addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
-		end
+		addon_data.hunter.base_speed = addon_data.GetRangedBaseSpeed()
 	end
 end	
 
@@ -161,8 +153,7 @@ end
 addon_data.hunter.FeignDeath = function()
     addon_data.hunter.last_shot_time = GetTime()
 	if not addon_data.hunter.FeignFullReset then
-		local weapon_id = GetInventoryItemID("player", 18)
-		addon_data.hunter.range_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed + 0.15
+		addon_data.hunter.range_speed = addon_data.GetRangedBaseSpeed() + 0.15
 		addon_data.hunter.FeignFullReset = true
 	end
     addon_data.hunter.ResetShotTimer()
@@ -173,19 +164,13 @@ addon_data.hunter.UpdateRangeCastSpeedModifier = function()
 	local _, class, _ = UnitClass("player")
 	
 	if addon_data.hunter.base_speed == 1 and (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK") then 
-		addon_data.hunter.range_weapon_id = GetInventoryItemID("player", 18)
-		local weapon_id = addon_data.hunter.range_weapon_id
-		-- added case for if no ranged equipped
-		if weapon_id == nil then
-			addon_data.hunter.base_speed = 1
-		else
-			addon_data.hunter.base_speed = addon_data.ranged_DB.item_ids[weapon_id].base_speed
-		end
+		addon_data.hunter.base_speed = addon_data.GetRangedBaseSpeed()
 	else
-		range_speed, _, _, _, _, _ = UnitRangedDamage("player")
+		local range_speed, _, _, _, _, _ = UnitRangedDamage("player")
 		-- added case for if range speed returns nil or 0
 		if range_speed == nil or range_speed == 0 then
 			range_speed = 1
+            addon_data.hunter.range_cast_speed_modifer = 1
 		else
 			addon_data.hunter.range_cast_speed_modifer = range_speed / addon_data.hunter.base_speed
 		end
@@ -255,7 +240,8 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 end
 
 addon_data.hunter.OnUpdate = function(elapsed)
-    if character_hunter_settings.enabled then
+    local settings = character_hunter_settings
+    if settings.enabled then
         -- Check to see if we have moved
         addon_data.hunter.has_moved = (GetUnitSpeed("player") > 0)
 		
@@ -295,10 +281,8 @@ addon_data.hunter.OnStopAutorepeatSpell = function()
     addon_data.hunter.shooting = false
 end
 -- Using combat log to detect pushback hits as well as starting to use spell cast events to replace the old version of detection that was implied
-addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
-    local _, event, _, casterID, _, _, _, targetID, targetName, _, _, spellID, name, _ = unpack(combat_info)
-	local _, rank, icon, castTime = GetSpellInfo(spellID)
-	local icon, castTime = select(3, GetSpellInfo(spellID))
+addon_data.hunter.OnCombatLogUnfiltered = function()
+    local _, event, _, casterID, _, _, _, _, _, _, _, spellID = CombatLogGetCurrentEventInfo()
 
 	if casterID == UnitGUID("player") then
 	
@@ -316,10 +300,7 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
 				end
 				
 		return end
-	
-		if event == "SPELL_CAST_SUCCESS" then
 
-		return end
 	end		
 end
 
@@ -327,13 +308,12 @@ end
 --- If not auto shot, set bar to green *commented out
 addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 
-	local settings = character_hunter_settings
 	if unit == 'player' then
 	
 	    addon_data.hunter.casting = false
         -- If the spell is Auto Shot then reset the shot timer
         if addon_data.hunter.shot_spell_ids[spell_id] then
-            spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
+            local spell_name = addon_data.hunter.shot_spell_ids[spell_id].spell_name
 			if spell_name == L["Feign Death"] or spell_name == L["Trueshot Aura"] then
 				if spell_name == L["Feign Death"] then
 					addon_data.hunter.FeignStatus = true
@@ -357,13 +337,13 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
                 --addon_data.hunter.casting_auto = false
             end
 			if addon_data.hunter.is_spell_shoot(spell_id) then
-				new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
+				local new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
 				addon_data.hunter.range_speed = new_range_speed
 			end
         end
 
 		if addon_data.hunter.is_spell_auto_shot(spell_id) then	-- Update the ranged attack speed
-			new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
+			local new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
 
 			-- Handling for getting haste buffs in combat, don't need to update auto shot cast time until the next shot is ready
 			if new_range_speed ~= addon_data.hunter.range_speed then
@@ -371,7 +351,11 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 					addon_data.hunter.shot_timer = addon_data.hunter.shot_timer * 
 											(new_range_speed / addon_data.hunter.range_speed)
 				end
-				addon_data.hunter.range_speed = new_range_speed
+                
+				if not new_range_speed or new_range_speed == 0 then
+                    new_range_speed = addon_data.hunter.range_speed or 1
+                end
+                addon_data.hunter.range_speed = new_range_speed
 				addon_data.hunter.range_auto_speed_modified = addon_data.hunter.range_cast_speed_modifer
 			end
 		end
@@ -379,7 +363,6 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 end
 
 addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
-    local settings = character_castbar_settings
 	
 	addon_data.hunter.casting = false
 	if unit == 'player' and addon_data.hunter.is_spell_auto_shot(spell_id) then
@@ -474,6 +457,7 @@ addon_data.hunter.UpdateVisualsOnSettingsChange = function()
     local settings = character_hunter_settings
     local frame = addon_data.hunter.frame
 	if settings.enabled then
+        frame:EnableMouse(not settings.is_locked)
         frame:Show()
         frame:ClearAllPoints()
         frame:SetPoint(settings.point, UIParent, settings.rel_point, settings.x_offset, settings.y_offset)
@@ -549,7 +533,7 @@ addon_data.hunter.OnFrameDragStop = function()
     local frame = addon_data.hunter.frame
     local settings = character_hunter_settings
     frame:StopMovingOrSizing()
-    point, _, rel_point, x_offset, y_offset = frame:GetPoint()
+    local point, _, rel_point, x_offset, y_offset = frame:GetPoint()
     if x_offset < 20 and x_offset > -20 then
         x_offset = 0
     end
@@ -721,7 +705,7 @@ addon_data.hunter.AutoShotCastColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_hunter_settings,
         "auto_cast",
-        addon_data.hunter.config_frame.auto_cast_color_picker.foreground,
+        addon_data.hunter.config_frame.autoshot_cast_color_picker.foreground,
         addon_data.hunter.UpdateVisualsOnSettingsChange
     )
 end
@@ -730,7 +714,7 @@ addon_data.hunter.MultiClipColorPickerOnClick = function()
     addon_data.config.ShowColorPicker(
         character_hunter_settings,
         "clip",
-        addon_data.hunter.config_frame.clip_color_picker.foreground,
+        addon_data.hunter.config_frame.multi_clip_color_picker.foreground,
         addon_data.hunter.UpdateVisualsOnSettingsChange
     )
 end
