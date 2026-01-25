@@ -53,27 +53,17 @@ addon_data.player.has_offhand = false
 addon_data.player.off_speed_changed = false
 
 addon_data.player.LoadSettings = function()
-    -- If the carried over settings dont exist then make them
-    if not character_player_settings then
-        character_player_settings = {}
-    end
-    -- If the carried over settings aren't set then set them to the defaults
+    
+    character_player_settings = addon_data.db.profile.player
+
     for setting, value in pairs(addon_data.player.default_settings) do
         if character_player_settings[setting] == nil then
             character_player_settings[setting] = value
         end
     end
-    -- Update settings that dont change unless the interface is reloaded
-    addon_data.player.class = UnitClass("player")[2]
-    addon_data.player.guid = UnitGUID("player")
-end
 
-addon_data.player.RestoreDefaults = function()
-    for setting, value in pairs(addon_data.player.default_settings) do
-        character_player_settings[setting] = value
-    end
-    addon_data.player.UpdateVisualsOnSettingsChange()
-    addon_data.player.UpdateConfigPanelValues()
+    addon_data.player.class = select(2, UnitClass("player"))
+    addon_data.player.guid  = UnitGUID("player")
 end
 
 --[[============================================================================================]]--
@@ -91,6 +81,7 @@ addon_data.player.OnUpdate = function(elapsed)
         if addon_data.player.off_weapon_speed == 0 then
             addon_data.player.off_weapon_speed = 2
         end
+        	
         -- If the weapon speed changed for either hand then a buff occured and we need to modify the timers
         if addon_data.player.main_speed_changed or addon_data.player.off_speed_changed then
             local main_multiplier = addon_data.player.main_weapon_speed / addon_data.player.prev_main_weapon_speed

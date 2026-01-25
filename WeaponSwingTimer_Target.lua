@@ -49,24 +49,14 @@ addon_data.target.has_offhand = false
 addon_data.target.off_speed_changed = false
 
 addon_data.target.LoadSettings = function()
-    -- If the carried over settings dont exist then make them
-    if not character_target_settings then
-        character_target_settings = {}
-    end
-    -- If the carried over settings aren't set then set them to the defaults
+
+    character_target_settings = addon_data.db.profile.target
+
     for setting, value in pairs(addon_data.target.default_settings) do
         if character_target_settings[setting] == nil then
             character_target_settings[setting] = value
         end
     end
-end
-
-addon_data.target.RestoreDefaults = function()
-    for setting, value in pairs(addon_data.target.default_settings) do
-        character_target_settings[setting] = value
-    end
-    addon_data.target.UpdateVisualsOnSettingsChange()
-    addon_data.target.UpdateConfigPanelValues()
 end
 
 --[[============================================================================================]]--
