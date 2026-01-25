@@ -55,27 +55,17 @@ addon_data.player.has_offhand = false
 addon_data.player.off_speed_changed = false
 
 addon_data.player.LoadSettings = function()
-    -- If the carried over settings dont exist then make them
-    if not character_player_settings then
-        character_player_settings = {}
-    end
-    -- If the carried over settings aren't set then set them to the defaults
+    
+    character_player_settings = addon_data.db.profile.player
+
     for setting, value in pairs(addon_data.player.default_settings) do
         if character_player_settings[setting] == nil then
             character_player_settings[setting] = value
         end
     end
-    -- Update settings that dont change unless the interface is reloaded
-    addon_data.player.class = UnitClass("player")[2]
-    addon_data.player.guid = UnitGUID("player")
-end
 
-addon_data.player.RestoreDefaults = function()
-    for setting, value in pairs(addon_data.player.default_settings) do
-        character_player_settings[setting] = value
-    end
-    addon_data.player.UpdateVisualsOnSettingsChange()
-    addon_data.player.UpdateConfigPanelValues()
+    addon_data.player.class = select(2, UnitClass("player"))
+    addon_data.player.guid  = UnitGUID("player")
 end
 
 --[[============================================================================================]]--
@@ -136,7 +126,7 @@ end
 addon_data.player.OnCombatLogUnfiltered = function(combat_info)
     local _, event, _, source_guid, _, _, _, dest_guid, _, _, _, _, spell_name, _ = unpack(combat_info)
     if (source_guid == addon_data.player.guid) then
-
+	
 	-- added check for extra attacks that would accidently reset the swing timer, reset by a sucessful
 		if (event == "SPELL_EXTRA_ATTACKS") then
 			addon_data.player.extra_attacks_flag = true
@@ -665,107 +655,45 @@ addon_data.player.YOffsetEditBoxOnEnter = function(self)
 end
 
 addon_data.player.MainColorPickerOnClick = function()
-    local settings = character_player_settings
-    local function MainOnActionFunc(restore)
-        local settings = character_player_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
-        end
-        settings.main_r, settings.main_g, settings.main_b, settings.main_a = new_r, new_g, new_b, new_a
-        addon_data.player.frame.main_bar:SetVertexColor(
-            settings.main_r, settings.main_g, settings.main_b, settings.main_a)
-        addon_data.player.config_frame.main_color_picker.foreground:SetColorTexture(
-            settings.main_r, settings.main_g, settings.main_b, settings.main_a)
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        MainOnActionFunc, MainOnActionFunc, MainOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.main_a
-    ColorPickerFrame:SetColorRGB(settings.main_r, settings.main_g, settings.main_b)
-    ColorPickerFrame.previousValues = {settings.main_r, settings.main_g, settings.main_b, settings.main_a}
-    ColorPickerFrame:Show()
+    addon_data.config.ShowColorPicker(
+        character_player_settings,
+        "main",
+        addon_data.player.config_frame.main_color_picker.foreground,
+        addon_data.player.UpdateVisualsOnSettingsChange
+    )
 end
 
 addon_data.player.MainTextColorPickerOnClick = function()
-    local settings = character_player_settings
-    local function MainTextOnActionFunc(restore)
-        local settings = character_player_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
+    addon_data.config.ShowColorPicker(
+        character_player_settings,
+        "main_text",
+        addon_data.player.config_frame.main_text_color_picker.foreground,
+        function(r, g, b, a)
+            addon_data.player.frame.main_left_text:SetTextColor(r, g, b, a)
+            addon_data.player.frame.main_right_text:SetTextColor(r, g, b, a)
         end
-        settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a = new_r, new_g, new_b, new_a
-        addon_data.player.frame.main_left_text:SetTextColor(
-            settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-        addon_data.player.frame.main_right_text:SetTextColor(
-            settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-        addon_data.player.config_frame.main_text_color_picker.foreground:SetColorTexture(
-            settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        MainTextOnActionFunc, MainTextOnActionFunc, MainTextOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.main_text_a
-    ColorPickerFrame:SetColorRGB(settings.main_text_r, settings.main_text_g, settings.main_text_b)
-    ColorPickerFrame.previousValues = {settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a}
-    ColorPickerFrame:Show()
+    )
 end
 
 addon_data.player.OffColorPickerOnClick = function()
-    local settings = character_player_settings
-    local function OffOnActionFunc(restore)
-        local settings = character_player_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
-        end
-        settings.off_r, settings.off_g, settings.off_b, settings.off_a = new_r, new_g, new_b, new_a
-        addon_data.player.frame.off_bar:SetVertexColor(
-            settings.off_r, settings.off_g, settings.off_b, settings.off_a)
-        addon_data.player.config_frame.off_color_picker.foreground:SetColorTexture(
-            settings.off_r, settings.off_g, settings.off_b, settings.off_a)
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        OffOnActionFunc, OffOnActionFunc, OffOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.off_a
-    ColorPickerFrame:SetColorRGB(settings.off_r, settings.off_g, settings.off_b)
-    ColorPickerFrame.previousValues = {settings.off_r, settings.off_g, settings.off_b, settings.off_a}
-    ColorPickerFrame:Show()
+    addon_data.config.ShowColorPicker(
+        character_player_settings,
+        "off",
+        addon_data.player.config_frame.off_color_picker.foreground,
+        addon_data.player.UpdateVisualsOnSettingsChange
+    )
 end
 
 addon_data.player.OffTextColorPickerOnClick = function()
-    local settings = character_player_settings
-    local function OffTextOnActionFunc(restore)
-        local settings = character_player_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
+    addon_data.config.ShowColorPicker(
+        character_player_settings,
+        "off_text",
+        addon_data.player.config_frame.off_text_color_picker.foreground,
+        function(r, g, b, a)
+            addon_data.player.frame.off_left_text:SetTextColor(r, g, b, a)
+            addon_data.player.frame.off_right_text:SetTextColor(r, g, b, a)
         end
-        settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a = new_r, new_g, new_b, new_a
-        addon_data.player.frame.off_left_text:SetTextColor(
-            settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-        addon_data.player.frame.off_right_text:SetTextColor(
-            settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-        addon_data.player.config_frame.off_text_color_picker.foreground:SetColorTexture(
-            settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        OffTextOnActionFunc, OffTextOnActionFunc, OffTextOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.off_text_a
-    ColorPickerFrame:SetColorRGB(settings.off_text_r, settings.off_text_g, settings.off_text_b)
-    ColorPickerFrame.previousValues = {settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a}
-    ColorPickerFrame:Show()
+    )
 end
 
 addon_data.player.CombatAlphaOnValChange = function(self)

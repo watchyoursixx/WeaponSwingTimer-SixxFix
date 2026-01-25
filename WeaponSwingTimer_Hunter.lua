@@ -95,10 +95,9 @@ addon_data.hunter.has_moved = false
 
 -- handling of stopping auto timer from starting
 addon_data.hunter.StartCastingSpell = function(spell_id)
-    local settings = character_hunter_settings
-
+    
     if not addon_data.hunter.casting and UnitCanAttack('player', 'target') then
-        spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
+        local spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
         if cast_time == nil then
 			
             return 
@@ -111,33 +110,29 @@ addon_data.hunter.StartCastingSpell = function(spell_id)
 end
 
 addon_data.hunter.LoadSettings = function()
-    -- If the carried over settings dont exist then make them
-    if not character_hunter_settings then
-        character_hunter_settings = {}
-        _, class, _ = UnitClass("player")
-        character_hunter_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
-    end
-    -- If the carried over settings aren't set then set them to the defaults
+    -- Ensure the alias is pointing at the current profile table
+    character_hunter_settings = addon_data.db.profile.hunter
+
     for setting, value in pairs(addon_data.hunter.default_settings) do
         if character_hunter_settings[setting] == nil then
             character_hunter_settings[setting] = value
         end
     end
-
-    addon_data.hunter.scan_tip = CreateFrame("GameTooltip", "WSTScanTip", nil, "GameTooltipTemplate")
-    addon_data.hunter.scan_tip:SetOwner(WorldFrame, "ANCHOR_NONE")
-end
-
-addon_data.hunter.RestoreDefaults = function()
-    for setting, value in pairs(addon_data.hunter.default_settings) do
-        character_hunter_settings[setting] = value
+        if character_hunter_settings.enabled == nil then
+        local _, class = UnitClass("player")
+        character_hunter_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
     end
-    _, class, _ = UnitClass("player")
-    character_hunter_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
-    addon_data.hunter.UpdateVisualsOnSettingsChange()
-    addon_data.hunter.UpdateConfigPanelValues()
+    
+    -- One-time tooltip initialize
+    if not addon_data.hunter.scan_tip then
+        addon_data.hunter.scan_tip = CreateFrame("GameTooltip", "WSTScanTip", nil, "GameTooltipTemplate")
+        addon_data.hunter.scan_tip:SetOwner(WorldFrame, "ANCHOR_NONE")
+    end
 end
 
+--[[============================================================================================]]--
+--[[====================================== LOGIC RELATED =======================================]]--
+--[[============================================================================================]]--
 -- Replaced update info with this instead, checking weapon id every time inventory is changed for simplicity
 addon_data.hunter.OnInventoryChange = function()
 	local _, class, _ = UnitClass("player")
@@ -163,10 +158,11 @@ addon_data.hunter.UpdateRangeCastSpeedModifier = function()
 	if addon_data.hunter.base_speed == 1 and (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK") then 
 		addon_data.hunter.base_speed = addon_data.GetRangedBaseSpeed()
 	else
-		local range_speed, _, _, _, _, percent = UnitRangedDamage("player")
+		local range_speed, _, _, _, _, _ = UnitRangedDamage("player")
 		-- added case for if range speed returns nil or 0
 		if range_speed == nil or range_speed == 0 then
 			range_speed = 1
+            addon_data.hunter.range_cast_speed_modifer = 1
 		else
 			addon_data.hunter.range_cast_speed_modifer = range_speed / addon_data.hunter.base_speed
 		end
@@ -215,7 +211,6 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 	    addon_data.hunter.UpdateRangeCastSpeedModifier()
 	end
 	
-
     -- If the player moved then the timer resets
     if addon_data.hunter.has_moved or addon_data.hunter.casting then
         if addon_data.hunter.shot_timer <= addon_data.hunter.auto_cast_time then
@@ -235,7 +230,8 @@ addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
 end
 
 addon_data.hunter.OnUpdate = function(elapsed)
-    if character_hunter_settings.enabled then
+    local settings = character_hunter_settings
+    if settings.enabled then
         -- Check to see if we have moved
         addon_data.hunter.has_moved = (GetUnitSpeed("player") > 0)
 		
@@ -275,10 +271,8 @@ addon_data.hunter.OnStopAutorepeatSpell = function()
     addon_data.hunter.shooting = false
 end
 -- Using combat log to detect pushback hits as well as starting to use spell cast events to replace the old version of detection that was implied
-addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
-    local _, event, _, casterID, _, _, _, targetID, targetName, _, _, spellID, name, _ = unpack(combat_info)
-	local _, rank, icon, castTime = GetSpellInfo(spellID)
-	local icon, castTime = select(3, GetSpellInfo(spellID))
+addon_data.hunter.OnCombatLogUnfiltered = function()
+    local _, event, _, casterID, _, _, _, _, _, _, _, spellID = CombatLogGetCurrentEventInfo()
 
 	if casterID == UnitGUID("player") then
 	
@@ -292,10 +286,7 @@ addon_data.hunter.OnCombatLogUnfiltered = function(combat_info)
 				end
 				
 		return end
-	
-		if event == "SPELL_CAST_SUCCESS" then
 
-		return end
 	end		
 end
 
@@ -303,7 +294,6 @@ end
 --- If not auto shot, set bar to green *commented out
 addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 
-	local settings = character_hunter_settings
 	if unit == 'player' then
 	
 	    addon_data.hunter.casting = false
@@ -327,14 +317,13 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
                 --addon_data.hunter.casting_auto = false
             end
 			if addon_data.hunter.is_spell_shoot(spell_id) then
-				new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
-                -- for some reason shoot is slower than base speed, no modifiers. Seems to have an opposite effect of OG quiver speed
-				addon_data.hunter.range_speed = addon_data.hunter.base_speed * 1.15
+				local new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
+				addon_data.hunter.range_speed = new_range_speed
 			end
         end
 
 		if addon_data.hunter.is_spell_auto_shot(spell_id) then	-- Update the ranged attack speed
-			new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
+			local new_range_speed, _, _, _, _, _ = UnitRangedDamage("player")
 
 			-- Handling for getting haste buffs in combat, don't need to update auto shot cast time until the next shot is ready
 			if new_range_speed ~= addon_data.hunter.range_speed then
@@ -342,7 +331,11 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 					addon_data.hunter.shot_timer = addon_data.hunter.shot_timer * 
 											(new_range_speed / addon_data.hunter.range_speed)
 				end
-				addon_data.hunter.range_speed = new_range_speed
+                
+				if not new_range_speed or new_range_speed == 0 then
+                    new_range_speed = addon_data.hunter.range_speed or 1
+                end
+                addon_data.hunter.range_speed = new_range_speed
 				addon_data.hunter.range_auto_speed_modified = addon_data.hunter.range_cast_speed_modifer
 			end
 		end
@@ -350,7 +343,6 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
 end
 
 addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
-    local settings = character_castbar_settings
 	
 	addon_data.hunter.casting = false
 	if unit == 'player' and addon_data.hunter.is_spell_auto_shot(spell_id) then
@@ -420,6 +412,7 @@ addon_data.hunter.UpdateVisualsOnSettingsChange = function()
     local settings = character_hunter_settings
     local frame = addon_data.hunter.frame
 	if settings.enabled then
+        frame:EnableMouse(not settings.is_locked)
         frame:Show()
         frame:ClearAllPoints()
         frame:SetPoint(settings.point, UIParent, settings.rel_point, settings.x_offset, settings.y_offset)
@@ -474,7 +467,7 @@ addon_data.hunter.OnFrameDragStop = function()
     local frame = addon_data.hunter.frame
     local settings = character_hunter_settings
     frame:StopMovingOrSizing()
-    point, _, rel_point, x_offset, y_offset = frame:GetPoint()
+    local point, _, rel_point, x_offset, y_offset = frame:GetPoint()
     if x_offset < 20 and x_offset > -20 then
         x_offset = 0
     end
@@ -545,7 +538,7 @@ addon_data.hunter.UpdateConfigPanelValues = function()
     panel.y_offset_editbox:SetCursorPosition(0)
     panel.cooldown_color_picker.foreground:SetColorTexture(
         settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
-        
+
     if settings.one_bar then
         panel.explaination:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/HunterOneBarExplainedAlpha')
         panel.explaination:SetSize(350, 175)
@@ -620,27 +613,30 @@ addon_data.hunter.YOffsetEditBoxOnEnter = function(self)
 end
 
 addon_data.hunter.CooldownColorPickerOnClick = function()
-    local settings = character_hunter_settings
-    local function CooldownOnActionFunc(restore)
-        local settings = character_hunter_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
-        end
-        settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a = new_r, new_g, new_b, new_a
-        addon_data.hunter.config_frame.cooldown_color_picker.foreground:SetColorTexture(
-            settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
-        addon_data.hunter.UpdateVisualsOnSettingsChange()
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        CooldownOnActionFunc, CooldownOnActionFunc, CooldownOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.cooldown_a
-    ColorPickerFrame:SetColorRGB(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b)
-    ColorPickerFrame.previousValues = {settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a}
-    ColorPickerFrame:Show()
+    addon_data.config.ShowColorPicker(
+        character_hunter_settings,
+        "cooldown",
+        addon_data.hunter.config_frame.cooldown_color_picker.foreground,
+        addon_data.hunter.UpdateVisualsOnSettingsChange
+    )
+end
+
+addon_data.hunter.AutoShotCastColorPickerOnClick = function()
+    addon_data.config.ShowColorPicker(
+        character_hunter_settings,
+        "auto_cast",
+        addon_data.hunter.config_frame.autoshot_cast_color_picker.foreground,
+        addon_data.hunter.UpdateVisualsOnSettingsChange
+    )
+end
+
+addon_data.hunter.MultiClipColorPickerOnClick = function()
+    addon_data.config.ShowColorPicker(
+        character_hunter_settings,
+        "clip",
+        addon_data.hunter.config_frame.multi_clip_color_picker.foreground,
+        addon_data.hunter.UpdateVisualsOnSettingsChange
+    )
 end
 
 addon_data.hunter.CombatAlphaOnValChange = function(self)
@@ -665,12 +661,12 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     -- Title Text
     panel.title_text = addon_data.config.TextFactory(panel, L["Hunter & Wand Shot Bar Settings"], 20)
     panel.title_text:SetPoint("TOPLEFT", 10 , -10)
-    panel.title_text:SetTextColor(1, 0.9, 0, 1)
+    panel.title_text:SetTextColor(1, 0.82, 0, 1)
     
     -- General Settings Text
     panel.general_text = addon_data.config.TextFactory(panel, L["General Settings"], 16)
     panel.general_text:SetPoint("TOPLEFT", 10 , -50)
-    panel.general_text:SetTextColor(1, 0.9, 0, 1)
+    panel.general_text:SetTextColor(1, 0.82, 0, 1)
     
     -- Enabled Checkbox
     panel.enabled_checkbox = addon_data.config.CheckBoxFactory(
@@ -725,7 +721,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.WidthEditBoxOnEnter)
-    panel.width_editbox:SetPoint("TOPLEFT", 240, -90, "BOTTOMRIGHT", 275, -115)
+    panel.width_editbox:SetPoint("TOPLEFT", 260, -90, "BOTTOMRIGHT", 275, -115)
     -- Height EditBox
     panel.height_editbox = addon_data.config.EditBoxFactory(
         "HunterHeightEditBox",
@@ -734,16 +730,16 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.HeightEditBoxOnEnter)
-	panel.height_editbox:SetPoint("TOPLEFT", 320, -90, "BOTTOMRIGHT", 225, -115)
+	panel.height_editbox:SetPoint("TOPLEFT", 340, -90, "BOTTOMRIGHT", 225, -115)
 	-- Font Size EditBox
 	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
         "FontSizeEditBox",
         panel,
-        "Font Size",
+        L["Font Size"],
         75,
         25,
         addon_data.hunter.FontSizeEditBoxOnEnter)
-    panel.fontsize_editbox:SetPoint("TOPLEFT", 160, -90)
+    panel.fontsize_editbox:SetPoint("TOPLEFT", 180, -90)
     -- X Offset EditBox
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
         "HunterXOffsetEditBox",
@@ -752,7 +748,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.XOffsetEditBoxOnEnter)
-    panel.x_offset_editbox:SetPoint("TOPLEFT", 200, -140, "BOTTOMRIGHT", 275, -165)
+    panel.x_offset_editbox:SetPoint("TOPLEFT", 220, -140, "BOTTOMRIGHT", 275, -165)
     -- Y Offset EditBox
     panel.y_offset_editbox = addon_data.config.EditBoxFactory(
         "HunterYOffsetEditBox",
@@ -761,7 +757,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.YOffsetEditBoxOnEnter)
-    panel.y_offset_editbox:SetPoint("TOPLEFT", 280, -140, "BOTTOMRIGHT", 225, -165)
+    panel.y_offset_editbox:SetPoint("TOPLEFT", 300, -140, "BOTTOMRIGHT", 225, -165)
     
     -- Cooldown color picker
     panel.cooldown_color_picker = addon_data.config.color_picker_factory(
@@ -772,6 +768,15 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         addon_data.hunter.CooldownColorPickerOnClick)
     panel.cooldown_color_picker:SetPoint('TOPLEFT', 205, -180)
     
+    -- Autoshot cast color picker
+    panel.autoshot_cast_color_picker = addon_data.config.color_picker_factory(
+        'HunterAutoShotCastColorPicker',
+        panel,
+        settings.auto_cast_r, settings.auto_cast_g, settings.auto_cast_b, settings.auto_cast_a,
+        L["Auto Shot Cast Color"],
+        addon_data.hunter.AutoShotCastColorPickerOnClick)
+    panel.autoshot_cast_color_picker:SetPoint('TOPLEFT', 205, -200)
+    
     -- In Combat Alpha Slider
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(
         "HunterInCombatAlphaSlider",
@@ -781,7 +786,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         1,
         0.05,
         addon_data.hunter.CombatAlphaOnValChange)
-    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 405, -90)
+    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 425, -90)
     -- Out Of Combat Alpha Slider
     panel.ooc_alpha_slider = addon_data.config.SliderFactory(
         "HunterOOCAlphaSlider",
@@ -791,7 +796,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         1,
         0.05,
         addon_data.hunter.OOCAlphaOnValChange)
-    panel.ooc_alpha_slider:SetPoint("TOPLEFT", 405, -140)
+    panel.ooc_alpha_slider:SetPoint("TOPLEFT", 425, -140)
     -- Backplane Alpha Slider
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
         "HunterBackplaneAlphaSlider",
@@ -801,13 +806,22 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         1,
         0.05,
         addon_data.hunter.BackplaneAlphaOnValChange)
-    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 405, -190)
+    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 425, -190)
     
     -- Hunter Specific Settings Text
     panel.hunter_text = addon_data.config.TextFactory(panel, L["Hunter Specific Settings"], 16)
-    panel.hunter_text:SetPoint("TOPLEFT", 10 , -220)
+    panel.hunter_text:SetPoint("TOPLEFT", 10 , -230)
     panel.hunter_text:SetTextColor(1, 0.9, 0, 1)
 
+    -- Show Multi-Shot Clip Bar Checkbox
+    panel.show_multishot_clip_bar_checkbox = addon_data.config.CheckBoxFactory(
+        "HunterShowMultiShotClipBarCheckBox",
+        panel,
+        L["Multi-Shot clip bar"],
+        L["Shows a bar that represents when a Multi-Shot would clip an Auto Shot."],
+        addon_data.hunter.ShowMultiShotClipBarCheckBoxOnClick)
+    panel.show_multishot_clip_bar_checkbox:SetPoint("TOPLEFT", 10, -230)
+    
     -- Show Autoshot delay timer Checkbox
     panel.show_autoshot_delay_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowAutoShotDelayCheckBox",
@@ -815,11 +829,20 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         L["Auto Shot delay timer"],
         L["Shows a timer that represents when Auto shot is delayed."],
         addon_data.hunter.ShowAutoShotDelayCheckBoxOnClick)
-    panel.show_autoshot_delay_checkbox:SetPoint("TOPLEFT", 10, -240)
+    panel.show_autoshot_delay_checkbox:SetPoint("TOPLEFT", 10, -250)
+    
+    -- Multi-shot clip color picker
+    panel.multi_clip_color_picker = addon_data.config.color_picker_factory(
+        'HunterMultiClipColorPicker',
+        panel,
+        settings.clip_r, settings.clip_g, settings.clip_b, settings.clip_a,
+        L["Multi-Shot Clip Color"],
+        addon_data.hunter.MultiClipColorPickerOnClick)
+    panel.multi_clip_color_picker:SetPoint('TOPLEFT', 205, -255)
     
     -- Add the explaination text
     panel.explaination_text = addon_data.config.TextFactory(panel, L["Bar Explanation"], 16)
-    panel.explaination_text:SetPoint("TOPLEFT", 10 , -400)
+    panel.explaination_text:SetPoint("TOPLEFT", 80 , -560)
     panel.explaination_text:SetTextColor(1, 0.9, 0, 1)
     
     -- Add the explaination

@@ -47,16 +47,33 @@ addon_data.config.InitializeVisuals = function()
     panel.config_hunter_panel = CreateFrame("Frame", nil, panel)
     panel.config_hunter_panel:SetSize(1, 1)
     panel.config_hunter_panel.hunter_panel = addon_data.hunter.CreateConfigPanel(panel.config_hunter_panel)
-    panel.config_hunter_panel.hunter_panel:SetPoint('TOPLEFT', 0, 0)
+    local hunter_panel_height = 290
+    panel.config_hunter_panel.hunter_panel:SetHeight(hunter_panel_height)
     panel.config_hunter_panel.hunter_panel:SetSize(1, 1)
+    panel.config_hunter_panel.hunter_panel:SetPoint('TOPLEFT', 0, 0)
+    
     panel.config_hunter_panel.castbar_panel = addon_data.castbar.CreateConfigPanel(panel.config_hunter_panel)	
-    panel.config_hunter_panel.castbar_panel:SetPoint('TOPLEFT', 0, -235)	
+    panel.config_hunter_panel.castbar_panel:SetHeight(250)
     panel.config_hunter_panel.castbar_panel:SetSize(1, 1)
-    panel.config_hunter_panel.name = L["Hunter & Wand Settings"]
+    local castbar_panel_position = - 10 - hunter_panel_height
+    panel.config_hunter_panel.castbar_panel:SetPoint("TOPLEFT",0, castbar_panel_position)
+
+    local totalHeight = panel.config_hunter_panel.hunter_panel:GetHeight() + panel.config_hunter_panel.castbar_panel:GetHeight() + 30
+    panel.config_hunter_panel:SetHeight(totalHeight)
+
+    panel.config_hunter_panel.name = L["Ranged Settings"]
     panel.config_hunter_panel.parent = panel.name
     panel.config_hunter_panel.default = addon_data.config.OnDefault
     Settings.RegisterCanvasLayoutSubcategory(category, panel.config_hunter_panel, panel.config_hunter_panel.name)
-    
+
+    -- Add the profiles panel
+    panel.config_profiles_panel = CreateFrame("Frame", nil, panel)
+    panel.config_profiles_panel:SetSize(1, 1)
+    panel.config_profiles_panel.config_profiles_panel = addon_data.config.CreateProfilesPanel(panel.config_profiles_panel)
+    panel.config_profiles_panel.name = L["Profiles"]
+    panel.config_profiles_panel.parent = panel.name
+    panel.config_profiles_panel.default = addon_data.config.OnDefault
+    Settings.RegisterCanvasLayoutSubcategory(category, panel.config_profiles_panel, panel.config_profiles_panel.name)
 
 end
 
@@ -118,6 +135,8 @@ end
 addon_data.config.SliderFactory = function(g_name, parent, title, min_val, max_val, val_step, func)
     local slider = CreateFrame("Slider", addon_name .. g_name, parent, "OptionsSliderTemplate")
     local editbox = CreateFrame("EditBox", "$parentEditBox", slider, "InputBoxTemplate")
+    -- force slider to be set size, odd cases where it was missing
+    slider:SetSize(120, 18)
     slider:SetMinMaxValues(min_val, max_val)
     slider:SetValueStep(val_step)
     slider:SetObeyStepOnDrag(true)
@@ -130,15 +149,29 @@ addon_data.config.SliderFactory = function(g_name, parent, title, min_val, max_v
         editbox:SetText(tostring(addon_data.utils.SimpleRound(self:GetValue(), val_step)))
         func(self)
     end)
+
+    -- force slider background to be set, odd cases where it was missing
+    local bg = slider:CreateTexture(nil, "BACKGROUND")
+    bg:SetTexture("Interface\\Buttons\\UI-SliderBar-Background")
+    bg:SetPoint("LEFT", slider, "LEFT", 4, 0)
+    bg:SetPoint("RIGHT", slider, "RIGHT", -4, 0)
+    bg:SetHeight(6)
+
+    -- force slider text to be set, odd cases where they were missing
+    local name = slider:GetName()
+    _G[name .. "Text"]:SetText(title)
+    _G[name .. "Low"]:SetText(tostring(min_val))
+    _G[name .. "High"]:SetText(tostring(max_val))
+
     editbox:SetScript("OnTextChanged", function(self)
-        local val = self:GetText()
-        if tonumber(val) then
+        local val = tonumber(self:GetText())
+        if val then
             self:GetParent():SetValue(val)
         end
     end)
-    editbox:SetScript("OnEnterPressed", function(self)
-        local val = self:GetText()
-        if tonumber(val) then
+        editbox:SetScript("OnEnterPressed", function(self)
+        local val = tonumber(self:GetText())
+        if val then
             self:GetParent():SetValue(val)
             self:ClearFocus()
         end
@@ -162,6 +195,45 @@ addon_data.config.color_picker_factory = function(g_name, parent, r, g, b, a, te
     color_picker.text = addon_data.config.TextFactory(color_picker, text, 12)
     color_picker.text:SetPoint('LEFT', 25, 0)
     return color_picker
+end
+
+addon_data.config.ShowColorPicker = function(settings, name, foreground_texture, on_change)
+    local start_r = settings[name .. "_r"]
+    local start_g = settings[name .. "_g"]
+    local start_b = settings[name .. "_b"]
+    local start_a = settings[name .. "_a"]
+
+    local function Apply()
+        local new_r, new_g, new_b = ColorPickerFrame:GetColorRGB()
+        local new_a = 1 - OpacitySliderFrame:GetValue()
+
+        settings[name .. "_r"] = new_r
+        settings[name .. "_g"] = new_g
+        settings[name .. "_b"] = new_b
+        settings[name .. "_a"] = new_a
+
+        foreground_texture:SetColorTexture(new_r, new_g, new_b, new_a)
+        if on_change then on_change(new_r, new_g, new_b, new_a) end
+    end
+
+    ColorPickerFrame:SetupColorPickerAndShow({
+        r = start_r,
+        g = start_g,
+        b = start_b,
+        hasOpacity = true,
+        opacity = 1 - start_a,
+        swatchFunc = Apply,
+        opacityFunc = Apply,
+        cancelFunc = function()
+            settings[name .. "_r"] = start_r
+            settings[name .. "_g"] = start_g
+            settings[name .. "_b"] = start_b
+            settings[name .. "_a"] = start_a
+
+            foreground_texture:SetColorTexture(start_r, start_g, start_b, start_a)
+            if on_change then on_change(start_r, start_g, start_b, start_a) end
+        end,
+    })
 end
 
 addon_data.config.UpdateConfigValues = function()
@@ -189,6 +261,46 @@ addon_data.config.WelcomeCheckBoxOnClick = function(self)
 	character_core_settings.welcome_message = self:GetChecked()
     addon_data.core.UpdateAllVisualsOnSettingsChange()
 end
+
+StaticPopupDialogs["WST_CONFIRM_DELETE_PROFILE"] = {
+    text = L["Delete active profile? This cannot be undone."],
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function(self, profileName)
+        if not addon_data or not addon_data.db or not profileName then return end
+        if profileName == "Default" then return end
+
+        -- Must switch away before deleting (AceDB requirement)
+        addon_data.db:SetProfile("Default")
+        addon_data.db:DeleteProfile(profileName)
+
+        -- Refresh bindings/UI
+        if addon_data.core and addon_data.core.RefreshFromDB then
+            addon_data.core.RefreshFromDB()
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+StaticPopupDialogs["WST_CONFIRM_RESET_PROFILE"] = {
+    text = L["Reset profile to defaults?"],
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function(self, profileName)
+        if not addon_data or not addon_data.db then return end
+        addon_data.db:ResetProfile()
+        if addon_data.core and addon_data.core.RefreshFromDB then
+            addon_data.core.RefreshFromDB()
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
 
 addon_data.config.CreateConfigPanel = function(parent_panel)
     addon_data.config.config_frame = CreateFrame("Frame", addon_name .. "GlobalConfigPanel", parent_panel)
@@ -220,3 +332,158 @@ addon_data.config.CreateConfigPanel = function(parent_panel)
     addon_data.config.UpdateConfigValues()
     return panel
 end
+
+addon_data.config.CreateProfilesPanel = function(parent)
+    local panel = parent
+
+    panel.title = addon_data.config.TextFactory(panel, "Profiles", 20)
+    panel.title:SetPoint("TOPLEFT", 10, -10)
+    panel.title:SetTextColor(1, 0.82, 0, 1)
+
+    panel.desc = addon_data.config.TextFactory(panel,
+        L["Profiles let you save multiple layouts and quickly switch between them."], 12)
+    panel.desc:SetPoint("TOPLEFT", 10, -40)
+    panel.desc:SetTextColor(1, 1, 1, 1)
+
+    -- Dropdown
+    panel.profile_dropdown = CreateFrame("Frame", addon_name .. "ProfileDropDown", panel, "UIDropDownMenuTemplate")
+    panel.profile_dropdown:SetPoint("TOPLEFT", 10, -70)
+
+    local function GetCurrentProfile()
+        return addon_data.db and addon_data.db:GetCurrentProfile() or "Default"
+    end
+
+    local function RefreshDropdownText()
+        UIDropDownMenu_SetText(panel.profile_dropdown, GetCurrentProfile())
+    end
+
+    local function RefreshAllAfterProfileChange()
+        -- Rebind aliases from DB (your helper from InitDB)
+        if addon_data.core.RefreshFromDB then
+            addon_data.core.RefreshFromDB()
+        end
+
+        -- Update config panels if you have a global updater
+        if addon_data.core.UpdateAllVisualsOnSettingsChange then
+            addon_data.core.UpdateAllVisualsOnSettingsChange()
+        end
+    end
+
+    local function InitializeDropDown(self, level)
+        local info = UIDropDownMenu_CreateInfo()
+        info.func = function(btn)
+            addon_data.db:SetProfile(btn.value)
+            RefreshDropdownText()
+            RefreshAllAfterProfileChange()
+        end
+
+        -- List existing profiles
+        local profiles = addon_data.db:GetProfiles()
+        table.sort(profiles)
+        for _, name in ipairs(profiles) do
+            info.text = name
+            info.value = name
+            info.checked = (name == GetCurrentProfile())
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end
+
+    UIDropDownMenu_Initialize(panel.profile_dropdown, InitializeDropDown)
+    UIDropDownMenu_SetWidth(panel.profile_dropdown, 140)
+    RefreshDropdownText()
+
+    -- New profile name box
+    panel.new_profile_editbox = addon_data.config.EditBoxFactory(
+        "WSTNewProfileEditBox",
+        panel,
+        L["New profile name"],
+        160,
+        25,
+        function()
+            panel.new_profile_editbox:SetMaxLetters(20)
+        end
+    )
+    panel.new_profile_editbox:SetPoint("TOPLEFT", 205, -75)
+
+    -- Create button
+    panel.create_btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    panel.create_btn:SetSize(90, 22)
+    panel.create_btn:SetPoint("LEFT", panel.new_profile_editbox, "RIGHT", 10, 0)
+    panel.create_btn:SetText(L["Create"])
+    panel.create_btn:SetScript("OnClick", function()
+        local name = panel.new_profile_editbox:GetText()
+        if not name or name == "" then return end
+        addon_data.db:SetProfile(name)
+        panel.new_profile_editbox:SetText("")
+        UIDropDownMenu_Initialize(panel.profile_dropdown, InitializeDropDown)
+        RefreshDropdownText()
+        RefreshAllAfterProfileChange()
+    end)
+
+    -- Copy From (dropdown)
+    panel.copy_from_dropdown = CreateFrame("Frame", addon_name .. "CopyFromDropDown", panel, "UIDropDownMenuTemplate")
+    panel.copy_from_dropdown:SetPoint("TOPLEFT", 10, -110)
+    UIDropDownMenu_SetWidth(panel.copy_from_dropdown, 140)
+    UIDropDownMenu_SetText(panel.copy_from_dropdown, L["Copy from..."])
+
+    local function InitializeCopyFrom(self, level)
+        local info = UIDropDownMenu_CreateInfo()
+        info.func = function(btn)
+            -- copy chosen profile into current
+            addon_data.db:CopyProfile(btn.value)
+            UIDropDownMenu_SetText(panel.copy_from_dropdown, L["Copy from..."])
+            RefreshAllAfterProfileChange()
+        end
+
+        local current = GetCurrentProfile()
+        local profiles = addon_data.db:GetProfiles()
+        table.sort(profiles)
+        for _, name in ipairs(profiles) do
+            if name ~= current then
+                info.text = name
+                info.value = name
+                info.checked = false
+                UIDropDownMenu_AddButton(info, level)
+            end
+        end
+    end
+    UIDropDownMenu_Initialize(panel.copy_from_dropdown, InitializeCopyFrom)
+
+    -- Reset profile button
+    panel.reset_btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    panel.reset_btn:SetSize(150, 22)
+    panel.reset_btn:SetPoint("LEFT", panel.copy_from_dropdown, "RIGHT", 10, 0)
+    panel.reset_btn:SetText(L["Reset Active Profile"])
+    panel.reset_btn:SetScript("OnClick", function()
+        StaticPopup_Show("WST_CONFIRM_RESET_PROFILE", addon_data.db:GetCurrentProfile(), nil, addon_data.db:GetCurrentProfile())
+
+        addon_data.db:ResetProfile()
+        RefreshAllAfterProfileChange()
+    end)
+
+    panel.delete_btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    panel.delete_btn:SetSize(150, 22)
+    panel.delete_btn:SetPoint("TOPLEFT", 30, -150)
+    panel.delete_btn:SetText(L["Delete Active Profile"])
+    panel.delete_btn:SetScript("OnClick", function()
+        local current = addon_data.db:GetCurrentProfile()
+        if current == "Default" then return end
+        StaticPopup_Show("WST_CONFIRM_DELETE_PROFILE", current, nil, current)
+        -- Switch away first (AceDB requirement)
+        addon_data.db:SetProfile("Default")
+
+        -- Now delete the old profile
+        addon_data.db:DeleteProfile(current)
+
+        -- Refresh UI / bindings
+        if addon_data.core.RefreshFromDB then
+            addon_data.core.RefreshFromDB()
+        end
+
+        -- Rebuild dropdowns / labels if you do that
+        UIDropDownMenu_SetText(panel.profile_dropdown, addon_data.db:GetCurrentProfile())
+    end)
+
+    panel:SetHeight(220)
+end
+
