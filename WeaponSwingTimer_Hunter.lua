@@ -98,8 +98,7 @@ addon_data.hunter.has_moved = false
 
 -- handling of stopping auto timer from starting
 addon_data.hunter.StartCastingSpell = function(spell_id)
-    local settings = character_hunter_settings
-
+    
     if not addon_data.hunter.casting and UnitCanAttack('player', 'target') then
         local spell_name, _, _, cast_time, _, _, _ = GetSpellInfo(spell_id)
         if cast_time == nil then
@@ -114,33 +113,29 @@ addon_data.hunter.StartCastingSpell = function(spell_id)
 end
 
 addon_data.hunter.LoadSettings = function()
-    -- If the carried over settings dont exist then make them
-    if not character_hunter_settings then
-        character_hunter_settings = {}
-        local _, class, _ = UnitClass("player")
-        character_hunter_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
-    end
-    -- If the carried over settings aren't set then set them to the defaults
+    -- Ensure the alias is pointing at the current profile table
+    character_hunter_settings = addon_data.db.profile.hunter
+
     for setting, value in pairs(addon_data.hunter.default_settings) do
         if character_hunter_settings[setting] == nil then
             character_hunter_settings[setting] = value
         end
     end
-
-    addon_data.hunter.scan_tip = CreateFrame("GameTooltip", "WSTScanTip", nil, "GameTooltipTemplate")
-    addon_data.hunter.scan_tip:SetOwner(WorldFrame, "ANCHOR_NONE")
-end
-
-addon_data.hunter.RestoreDefaults = function()
-    for setting, value in pairs(addon_data.hunter.default_settings) do
-        character_hunter_settings[setting] = value
+        if character_hunter_settings.enabled == nil then
+        local _, class = UnitClass("player")
+        character_hunter_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
     end
-    local _, class, _ = UnitClass("player")
-    character_hunter_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
-    addon_data.hunter.UpdateVisualsOnSettingsChange()
-    addon_data.hunter.UpdateConfigPanelValues()
+    
+    -- One-time tooltip initialize
+    if not addon_data.hunter.scan_tip then
+        addon_data.hunter.scan_tip = CreateFrame("GameTooltip", "WSTScanTip", nil, "GameTooltipTemplate")
+        addon_data.hunter.scan_tip:SetOwner(WorldFrame, "ANCHOR_NONE")
+    end
 end
 
+--[[============================================================================================]]--
+--[[====================================== LOGIC RELATED =======================================]]--
+--[[============================================================================================]]--
 -- Replaced update info with this instead, checking weapon id every time inventory is changed for simplicity
 addon_data.hunter.OnInventoryChange = function()
 	local _, class, _ = UnitClass("player")
@@ -741,12 +736,12 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
     -- Title Text
     panel.title_text = addon_data.config.TextFactory(panel, L["Hunter & Wand Shot Bar Settings"], 20)
     panel.title_text:SetPoint("TOPLEFT", 10 , -10)
-    panel.title_text:SetTextColor(1, 0.9, 0, 1)
+    panel.title_text:SetTextColor(1, 0.82, 0, 1)
     
     -- General Settings Text
     panel.general_text = addon_data.config.TextFactory(panel, L["General Settings"], 16)
     panel.general_text:SetPoint("TOPLEFT", 10 , -50)
-    panel.general_text:SetTextColor(1, 0.9, 0, 1)
+    panel.general_text:SetTextColor(1, 0.82, 0, 1)
     
     -- Enabled Checkbox
     panel.enabled_checkbox = addon_data.config.CheckBoxFactory(
@@ -801,7 +796,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.WidthEditBoxOnEnter)
-    panel.width_editbox:SetPoint("TOPLEFT", 240, -90, "BOTTOMRIGHT", 275, -115)
+    panel.width_editbox:SetPoint("TOPLEFT", 260, -90, "BOTTOMRIGHT", 275, -115)
     -- Height EditBox
     panel.height_editbox = addon_data.config.EditBoxFactory(
         "HunterHeightEditBox",
@@ -810,16 +805,16 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.HeightEditBoxOnEnter)
-	panel.height_editbox:SetPoint("TOPLEFT", 320, -90, "BOTTOMRIGHT", 225, -115)
+	panel.height_editbox:SetPoint("TOPLEFT", 340, -90, "BOTTOMRIGHT", 225, -115)
 	-- Font Size EditBox
 	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
         "FontSizeEditBox",
         panel,
-        "Font Size",
+        L["Font Size"],
         75,
         25,
         addon_data.hunter.FontSizeEditBoxOnEnter)
-    panel.fontsize_editbox:SetPoint("TOPLEFT", 160, -90)
+    panel.fontsize_editbox:SetPoint("TOPLEFT", 180, -90)
     -- X Offset EditBox
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
         "HunterXOffsetEditBox",
@@ -828,7 +823,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.XOffsetEditBoxOnEnter)
-    panel.x_offset_editbox:SetPoint("TOPLEFT", 200, -140, "BOTTOMRIGHT", 275, -165)
+    panel.x_offset_editbox:SetPoint("TOPLEFT", 220, -140, "BOTTOMRIGHT", 275, -165)
     -- Y Offset EditBox
     panel.y_offset_editbox = addon_data.config.EditBoxFactory(
         "HunterYOffsetEditBox",
@@ -837,7 +832,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.hunter.YOffsetEditBoxOnEnter)
-    panel.y_offset_editbox:SetPoint("TOPLEFT", 280, -140, "BOTTOMRIGHT", 225, -165)
+    panel.y_offset_editbox:SetPoint("TOPLEFT", 300, -140, "BOTTOMRIGHT", 225, -165)
     
     -- Cooldown color picker
     panel.cooldown_color_picker = addon_data.config.color_picker_factory(
@@ -866,7 +861,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         1,
         0.05,
         addon_data.hunter.CombatAlphaOnValChange)
-    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 405, -90)
+    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 425, -90)
     -- Out Of Combat Alpha Slider
     panel.ooc_alpha_slider = addon_data.config.SliderFactory(
         "HunterOOCAlphaSlider",
@@ -876,7 +871,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         1,
         0.05,
         addon_data.hunter.OOCAlphaOnValChange)
-    panel.ooc_alpha_slider:SetPoint("TOPLEFT", 405, -140)
+    panel.ooc_alpha_slider:SetPoint("TOPLEFT", 425, -140)
     -- Backplane Alpha Slider
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
         "HunterBackplaneAlphaSlider",
@@ -886,11 +881,11 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         1,
         0.05,
         addon_data.hunter.BackplaneAlphaOnValChange)
-    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 405, -190)
+    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 425, -190)
     
     -- Hunter Specific Settings Text
     panel.hunter_text = addon_data.config.TextFactory(panel, L["Hunter Specific Settings"], 16)
-    panel.hunter_text:SetPoint("TOPLEFT", 10 , -220)
+    panel.hunter_text:SetPoint("TOPLEFT", 10 , -230)
     panel.hunter_text:SetTextColor(1, 0.9, 0, 1)
 
     -- Show Multi-Shot Clip Bar Checkbox
@@ -900,7 +895,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         L["Multi-Shot clip bar"],
         L["Shows a bar that represents when a Multi-Shot would clip an Auto Shot."],
         addon_data.hunter.ShowMultiShotClipBarCheckBoxOnClick)
-    panel.show_multishot_clip_bar_checkbox:SetPoint("TOPLEFT", 10, -220)
+    panel.show_multishot_clip_bar_checkbox:SetPoint("TOPLEFT", 10, -230)
     
     -- Show Autoshot delay timer Checkbox
     panel.show_autoshot_delay_checkbox = addon_data.config.CheckBoxFactory(
@@ -909,7 +904,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         L["Auto Shot delay timer"],
         L["Shows a timer that represents when Auto shot is delayed."],
         addon_data.hunter.ShowAutoShotDelayCheckBoxOnClick)
-    panel.show_autoshot_delay_checkbox:SetPoint("TOPLEFT", 10, -240)
+    panel.show_autoshot_delay_checkbox:SetPoint("TOPLEFT", 10, -250)
     
     -- Multi-shot clip color picker
     panel.multi_clip_color_picker = addon_data.config.color_picker_factory(
@@ -918,11 +913,11 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         settings.clip_r, settings.clip_g, settings.clip_b, settings.clip_a,
         L["Multi-Shot Clip Color"],
         addon_data.hunter.MultiClipColorPickerOnClick)
-    panel.multi_clip_color_picker:SetPoint('TOPLEFT', 205, -240)
+    panel.multi_clip_color_picker:SetPoint('TOPLEFT', 205, -255)
     
     -- Add the explaination text
     panel.explaination_text = addon_data.config.TextFactory(panel, L["Bar Explanation"], 16)
-    panel.explaination_text:SetPoint("TOPLEFT", 10 , -400)
+    panel.explaination_text:SetPoint("TOPLEFT", 80 , -560)
     panel.explaination_text:SetTextColor(1, 0.9, 0, 1)
     
     -- Add the explaination

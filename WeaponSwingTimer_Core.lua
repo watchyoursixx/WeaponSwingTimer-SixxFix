@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "6.6.1"
+local version = "6.7.1"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -523,7 +523,7 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Thunder Clap ]]
     -- --[[ Whirlwind ]]
 }
-
+-- used to initalize settings first if they don't exist, and assign settings to individual profile db references
 local function LoadAllSettings()
     addon_data.core.LoadSettings()
     addon_data.player.LoadSettings()
@@ -533,11 +533,8 @@ local function LoadAllSettings()
 end
 
 addon_data.core.RestoreAllDefaults = function()
-    addon_data.core.RestoreDefaults()
-    addon_data.player.RestoreDefaults()
-    addon_data.target.RestoreDefaults()
-    addon_data.hunter.RestoreDefaults()
-	addon_data.castbar.RestoreDefaults()
+    addon_data.db:ResetProfile()
+    addon_data.core.UpdateAllVisualsOnSettingsChange()
 end
 
 local function InitializeAllVisuals()
@@ -554,6 +551,10 @@ addon_data.core.UpdateAllVisualsOnSettingsChange = function()
     addon_data.target.UpdateVisualsOnSettingsChange()
     addon_data.hunter.UpdateVisualsOnSettingsChange()
 	addon_data.castbar.UpdateVisualsOnSettingsChange()
+    addon_data.player.UpdateConfigPanelValues()
+    addon_data.target.UpdateConfigPanelValues()
+    addon_data.hunter.UpdateConfigPanelValues()
+    addon_data.castbar.UpdateConfigPanelValues()
 end
 
 addon_data.core.LoadSettings = function()
@@ -566,12 +567,6 @@ addon_data.core.LoadSettings = function()
         if character_core_settings[setting] == nil then
             character_core_settings[setting] = value
         end
-    end
-end
-
-addon_data.core.RestoreDefaults = function()
-    for setting, value in pairs(addon_data.core.default_settings) do
-        character_core_settings[setting] = value
     end
 end
 
@@ -678,6 +673,33 @@ addon_data.core.SpellHandler = function(unit, spell_id)
     end
 end
 
+-- loads Ace3 DB for storing profiles and creates a func for updating settings
+function addon_data.core.InitDB()
+    local AceDB = LibStub("AceDB-3.0")
+
+    addon_data.db = AceDB:New("WSTProfileDB", addon_data.defaults, true)
+
+    local function RefreshFromDB()
+        character_core_settings    = addon_data.db.profile.core
+        character_player_settings  = addon_data.db.profile.player
+        character_target_settings  = addon_data.db.profile.target
+        character_hunter_settings  = addon_data.db.profile.hunter
+        character_castbar_settings = addon_data.db.profile.castbar
+
+        if addon_data.core.visuals_initialized then
+            addon_data.core.UpdateAllVisualsOnSettingsChange()
+        end
+    end
+
+    addon_data.core.RefreshFromDB = RefreshFromDB
+    RefreshFromDB()
+    
+    addon_data.db:RegisterCallback("OnProfileChanged", RefreshFromDB)
+    addon_data.db:RegisterCallback("OnProfileCopied",  RefreshFromDB)
+    addon_data.db:RegisterCallback("OnProfileReset",   RefreshFromDB)
+end
+
+
 local function OnAddonLoaded(self)
     -- Register events first (OnUpdate registered after visuals are initialized)
     addon_data.core.core_frame:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -692,8 +714,22 @@ local function OnAddonLoaded(self)
     addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
     addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_FAILED_QUIET")
     -- Load the settings for the core and all timers
-    LoadAllSettings()
+    -- load profiles defaults
+    addon_data.defaults = {
+    profile = {
+        core    = addon_data.core.default_settings,
+        hunter  = addon_data.hunter.default_settings,
+        player  = addon_data.player.default_settings,
+        target  = addon_data.target.default_settings,
+        castbar = addon_data.castbar.default_settings,
+        }
+    }
+    -- initialize profiles Ace3 database
+    addon_data.core.InitDB()
+    LoadAllSettings()          
     InitializeAllVisuals()
+    addon_data.core.visuals_initialized = true
+
     -- Now that visuals are initialized, attach the OnUpdate script
     addon_data.core.core_frame:SetScript("OnUpdate", CoreFrame_OnUpdate)
     -- Any other misc operations that happen at the start

@@ -147,34 +147,33 @@ addon_data.castbar.StartCastingSpell = function(spell_id)
 end
 
 addon_data.castbar.LoadSettings = function()
-    -- If the carried over settings dont exist then make them
-    if not character_castbar_settings then
-        character_castbar_settings = {}
-        _, class, _ = UnitClass("player")
-        character_castbar_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
-    end
-    -- If the carried over settings aren't set then set them to the defaults
+
+    character_castbar_settings = addon_data.db.profile.castbar
+
     for setting, value in pairs(addon_data.castbar.default_settings) do
         if character_castbar_settings[setting] == nil then
             character_castbar_settings[setting] = value
         end
     end
 
-    addon_data.castbar.scan_tip = CreateFrame("GameTooltip", "WSTScanTip", nil, "GameTooltipTemplate")
-    addon_data.castbar.scan_tip:SetOwner(WorldFrame, "ANCHOR_NONE")
-end
-
-addon_data.castbar.RestoreDefaults = function()
-    for setting, value in pairs(addon_data.castbar.default_settings) do
-        character_castbar_settings[setting] = value
+    -- only load castbar if hunter class, since it's only used for multi and aimed shot
+    if character_castbar_settings.enabled == nil then
+        local _, class = UnitClass("player")
+        character_castbar_settings.enabled =
+            (class == "HUNTER")
     end
-    _, class, _ = UnitClass("player")
-    character_castbar_settings.enabled = (class == "HUNTER" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK")
-    addon_data.castbar.UpdateVisualsOnSettingsChange()
-    addon_data.castbar.UpdateConfigPanelValues()
+
+    -- One-time tooltip creation
+    if not addon_data.castbar.scan_tip then
+        addon_data.castbar.scan_tip = CreateFrame("GameTooltip", "WSTScanTip", nil, "GameTooltipTemplate")
+        addon_data.castbar.scan_tip:SetOwner(WorldFrame, "ANCHOR_NONE")
+    end
 end
 
 
+--[[============================================================================================]]--
+--[[====================================== LOGIC RELATED =======================================]]--
+--[[============================================================================================]]--
 --- Buffs and debuffs change casting speeds, which is multiplied by the cast time
 --- -----------------------------------------------------------------------------
 --- Anything that changes cast times should go here. Need to add other forms of debuffs
@@ -603,9 +602,14 @@ addon_data.castbar.BackplaneAlphaOnValChange = function(self)
 end
 --- Initializes the main setting panel including layout, alignment, and design
 addon_data.castbar.CreateConfigPanel = function(parent_panel)
-    addon_data.castbar.config_frame = CreateFrame("Frame", addon_name .. "HunterConfigPanel", parent_panel)
+    addon_data.castbar.config_frame = CreateFrame("Frame", addon_name .. "CastbarConfigPanel", parent_panel)
     local panel = addon_data.castbar.config_frame
     local settings = character_castbar_settings
+    
+    -- Title Text
+    panel.title_text = addon_data.config.TextFactory(panel, L["Player Spell Bar Settings"], 20)
+    panel.title_text:SetPoint("TOPLEFT", 10, -10)
+    panel.title_text:SetTextColor(1, 0.82, 0, 1)
     
     -- Show Text Checkbox
     panel.show_casttext_checkbox = addon_data.config.CheckBoxFactory(
@@ -614,8 +618,45 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
 		L["Show Cast Text"],
         L["Enables the cast bar text."],
         addon_data.castbar.ShowCastTextCheckBoxOnClick)
-    panel.show_casttext_checkbox:SetPoint("TOPLEFT", 10, -85)
+    panel.show_casttext_checkbox:SetPoint("TOPLEFT", 10, -35)
+
+        -- Show Multi Shot Cast Bar Checkbox
+    panel.show_multishot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
+        "HunterShowMultiShotCastBarCheckBox",
+        panel,
+        L["Multi-Shot cast bar"],
+        L["Allows the cast bar to show Multi-Shot casts."],
+        addon_data.castbar.ShowMultiShotCastBarCheckBoxOnClick)
+    panel.show_multishot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -55)
     
+    -- Show Aimed Shot Cast Bar Checkbox
+    panel.show_aimedshot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
+        "HunterShowAimedShotCastBarCheckBox",
+        panel,
+        L["Aimed Shot cast bar"],
+        L["Allows the cast bar to show Aimed Shot casts."],
+        addon_data.castbar.ShowAimedShotCastBarCheckBoxOnClick)
+    panel.show_aimedshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -75)
+
+    -- Show Latency Bar Checkbox
+    panel.show_latency_bar_checkbox = addon_data.config.CheckBoxFactory(
+        "HunterShowLatencyBarCheckBox",
+        panel,
+        L["Latency bar"],
+        L["Shows a bar that represents latency on cast bar."],
+        addon_data.castbar.ShowLatencyBarsCheckBoxOnClick)
+    panel.show_latency_bar_checkbox:SetPoint("TOPLEFT", 10, -95)
+
+    -- Font Size EditBox
+	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
+        "FontSizeEditBox",
+        panel,
+        L["Font Size"],
+        75,
+        25,
+        addon_data.castbar.FontSizeEditBoxOnEnter)
+    panel.fontsize_editbox:SetPoint("TOPLEFT", 180, -50)
+
     -- Width EditBox
     panel.width_editbox = addon_data.config.EditBoxFactory(
         "CastBarWidthEditBox",
@@ -624,7 +665,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.castbar.WidthEditBoxOnEnter)
-    panel.width_editbox:SetPoint("TOPLEFT", 240, -90, "BOTTOMRIGHT", 275, -115)
+    panel.width_editbox:SetPoint("TOPLEFT", 260, -50, "BOTTOMRIGHT", 275, -60)
     -- Height EditBox
     panel.height_editbox = addon_data.config.EditBoxFactory(
         "CastBarHeightEditBox",
@@ -633,16 +674,8 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.castbar.HeightEditBoxOnEnter)
-	panel.height_editbox:SetPoint("TOPLEFT", 320, -90, "BOTTOMRIGHT", 225, -115)
-	-- Font Size EditBox
-	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
-        "FontSizeEditBox",
-        panel,
-        "Font Size",
-        75,
-        25,
-        addon_data.castbar.FontSizeEditBoxOnEnter)
-    panel.fontsize_editbox:SetPoint("TOPLEFT", 160, -90)
+	panel.height_editbox:SetPoint("TOPLEFT", 340, -50, "BOTTOMRIGHT", 225, -60)
+
     -- X Offset EditBox
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
         "CastBarXOffsetEditBox",
@@ -651,7 +684,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.castbar.XOffsetEditBoxOnEnter)
-    panel.x_offset_editbox:SetPoint("TOPLEFT", 200, -140, "BOTTOMRIGHT", 275, -165)
+    panel.x_offset_editbox:SetPoint("TOPLEFT", 220, -95, "BOTTOMRIGHT", 275, -105)
     -- Y Offset EditBox
     panel.y_offset_editbox = addon_data.config.EditBoxFactory(
         "CastBarYOffsetEditBox",
@@ -660,7 +693,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.castbar.YOffsetEditBoxOnEnter)
-    panel.y_offset_editbox:SetPoint("TOPLEFT", 280, -140, "BOTTOMRIGHT", 225, -165)
+    panel.y_offset_editbox:SetPoint("TOPLEFT", 300, -95, "BOTTOMRIGHT", 225, -105)
          
     -- In Combat Alpha Slider
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(
@@ -671,17 +704,17 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         1,
         0.05,
         addon_data.castbar.CombatAlphaOnValChange)
-    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 405, -90)
+    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 425, -50)
     -- -- Out Of Combat Alpha Slider
     -- panel.ooc_alpha_slider = addon_data.config.SliderFactory(
-        -- "CastBarOOCAlphaSlider",
-        -- panel,
-        -- L["Out of Combat Alpha"],
-        -- 0,
-        -- 1,
-        -- 0.05,
-        -- addon_data.castbar.OOCAlphaOnValChange)
-    -- panel.ooc_alpha_slider:SetPoint("TOPLEFT", 405, -140)
+    --     "CastBarOOCAlphaSlider",
+    --     panel,
+    --     L["Out of Combat Alpha"],
+    --     0,
+    --     1,
+    --     0.05,
+    --     addon_data.castbar.OOCAlphaOnValChange)
+    -- panel.ooc_alpha_slider:SetPoint("TOPLEFT", 425, -65)
     -- Backplane Alpha Slider
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
         "CastBarBackplaneAlphaSlider",
@@ -691,34 +724,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         1,
         0.05,
         addon_data.castbar.BackplaneAlphaOnValChange)
-    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 405, -190)
-    
-    -- Show Aimed Shot Cast Bar Checkbox
-    panel.show_aimedshot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
-        "HunterShowAimedShotCastBarCheckBox",
-        panel,
-        L["Aimed Shot cast bar"],
-        L["Allows the cast bar to show Aimed Shot casts."],
-        addon_data.castbar.ShowAimedShotCastBarCheckBoxOnClick)
-    panel.show_aimedshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -110)
-
-    -- Show Multi Shot Cast Bar Checkbox
-    panel.show_multishot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
-        "HunterShowMultiShotCastBarCheckBox",
-        panel,
-        L["Multi-Shot cast bar"],
-        L["Allows the cast bar to show Multi-Shot casts."],
-        addon_data.castbar.ShowMultiShotCastBarCheckBoxOnClick)
-    panel.show_multishot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -45)
-    
-    -- Show Latency Bar Checkbox
-    panel.show_latency_bar_checkbox = addon_data.config.CheckBoxFactory(
-        "HunterShowLatencyBarCheckBox",
-        panel,
-        L["Latency bar"],
-        L["Shows a bar that represents latency on cast bar."],
-        addon_data.castbar.ShowLatencyBarsCheckBoxOnClick)
-    panel.show_latency_bar_checkbox:SetPoint("TOPLEFT", 10, -65)
+    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 425, -100)
     
     -- Return the final panel
     addon_data.castbar.UpdateConfigPanelValues()
