@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "10.2.1"
+local version = "10.2.2"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -679,6 +679,9 @@ function addon_data.core.InitDB()
     local AceDB = LibStub("AceDB-3.0")
 
     addon_data.db = AceDB:New("WSTProfileDB", addon_data.defaults, true)
+    -- added legacy settings check that was per character, for migrating into account wide
+    addon_data.core.CheckLegacySettingsOrWarn()
+    addon_data.core.MigrateLegacyPerCharToProfile()
 
     local function RefreshFromDB()
         character_core_settings    = addon_data.db.profile.core
@@ -700,6 +703,102 @@ function addon_data.core.InitDB()
     addon_data.db:RegisterCallback("OnProfileReset",   RefreshFromDB)
 end
 
+function addon_data.core.CheckLegacySettingsOrWarn()
+    if not addon_data.db then return end
+
+    -- Per-character storage inside AceDB
+    addon_data.db.char = addon_data.db.char or {}
+
+    -- Prevent spam
+    if addon_data.db.char.warnedMissingLegacy then
+        return
+    end
+
+    local function HasLegacySettings()
+        local function hasData(t)
+            return type(t) == "table" and next(t) ~= nil
+        end
+
+        return
+            hasData(_G.character_core_settings) or
+            hasData(_G.character_player_settings) or
+            hasData(_G.character_target_settings) or
+            hasData(_G.character_hunter_settings) or
+            hasData(_G.character_castbar_settings)
+    end
+
+    -- No legacy data found
+    if not HasLegacySettings() then
+        addon_data.db.char.warnedMissingLegacy = true
+
+        addon_data.utils.PrintMsg(
+            "WST could not find your old per-character settings.\n" ..
+            "If you have a .bak file, please restore it:\n" ..
+            "|cffaaaaaaWTF/Account/<AccountName>/<ServerName>/SavedVariables/WeaponSwingTimer.lua.bak|r\n" ..
+            "Create a copy, and rename the .bak file to WeaponSwingTimer.lua\n" ..
+            "Then reload the game to migrate your settings into a profile automatically."
+        )
+    end
+end
+
+function addon_data.core.MigrateLegacyPerCharToProfile()
+    if not addon_data.db then return end
+
+    -- per-character storage inside AceDB
+    addon_data.db.char = addon_data.db.char or {}
+    addon_data.db.char.migratedLegacy = addon_data.db.char.migratedLegacy or {}
+
+    local playerName = UnitName("player")
+    local realmName = GetRealmName()
+    local key = playerName .. " - " .. realmName
+
+    -- already migrated on this character
+    if addon_data.db.char.migratedLegacy[key] then
+        return
+    end
+
+    -- Detect whether legacy data exists
+    local function hasData(t) 
+        return type(t) == "table" and next(t) ~= nil
+    end
+
+    local legacyExists =
+        hasData(_G.character_core_settings) or
+        hasData(_G.character_player_settings) or
+        hasData(_G.character_target_settings) or
+        hasData(_G.character_hunter_settings) or
+        hasData(_G.character_castbar_settings)
+
+    if not legacyExists then
+        return
+    end
+
+    -- Create/use a per-character profile name
+    local profileName = key
+
+    -- Create profile if it doesn't exist
+    local profiles = addon_data.db:GetProfiles()
+    local found = false
+    for _, p in ipairs(profiles) do
+        if p == profileName then found = true break end
+    end
+    if not found then
+        addon_data.db:SetProfile(profileName)
+        addon_data.utils.PrintMsg("WST automatically imported your previous settings and saved under" .. " " .. profileName)
+    else
+        addon_data.db:SetProfile(profileName)
+    end
+
+    addon_data.db.profile.core    = addon_data.utils.DeepCopy(_G.character_core_settings or {}, {})
+    addon_data.db.profile.player  = addon_data.utils.DeepCopy(_G.character_player_settings or {}, {})
+    addon_data.db.profile.target  = addon_data.utils.DeepCopy(_G.character_target_settings or {}, {})
+    addon_data.db.profile.hunter  = addon_data.utils.DeepCopy(_G.character_hunter_settings or {}, {})
+    addon_data.db.profile.castbar = addon_data.utils.DeepCopy(_G.character_castbar_settings or {}, {})
+
+    -- Mark migrated for this character
+    addon_data.db.char.migratedLegacy[key] = true
+
+end
 
 local function OnAddonLoaded(self)
     -- Register events first (OnUpdate registered after visuals are initialized)

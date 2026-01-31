@@ -13,3 +13,16 @@ end
 addon_data.utils.SimpleRound = function(num, step)
     return floor(num / step) * step
 end
+-- used for searching through nested tables
+addon_data.utils.DeepCopy = function(src, dst)
+    if type(src) ~= "table" then return src end
+    dst = dst or {}
+    for k, v in pairs(src) do
+        if type(v) == "table" then
+            dst[k] = DeepCopy(v, {})
+        else
+            dst[k] = v
+        end
+    end
+    return dst
+end
