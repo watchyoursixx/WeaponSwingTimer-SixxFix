@@ -262,46 +262,6 @@ addon_data.config.WelcomeCheckBoxOnClick = function(self)
     addon_data.core.UpdateAllVisualsOnSettingsChange()
 end
 
-StaticPopupDialogs["WST_CONFIRM_DELETE_PROFILE"] = {
-    text = L["Delete active profile? This cannot be undone."],
-    button1 = YES,
-    button2 = NO,
-    OnAccept = function(self, profileName)
-        if not addon_data or not addon_data.db or not profileName then return end
-        if profileName == "Default" then return end
-
-        -- Must switch away before deleting (AceDB requirement)
-        addon_data.db:SetProfile("Default")
-        addon_data.db:DeleteProfile(profileName)
-
-        -- Refresh bindings/UI
-        if addon_data.core and addon_data.core.RefreshFromDB then
-            addon_data.core.RefreshFromDB()
-        end
-    end,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-}
-
-StaticPopupDialogs["WST_CONFIRM_RESET_PROFILE"] = {
-    text = L["Reset profile to defaults?"],
-    button1 = YES,
-    button2 = NO,
-    OnAccept = function(self, profileName)
-        if not addon_data or not addon_data.db then return end
-        addon_data.db:ResetProfile()
-        if addon_data.core and addon_data.core.RefreshFromDB then
-            addon_data.core.RefreshFromDB()
-        end
-    end,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-}
-
 addon_data.config.CreateConfigPanel = function(parent_panel)
     addon_data.config.config_frame = CreateFrame("Frame", addon_name .. "GlobalConfigPanel", parent_panel)
     local panel = addon_data.config.config_frame
@@ -449,6 +409,47 @@ addon_data.config.CreateProfilesPanel = function(parent)
     end
     UIDropDownMenu_Initialize(panel.copy_from_dropdown, InitializeCopyFrom)
 
+    StaticPopupDialogs["WST_CONFIRM_DELETE_PROFILE"] = {
+        text = L["Delete active profile? This cannot be undone."],
+        button1 = YES,
+        button2 = NO,
+        OnAccept = function(self, profileName)
+            if not addon_data or not addon_data.db or not profileName then return end
+            if profileName == "Default" then return end
+
+            -- Must switch away before deleting (AceDB requirement)
+            addon_data.db:SetProfile("Default")
+            addon_data.db:DeleteProfile(profileName)
+
+            -- Refresh bindings/UI
+            if addon_data.core and addon_data.core.RefreshFromDB then
+                addon_data.core.RefreshFromDB()
+            end
+            UIDropDownMenu_SetText(panel.profile_dropdown, addon_data.db:GetCurrentProfile())
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+
+    StaticPopupDialogs["WST_CONFIRM_RESET_PROFILE"] = {
+        text = L["Reset profile to defaults?"],
+        button1 = YES,
+        button2 = NO,
+        OnAccept = function(self, profileName)
+            if not addon_data or not addon_data.db then return end
+            addon_data.db:ResetProfile()
+            if addon_data.core and addon_data.core.RefreshFromDB then
+                addon_data.core.RefreshFromDB()
+            end
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+
     -- Reset profile button
     panel.reset_btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     panel.reset_btn:SetSize(150, 22)
@@ -457,7 +458,6 @@ addon_data.config.CreateProfilesPanel = function(parent)
     panel.reset_btn:SetScript("OnClick", function()
         StaticPopup_Show("WST_CONFIRM_RESET_PROFILE", addon_data.db:GetCurrentProfile(), nil, addon_data.db:GetCurrentProfile())
 
-        addon_data.db:ResetProfile()
         RefreshAllAfterProfileChange()
     end)
 
@@ -469,17 +469,13 @@ addon_data.config.CreateProfilesPanel = function(parent)
         local current = addon_data.db:GetCurrentProfile()
         if current == "Default" then return end
         StaticPopup_Show("WST_CONFIRM_DELETE_PROFILE", current, nil, current)
-        -- Switch away first (AceDB requirement)
-        addon_data.db:SetProfile("Default")
 
-        -- Now delete the old profile
-        addon_data.db:DeleteProfile(current)
-
-        -- Refresh UI / bindings
+                -- Refresh UI / bindings
         if addon_data.core.RefreshFromDB then
             addon_data.core.RefreshFromDB()
         end
 
+        RefreshAllAfterProfileChange()
         -- Rebuild dropdowns / labels if you do that
         UIDropDownMenu_SetText(panel.profile_dropdown, addon_data.db:GetCurrentProfile())
     end)
