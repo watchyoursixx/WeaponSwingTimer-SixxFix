@@ -21,6 +21,7 @@ addon_data.castbar.shot_spell_ids = {
     [20903] = {spell_name = L["Aimed Shot"], rank = 5, cast_time = 3, cooldown = 6},
     [20904] = {spell_name = L["Aimed Shot"], rank = 6, cast_time = 3, cooldown = 6},
     [27065] = {spell_name = L["Aimed Shot"], rank = 7, cast_time = 3, cooldown = 6},
+    [34120] = {spell_name = L["Steady Shot"], rank = nil, cast_time = 2, cooldown = nil},
     [5019] = {spell_name = L["Shoot"], rank = nil, cast_time = nil, cooldown = nil}
 }
 --- is spell multi-shot defined by spell_id
@@ -40,6 +41,10 @@ addon_data.castbar.is_spell_aimed_shot = function(spell_id)
     else
             return false
     end
+end
+--- is spell steady shot defined by spell_id
+addon_data.castbar.is_spell_steady_shot = function(spell_id)
+    return (spell_id == 34120)
 end
 --- is spell auto shot defined by spell_id
 addon_data.castbar.is_spell_auto_shot = function(spell_id)
@@ -65,6 +70,7 @@ addon_data.castbar.default_settings = {
     show_cast_text = true,
     show_aimedshot_cast_bar = true,
     show_multishot_cast_bar = true,
+    show_steadyshot_cast_bar = true,
     show_latency_bars = false,
     show_border = false
 }
@@ -123,7 +129,10 @@ addon_data.castbar.StartCastingSpell = function(spell_id)
                     addon_data.castbar.casting = true
             end
 
-			if (not addon_data.castbar.casting_shot) and (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) or (addon_data.castbar.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) then
+			if (not addon_data.castbar.casting_shot) and
+               ((addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar) or
+                (addon_data.castbar.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar) or
+                (addon_data.castbar.is_spell_steady_shot(spell_id) and settings.show_steadyshot_cast_bar)) then
 				addon_data.castbar.cast_start_time = GetTime()
 				addon_data.castbar.casting_shot = true
 				addon_data.castbar.casting_spell_id = spell_id
@@ -219,7 +228,9 @@ addon_data.castbar.OnCombatLogUnfiltered = function(combat_info)
 		if event == "SPELL_CAST_START" then
 		  
 				addon_data.hunter.FeignStatus = false
-				if addon_data.castbar.is_spell_multi_shot(spellID) or addon_data.castbar.is_spell_aimed_shot(spellID) then
+				if addon_data.castbar.is_spell_multi_shot(spellID) or
+                   addon_data.castbar.is_spell_aimed_shot(spellID) or
+                   addon_data.castbar.is_spell_steady_shot(spellID) then
 					addon_data.castbar.StartCastingSpell(spellID)
 					
 				end
@@ -263,7 +274,8 @@ addon_data.castbar.OnUnitSpellCastSucceeded = function(unit, spell_id)
 			-- only show green bar overlay if setting is enabled
 			local spell_aimed_enabled = (addon_data.castbar.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar)
 			local spell_multi_enabled = (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar)
-			if (spell_aimed_enabled or spell_multi_enabled) then
+			local spell_steady_enabled = (addon_data.castbar.is_spell_steady_shot(spell_id) and settings.show_steadyshot_cast_bar)
+			if (spell_aimed_enabled or spell_multi_enabled or spell_steady_enabled) then
 				addon_data.castbar.frame.spell_bar:SetVertexColor(0, 0.5, 0, 1)
 				addon_data.castbar.frame.spell_bar:SetWidth(character_castbar_settings.width)
 				addon_data.castbar.frame.spell_bar_text:SetText("0.0")
@@ -278,7 +290,9 @@ addon_data.castbar.OnUnitSpellCastFailed = function(unit, spell_id)
     local settings = character_castbar_settings
     local frame = addon_data.castbar.frame
 	-- only care about if multi fails to cast, so ignore others
-    if unit == 'player' and (addon_data.castbar.is_spell_multi_shot(spell_id) or addon_data.castbar.is_spell_aimed_shot(spell_id)) then
+    if unit == 'player' and (addon_data.castbar.is_spell_multi_shot(spell_id) or
+                             addon_data.castbar.is_spell_aimed_shot(spell_id) or
+                             addon_data.castbar.is_spell_steady_shot(spell_id)) then
 
         addon_data.castbar.last_failed_time = GetTime()
         addon_data.castbar.casting = false
@@ -288,11 +302,12 @@ addon_data.castbar.OnUnitSpellCastFailed = function(unit, spell_id)
 		
         local spell_aimed_enabled = (addon_data.castbar.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar)
 		local spell_multi_enabled = (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar)
-        if (addon_data.castbar.casting_spell_id > 0) and (spell_aimed_enabled or spell_multi_enabled) then
+		local spell_steady_enabled = (addon_data.castbar.is_spell_steady_shot(spell_id) and settings.show_steadyshot_cast_bar)
+        if (addon_data.castbar.casting_spell_id > 0) and (spell_aimed_enabled or spell_multi_enabled or spell_steady_enabled) then
 		
             addon_data.castbar.casting_shot = false
             addon_data.castbar.casting_spell_id = 0
-			if spell_aimed_enabled or spell_multi_enabled then
+			if spell_aimed_enabled or spell_multi_enabled or spell_steady_enabled then
 				addon_data.castbar.frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
 				if character_castbar_settings.show_text then
 					frame.spell_text_center:SetText(L["Failed"])
@@ -306,7 +321,9 @@ end
 addon_data.castbar.OnUnitSpellCastInterrupted = function(unit, spell_id)
     local settings = character_castbar_settings
 	local frame = addon_data.castbar.frame
-	if unit == 'player' and (addon_data.castbar.is_spell_multi_shot(spell_id) or addon_data.castbar.is_spell_aimed_shot(spell_id)) then
+	if unit == 'player' and (addon_data.castbar.is_spell_multi_shot(spell_id) or
+                             addon_data.castbar.is_spell_aimed_shot(spell_id) or
+                             addon_data.castbar.is_spell_steady_shot(spell_id)) then
 	
         addon_data.castbar.casting = false
 		addon_data.castbar.pushbackValue = 1
@@ -315,11 +332,12 @@ addon_data.castbar.OnUnitSpellCastInterrupted = function(unit, spell_id)
 		
 		local spell_aimed_enabled = (addon_data.castbar.is_spell_aimed_shot(spell_id) and settings.show_aimedshot_cast_bar)
 		local spell_multi_enabled = (addon_data.castbar.is_spell_multi_shot(spell_id) and settings.show_multishot_cast_bar)
-        if (addon_data.castbar.casting_spell_id > 0) and (spell_aimed_enabled or spell_multi_enabled) then
+		local spell_steady_enabled = (addon_data.castbar.is_spell_steady_shot(spell_id) and settings.show_steadyshot_cast_bar)
+        if (addon_data.castbar.casting_spell_id > 0) and (spell_aimed_enabled or spell_multi_enabled or spell_steady_enabled) then
             addon_data.castbar.casting_shot = false
             addon_data.castbar.casting_spell_id = 0
 			
-			if spell_aimed_enabled or spell_multi_enabled then
+			if spell_aimed_enabled or spell_multi_enabled or spell_steady_enabled then
 				frame.spell_bar:SetVertexColor(0.7, 0, 0, 1)
 				if settings.show_text then
 					frame.spell_text_center:SetText(L["Interrupted"])
@@ -390,7 +408,7 @@ addon_data.castbar.UpdateVisualsOnSettingsChange = function()
     local settings = character_castbar_settings
     local frame = addon_data.castbar.frame
 	local _, class, _ = UnitClass("player")
-	if (settings.show_multishot_cast_bar or settings.show_aimedshot_cast_bar) and (class == "HUNTER") then
+	if (settings.show_multishot_cast_bar or settings.show_aimedshot_cast_bar or settings.show_steadyshot_cast_bar) and (class == "HUNTER") then
         frame:EnableMouse(not settings.is_locked)
         frame:Show()
         frame:ClearAllPoints()
@@ -520,6 +538,7 @@ addon_data.castbar.UpdateConfigPanelValues = function()
     local settings = character_castbar_settings
     panel.show_aimedshot_cast_bar_checkbox:SetChecked(settings.show_aimedshot_cast_bar)
     panel.show_multishot_cast_bar_checkbox:SetChecked(settings.show_multishot_cast_bar)
+    panel.show_steadyshot_cast_bar_checkbox:SetChecked(settings.show_steadyshot_cast_bar)
     panel.show_latency_bar_checkbox:SetChecked(settings.show_latency_bars)
     panel.show_casttext_checkbox:SetChecked(settings.show_cast_text)
     panel.width_editbox:SetText(tostring(settings.width))
@@ -548,6 +567,11 @@ end
 
 addon_data.castbar.ShowMultiShotCastBarCheckBoxOnClick = function(self)
     character_castbar_settings.show_multishot_cast_bar = self:GetChecked()
+    addon_data.castbar.UpdateVisualsOnSettingsChange()
+end
+
+addon_data.castbar.ShowSteadyShotCastBarCheckBoxOnClick = function(self)
+    character_castbar_settings.show_steadyshot_cast_bar = self:GetChecked()
     addon_data.castbar.UpdateVisualsOnSettingsChange()
 end
 
@@ -620,7 +644,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         addon_data.castbar.ShowCastTextCheckBoxOnClick)
     panel.show_casttext_checkbox:SetPoint("TOPLEFT", 10, -35)
 
-        -- Show Multi Shot Cast Bar Checkbox
+    -- Show Multi Shot Cast Bar Checkbox
     panel.show_multishot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowMultiShotCastBarCheckBox",
         panel,
@@ -638,6 +662,15 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         addon_data.castbar.ShowAimedShotCastBarCheckBoxOnClick)
     panel.show_aimedshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -75)
 
+    -- Show Steady Shot Cast Bar Checkbox
+    panel.show_steadyshot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
+        "HunterShowSteadyShotCastBarCheckBox",
+        panel,
+        L["Steady Shot cast bar"],
+        L["Allows the cast bar to show Steady Shot casts."],
+        addon_data.castbar.ShowSteadyShotCastBarCheckBoxOnClick)
+    panel.show_steadyshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -95)
+
     -- Show Latency Bar Checkbox
     panel.show_latency_bar_checkbox = addon_data.config.CheckBoxFactory(
         "HunterShowLatencyBarCheckBox",
@@ -645,7 +678,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         L["Latency bar"],
         L["Shows a bar that represents latency on cast bar."],
         addon_data.castbar.ShowLatencyBarsCheckBoxOnClick)
-    panel.show_latency_bar_checkbox:SetPoint("TOPLEFT", 10, -95)
+    panel.show_latency_bar_checkbox:SetPoint("TOPLEFT", 10, -115)
 
     -- Font Size EditBox
 	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
