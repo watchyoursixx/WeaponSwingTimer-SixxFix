@@ -109,6 +109,7 @@ local L = addon_data.localization_table
 	L["Trueshot Aura"] = "Trueshot Aura"
 	L["Multi-Shot"]="Multi-Shot"
 	L["Aimed Shot"]="Aimed Shot"
+	L["Steady Shot"]="Steady Shot"
 	L["Shoot"]="Shoot"
 	L["Quick Shots"]="Quick Shots"
 	L["Rapid Shot"]="Rapid Shot"
