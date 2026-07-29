@@ -26,7 +26,7 @@ addon_data.config.InitializeVisuals = function()
     panel.name = "WeaponSwingTimer"
     panel.default = addon_data.config.OnDefault
     local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-    category.ID = panel.name
+    addon_data.config.category = category
     Settings.RegisterAddOnCategory(category)
     
     -- Add the melee panel
