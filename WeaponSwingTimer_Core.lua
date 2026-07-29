@@ -884,8 +884,8 @@ SLASH_WEAPONSWINGTIMER_CONFIG1 = "/WeaponSwingTimer"
 SLASH_WEAPONSWINGTIMER_CONFIG2 = "/weaponswingtimer"
 SLASH_WEAPONSWINGTIMER_CONFIG3 = "/wst"
 SlashCmdList["WEAPONSWINGTIMER_CONFIG"] = function(option)
-    if Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory("WeaponSwingTimer")
+    if Settings and Settings.OpenToCategory and addon_data.config.category then
+        Settings.OpenToCategory(addon_data.config.category:GetID())
     elseif InterfaceOptionsFrame_OpenToCategory then
         -- Fallback for older clients (called twice to work around a known bug)
         InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
