@@ -20,7 +20,7 @@ addon_data.utils.DeepCopy = function(src, dst)
     dst = dst or {}
     for k, v in pairs(src) do
         if type(v) == "table" then
-            dst[k] = DeepCopy(v, {})
+            dst[k] = addon_data.utils.DeepCopy(v, {})
         else
             dst[k] = v
         end
