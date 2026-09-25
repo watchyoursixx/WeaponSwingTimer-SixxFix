@@ -3,6 +3,12 @@ local L = addon_data.localization_table
 
 addon_data.player = {}
 
+-- WoW Forever / 12.x: protected unit stats may be returned as secret values.
+-- Secret values cannot be compared, stringified, or used in arithmetic by addon code.
+local function WST_IsSecret(value)
+    return issecretvalue and issecretvalue(value)
+end
+
 --[[============================================================================================]]--
 --[[===================================== SETTINGS RELATED =====================================]]--
 --[[============================================================================================]]--
@@ -69,36 +75,68 @@ end
 --[[============================================================================================]]--
 --[[====================================== LOGIC RELATED =======================================]]--
 --[[============================================================================================]]--
+
+-- WoW Forever native player swing timing.
+-- PLAYER_SWING supplies the actual duration of the new swing.
+addon_data.player.OnPlayerSwing = function(duration, swing_type)
+    if not duration or WST_IsSecret(duration) or duration <= 0 then
+        return
+    end
+
+    if not Enum or not Enum.PlayerSwingType then
+        return
+    end
+
+    if swing_type == Enum.PlayerSwingType.MainHand then
+        addon_data.player.prev_main_weapon_speed = addon_data.player.main_weapon_speed
+        addon_data.player.main_weapon_speed = duration
+        addon_data.player.main_swing_timer = duration
+        addon_data.player.main_speed_changed = false
+
+    elseif swing_type == Enum.PlayerSwingType.OffHand then
+        addon_data.player.prev_off_weapon_speed = addon_data.player.off_weapon_speed
+        addon_data.player.off_weapon_speed = duration
+        addon_data.player.off_swing_timer = duration
+        addon_data.player.has_offhand = true
+        addon_data.player.off_speed_changed = false
+    end
+end
+
 addon_data.player.OnUpdate = function(elapsed)
     if character_player_settings.enabled then
-        -- Update the weapon speed
-        addon_data.player.UpdateMainWeaponSpeed()
-        addon_data.player.UpdateOffWeaponSpeed()
-        -- FIXME: Temp fix until I can nail down the divide by zero error
-        if addon_data.player.main_weapon_speed == 0 then
-            addon_data.player.main_weapon_speed = 2
-        end
-        if addon_data.player.off_weapon_speed == 0 then
-            addon_data.player.off_weapon_speed = 2
-        end
-        	
-        -- If the weapon speed changed for either hand then a buff occured and we need to modify the timers
-        if addon_data.player.main_speed_changed or addon_data.player.off_speed_changed then
-            local main_multiplier = addon_data.player.main_weapon_speed / addon_data.player.prev_main_weapon_speed
-            addon_data.player.main_swing_timer = addon_data.player.main_swing_timer * main_multiplier
-            if addon_data.player.has_offhand then
-				if addon_data.player.prev_off_weapon_speed == 0 then
-					addon_data.player.prev_off_weapon_speed = 2
-				end
-                local off_multiplier = addon_data.player.off_weapon_speed / addon_data.player.prev_off_weapon_speed
-                addon_data.player.off_swing_timer = addon_data.player.off_swing_timer * off_multiplier
+        -- Forever uses PLAYER_SWING. Keep the original speed-polling and
+        -- haste reconstruction only as a compatibility fallback.
+        if not addon_data.core.native_swing_available then
+            addon_data.player.UpdateMainWeaponSpeed()
+            addon_data.player.UpdateOffWeaponSpeed()
+
+            if addon_data.player.main_weapon_speed == 0 then
+                addon_data.player.main_weapon_speed = 2
+            end
+            if addon_data.player.off_weapon_speed == 0 then
+                addon_data.player.off_weapon_speed = 2
+            end
+
+            if addon_data.player.main_speed_changed or addon_data.player.off_speed_changed then
+                local main_multiplier =
+                    addon_data.player.main_weapon_speed / addon_data.player.prev_main_weapon_speed
+                addon_data.player.main_swing_timer =
+                    addon_data.player.main_swing_timer * main_multiplier
+
+                if addon_data.player.has_offhand then
+                    if addon_data.player.prev_off_weapon_speed == 0 then
+                        addon_data.player.prev_off_weapon_speed = 2
+                    end
+                    local off_multiplier =
+                        addon_data.player.off_weapon_speed / addon_data.player.prev_off_weapon_speed
+                    addon_data.player.off_swing_timer =
+                        addon_data.player.off_swing_timer * off_multiplier
+                end
             end
         end
-        -- Update the main hand swing timer
+
         addon_data.player.UpdateMainSwingTimer(elapsed)
-        -- Update the off hand swing timer
         addon_data.player.UpdateOffSwingTimer(elapsed)
-        -- Update the visuals
         addon_data.player.UpdateVisualsOnUpdate()
     end
 end
@@ -141,9 +179,6 @@ addon_data.player.OnCombatLogUnfiltered = function(combat_info)
         elseif (event == "SWING_MISSED") then
             local miss_type, is_offhand = select(12, unpack(combat_info))
             addon_data.core.MissHandler("player", miss_type, is_offhand)
-        elseif (event == "SPELL_DAMAGE") or (event == "SPELL_MISSED") then
-            local _, _, _, _, _, _, spell_id = GetSpellInfo(spell_name)
-            addon_data.core.SpellHandler("player", spell_id)
         end
     end
     
@@ -189,36 +224,46 @@ addon_data.player.UpdateOffSwingTimer = function(elapsed)
 end
 
 addon_data.player.UpdateMainWeaponSpeed = function()
-    addon_data.player.prev_main_weapon_speed = addon_data.player.main_weapon_speed
-    addon_data.player.main_weapon_speed, _ = UnitAttackSpeed("player")
-    if addon_data.player.main_weapon_speed ~= addon_data.player.prev_main_weapon_speed then
-        addon_data.player.main_speed_changed = true
-    else
+    local new_main_speed = UnitAttackSpeed("player")
+
+    if WST_IsSecret(new_main_speed) then
         addon_data.player.main_speed_changed = false
+        return
     end
+
+    if not new_main_speed or new_main_speed == 0 then
+        new_main_speed = addon_data.player.main_weapon_speed or 2
+    end
+
+    addon_data.player.prev_main_weapon_speed = addon_data.player.main_weapon_speed or new_main_speed
+    addon_data.player.main_weapon_speed = new_main_speed
+    addon_data.player.main_speed_changed =
+        addon_data.player.main_weapon_speed ~= addon_data.player.prev_main_weapon_speed
 end
 
 addon_data.player.UpdateOffWeaponSpeed = function()
-	if addon_data.player.off_weapon_speed == nil then
-		addon_data.player.prev_off_weapon_speed = 2
-	else
-		addon_data.player.prev_off_weapon_speed = addon_data.player.off_weapon_speed
-	end
-    _, addon_data.player.off_weapon_speed = UnitAttackSpeed("player")
-    -- Check to see if we have an off-hand
-    if (not addon_data.player.off_weapon_speed) or (addon_data.player.off_weapon_speed == 0) then
-        addon_data.player.has_offhand = false
-    else
-        addon_data.player.has_offhand = true
-    end
-    if addon_data.player.off_weapon_speed ~= addon_data.player.prev_off_weapon_speed then
-        addon_data.player.off_speed_changed = true
-    else
+    local _, new_off_speed = UnitAttackSpeed("player")
+
+    if WST_IsSecret(new_off_speed) then
         addon_data.player.off_speed_changed = false
+        return
     end
+
+    addon_data.player.prev_off_weapon_speed = addon_data.player.off_weapon_speed or 2
+    addon_data.player.off_weapon_speed = new_off_speed
+
+    if not new_off_speed or new_off_speed == 0 then
+        addon_data.player.has_offhand = false
+        addon_data.player.off_speed_changed = false
+        return
+    end
+
+    addon_data.player.has_offhand = true
+    addon_data.player.off_speed_changed =
+        addon_data.player.off_weapon_speed ~= addon_data.player.prev_off_weapon_speed
 end
 
---[[============================================================================================]]--
+--[[ ============================================================================================]]--
 --[[===================================== VISUALS RELATED ======================================]]--
 --[[============================================================================================]]--
 addon_data.player.UpdateVisualsOnUpdate = function()

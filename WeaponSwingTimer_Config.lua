@@ -26,8 +26,8 @@ addon_data.config.InitializeVisuals = function()
     panel.name = "WeaponSwingTimer"
     panel.default = addon_data.config.OnDefault
     local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-    category.ID = panel.name
     Settings.RegisterAddOnCategory(category)
+    addon_data.config.settingsCategoryID = category:GetID()
     
     -- Add the melee panel
     panel.config_melee_panel = CreateFrame("Frame", nil, panel)
@@ -65,6 +65,25 @@ addon_data.config.InitializeVisuals = function()
     panel.config_hunter_panel.parent = panel.name
     panel.config_hunter_panel.default = addon_data.config.OnDefault
     Settings.RegisterCanvasLayoutSubcategory(category, panel.config_hunter_panel, panel.config_hunter_panel.name)
+
+    -- Add the range finder panel
+    panel.config_range_panel = CreateFrame("Frame", nil, panel)
+    panel.config_range_panel:SetSize(620, 390)
+
+    panel.config_range_panel.range_panel =
+        addon_data.range.CreateConfigPanel(panel.config_range_panel)
+    panel.config_range_panel.range_panel:SetPoint("TOPLEFT", 0, 0)
+    panel.config_range_panel.range_panel:SetSize(620, 350)
+
+    panel.config_range_panel.name = L["Range Check Settings"]
+    panel.config_range_panel.parent = panel.name
+    panel.config_range_panel.default = addon_data.config.OnDefault
+
+    Settings.RegisterCanvasLayoutSubcategory(
+        category,
+        panel.config_range_panel,
+        panel.config_range_panel.name
+    )
 
     -- Add the profiles panel
     panel.config_profiles_panel = CreateFrame("Frame", nil, panel)
@@ -203,9 +222,27 @@ addon_data.config.ShowColorPicker = function(settings, name, foreground_texture,
     local start_b = settings[name .. "_b"]
     local start_a = settings[name .. "_a"]
 
+    local function GetCurrentAlpha()
+        if ColorPickerFrame.GetColorAlpha then
+            local ok, alpha = pcall(
+                ColorPickerFrame.GetColorAlpha,
+                ColorPickerFrame
+            )
+            if ok and alpha ~= nil then
+                return alpha
+            end
+        end
+
+        if ColorPickerFrame.opacity ~= nil then
+            return 1 - ColorPickerFrame.opacity
+        end
+
+        return start_a or 1
+    end
+
     local function Apply()
         local new_r, new_g, new_b = ColorPickerFrame:GetColorRGB()
-        local new_a = 1 - OpacitySliderFrame:GetValue()
+        local new_a = GetCurrentAlpha()
 
         settings[name .. "_r"] = new_r
         settings[name .. "_g"] = new_g
@@ -221,7 +258,7 @@ addon_data.config.ShowColorPicker = function(settings, name, foreground_texture,
         g = start_g,
         b = start_b,
         hasOpacity = true,
-        opacity = 1 - start_a,
+        opacity = 1 - (start_a or 1),
         swatchFunc = Apply,
         opacityFunc = Apply,
         cancelFunc = function()
@@ -249,10 +286,12 @@ addon_data.config.IsLockedCheckBoxOnClick = function(self)
     character_player_settings.is_locked = self:GetChecked()
     character_target_settings.is_locked = self:GetChecked()
     character_hunter_settings.is_locked = self:GetChecked()
+    character_range_settings.is_locked = self:GetChecked()
     character_castbar_settings.is_locked = self:GetChecked()
     addon_data.player.frame:EnableMouse(not character_target_settings.is_locked)
     addon_data.target.frame:EnableMouse(not character_target_settings.is_locked)
     addon_data.hunter.frame:EnableMouse(not character_target_settings.is_locked)
+    addon_data.range.frame:EnableMouse(not character_target_settings.is_locked)
     addon_data.castbar.frame:EnableMouse(not character_target_settings.is_locked)
     addon_data.core.UpdateAllVisualsOnSettingsChange()
 end

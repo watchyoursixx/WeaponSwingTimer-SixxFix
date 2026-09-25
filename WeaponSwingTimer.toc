@@ -1,4 +1,4 @@
-## Interface: 11508
+## Interface: 16001
 ## Title-deDE: WeaponSwingTimer (Deutsch)
 ## Title-enUS: WeaponSwingTimer (English)
 ## Title-esES: WeaponSwingTimer (Español)
@@ -22,7 +22,7 @@
 ## Notes-zhCN: 跟踪近战武器的挥动时间猎人自动射击和魔杖射击。
 ## Notes-zhTW: 跟踪近戰武器的揮動時間獵人自動射擊和魔杖射擊。
 ## Author: LeftHandGlove, WatchYourSixx
-## Version: 7.5.2
+## Version: 1.60.1
 ## DefaultState: enabled
 ## OptionalDeps: ColorPickerPlus, Ace3
 ## SavedVariables: WSTProfileDB
@@ -40,5 +40,6 @@ WeaponSwingTimer_Player.lua
 WeaponSwingTimer_Target.lua
 WeaponSwingTimer_Castbar.lua
 WeaponSwingTimer_Hunter.lua
+WeaponSwingTimer_Range.lua
 WeaponSwingTimer_Config.lua
 WeaponSwingTimer_Core.lua

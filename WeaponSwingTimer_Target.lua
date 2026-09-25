@@ -3,6 +3,12 @@ local L = addon_data.localization_table
 
 addon_data.target = {}
 
+-- WoW Forever / 12.x: protected unit stats may be returned as secret values.
+-- Secret values cannot be compared, stringified, or used in arithmetic by addon code.
+local function WST_IsSecret(value)
+    return issecretvalue and issecretvalue(value)
+end
+
 --[[============================================================================================]]--
 --[[===================================== SETTINGS RELATED =====================================]]--
 --[[============================================================================================]]--
@@ -48,6 +54,16 @@ addon_data.target.off_weapon_id = GetInventoryItemID("target", 17)
 addon_data.target.has_offhand = false
 addon_data.target.off_speed_changed = false
 
+-- WoW Forever / 12.x: CLEU is unavailable, so target swings can only be
+-- estimated from UNIT_COMBAT results received by the player. Once two
+-- qualifying target-on-player results are observed, the most recent interval
+-- becomes the predicted target swing duration.
+addon_data.target.estimated_mode = false
+addon_data.target.estimated_last_swing_time = nil
+addon_data.target.estimated_last_interval = nil
+addon_data.target.estimated_min_interval = 0.50
+addon_data.target.estimated_max_interval = 5.00
+
 addon_data.target.LoadSettings = function()
 
     character_target_settings = addon_data.db.profile.target
@@ -63,11 +79,98 @@ end
 --[[====================================== LOGIC RELATED =======================================]]--
 --[[============================================================================================]]--
 addon_data.target.OnPlayerTargetChanged = function()
+    addon_data.target.estimated_mode = false
+    addon_data.target.estimated_last_swing_time = nil
+    addon_data.target.estimated_last_interval = nil
+
     if UnitExists("target") then
-        addon_data.target.class = UnitClass("target")[2]
+        -- Target class is not used anywhere by WeaponSwingTimer. In current
+        -- protected/instance content UnitClass can return secret values, so
+        -- avoid touching it entirely.
+        addon_data.target.class = nil
         addon_data.target.guid = UnitGUID("target")
         addon_data.target.ZeroizeSwingTimers()
+    else
+        addon_data.target.class = nil
+        addon_data.target.guid = nil
+        addon_data.target.ZeroizeSwingTimers()
     end
+end
+
+-- Estimate the current target's swing cadence from UNIT_COMBAT results on the
+-- player. UNIT_COMBAT does not expose the damage source, so only accept a
+-- sample while the current target is actually targeting the player.
+--
+-- First qualifying result: establishes an anchor.
+-- Second/later result: interval since the previous result becomes the new
+-- predicted swing duration, and the target bar is restarted with that value.
+addon_data.target.OnEstimatedPlayerCombatResult = function(action)
+    if not character_target_settings or not character_target_settings.enabled then
+        return
+    end
+
+    if not UnitExists("target") then
+        return
+    end
+
+    -- In restricted instance content, UnitCanAttack/UnitIsUnit may return secret
+    -- booleans. Secret booleans cannot be used in Lua conditionals. When the
+    -- result is accessible, keep the normal validation. When it is secret,
+    -- fall back to the estimator rather than erroring/disabling the target bar.
+    local can_attack = UnitCanAttack("player", "target")
+    if not WST_IsSecret(can_attack) and not can_attack then
+        return
+    end
+
+    if not UnitExists("targettarget") then
+        return
+    end
+
+    local target_targets_player = UnitIsUnit("targettarget", "player")
+    if not WST_IsSecret(target_targets_player) and not target_targets_player then
+        return
+    end
+
+    -- These are the melee-like outcomes we have observed from UNIT_COMBAT.
+    if action ~= "WOUND" and action ~= "DODGE" and action ~= "PARRY" and action ~= "MISS" then
+        return
+    end
+
+    local now = GetTime()
+    local previous = addon_data.target.estimated_last_swing_time
+
+    addon_data.target.estimated_mode = true
+    addon_data.target.has_offhand = false
+
+    -- Every qualifying incoming combat result resets the visible target timer.
+    -- We still use plausible hit-to-hit intervals to improve the estimated
+    -- duration, but short/long samples no longer leave the bar sitting at zero.
+    if not previous then
+        addon_data.target.estimated_last_swing_time = now
+        addon_data.target.main_swing_timer = addon_data.target.estimated_last_interval
+            or addon_data.target.main_weapon_speed
+            or 2
+        return
+    end
+
+    local interval = now - previous
+    addon_data.target.estimated_last_swing_time = now
+
+    if interval >= addon_data.target.estimated_min_interval and interval <= addon_data.target.estimated_max_interval then
+        addon_data.target.estimated_last_interval = interval
+        addon_data.target.prev_main_weapon_speed = addon_data.target.main_weapon_speed or interval
+        addon_data.target.main_weapon_speed = interval
+        addon_data.target.main_speed_changed = false
+    end
+
+    -- Always restart the bar on the incoming result. If this sample is
+    -- implausible (for example another mob hit almost immediately), keep the
+    -- last valid estimated duration instead of poisoning the estimate.
+    local reset_duration = addon_data.target.estimated_last_interval
+        or addon_data.target.main_weapon_speed
+        or 2
+    addon_data.target.main_swing_timer = reset_duration
+
 end
 
 addon_data.target.OnInventoryChange = function()
@@ -89,9 +192,13 @@ end
 
 addon_data.target.OnUpdate = function(elapsed)
     if character_target_settings.enabled and UnitExists("target") then
-        -- Update the weapon speed
-        addon_data.target.UpdateMainWeaponSpeed()
-        addon_data.target.UpdateOffWeaponSpeed()
+        -- Once UNIT_COMBAT estimation is active, its observed interval is the
+        -- authoritative duration for this estimated bar. Do not overwrite it
+        -- with protected/secret target unit stats.
+        if not addon_data.target.estimated_mode then
+            addon_data.target.UpdateMainWeaponSpeed()
+            addon_data.target.UpdateOffWeaponSpeed()
+        end
         -- FIXME: Temp fix until I can nail down the divide by zero error
         if addon_data.target.main_weapon_speed == 0 then
             addon_data.target.main_weapon_speed = 2
@@ -100,7 +207,7 @@ addon_data.target.OnUpdate = function(elapsed)
             addon_data.target.off_weapon_speed = 2
         end
         -- If the weapon speed changed for either hand then a buff occured and we need to modify the timers
-        if addon_data.target.main_speed_changed or addon_data.target.off_speed_changed then
+        if not addon_data.target.estimated_mode and (addon_data.target.main_speed_changed or addon_data.target.off_speed_changed) then
             local main_multiplier = addon_data.target.main_weapon_speed / addon_data.target.prev_main_weapon_speed
             addon_data.target.main_swing_timer = addon_data.target.main_swing_timer * main_multiplier
             if addon_data.target.has_offhand then
@@ -185,47 +292,51 @@ end
 
 addon_data.target.UpdateMainWeaponSpeed = function()
     if UnitExists("target") then
-        -- Handle the nil when first selecting target
-        if addon_data.target.main_weapon_speed then
-            addon_data.target.prev_main_weapon_speed = addon_data.target.main_weapon_speed
-        else
-            addon_data.target.prev_main_weapon_speed, _ = UnitAttackSpeed("target")
-        end
-        -- Update the weapon speed
-        addon_data.target.main_weapon_speed, _ = UnitAttackSpeed("target")
-        if addon_data.target.main_weapon_speed ~= addon_data.target.prev_main_weapon_speed then
-            addon_data.target.main_speed_changed = true
-        else
+        local new_main_speed = UnitAttackSpeed("target")
+
+        if WST_IsSecret(new_main_speed) then
             addon_data.target.main_speed_changed = false
+            return
         end
+
+        if not new_main_speed or new_main_speed == 0 then
+            addon_data.target.main_speed_changed = false
+            return
+        end
+
+        addon_data.target.prev_main_weapon_speed =
+            addon_data.target.main_weapon_speed or new_main_speed
+        addon_data.target.main_weapon_speed = new_main_speed
+        addon_data.target.main_speed_changed =
+            addon_data.target.main_weapon_speed ~= addon_data.target.prev_main_weapon_speed
     end
 end
 
 addon_data.target.UpdateOffWeaponSpeed = function()
     if UnitExists("target") then
-        -- Handle the nil when first selecting target
-        if addon_data.target.off_weapon_speed then
-            addon_data.target.prev_off_weapon_speed = addon_data.target.off_weapon_speed
-        else
-            _, addon_data.target.prev_off_weapon_speed = UnitAttackSpeed("target")
-        end
-        -- Update the weapon speed
-        _, addon_data.target.off_weapon_speed = UnitAttackSpeed("target")
-        -- Check to see if we have an off-hand
-        if (not addon_data.target.off_weapon_speed) or (addon_data.target.off_weapon_speed == 0) then
-            addon_data.target.has_offhand = false
-        else
-            addon_data.target.has_offhand = true
-        end
-        if addon_data.target.off_weapon_speed ~= addon_data.target.prev_off_weapon_speed then
-            addon_data.target.off_speed_changed = true
-        else
+        local _, new_off_speed = UnitAttackSpeed("target")
+
+        if WST_IsSecret(new_off_speed) then
             addon_data.target.off_speed_changed = false
+            return
         end
+
+        addon_data.target.prev_off_weapon_speed = addon_data.target.off_weapon_speed or 2
+        addon_data.target.off_weapon_speed = new_off_speed
+
+        if not new_off_speed or new_off_speed == 0 then
+            addon_data.target.has_offhand = false
+            addon_data.target.off_speed_changed = false
+            return
+        end
+
+        addon_data.target.has_offhand = true
+        addon_data.target.off_speed_changed =
+            addon_data.target.off_weapon_speed ~= addon_data.target.prev_off_weapon_speed
     end
 end
 
---[[============================================================================================]]--
+--[[ ============================================================================================]]--
 --[[===================================== VISUALS RELATED ======================================]]--
 --[[============================================================================================]]--
 addon_data.target.UpdateVisualsOnUpdate = function()
