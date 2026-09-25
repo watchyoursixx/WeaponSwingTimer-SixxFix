@@ -49,24 +49,14 @@ addon_data.target.has_offhand = false
 addon_data.target.off_speed_changed = false
 
 addon_data.target.LoadSettings = function()
-    -- If the carried over settings dont exist then make them
-    if not character_target_settings then
-        character_target_settings = {}
-    end
-    -- If the carried over settings aren't set then set them to the defaults
+
+    character_target_settings = addon_data.db.profile.target
+
     for setting, value in pairs(addon_data.target.default_settings) do
         if character_target_settings[setting] == nil then
             character_target_settings[setting] = value
         end
     end
-end
-
-addon_data.target.RestoreDefaults = function()
-    for setting, value in pairs(addon_data.target.default_settings) do
-        character_target_settings[setting] = value
-    end
-    addon_data.target.UpdateVisualsOnSettingsChange()
-    addon_data.target.UpdateConfigPanelValues()
 end
 
 --[[============================================================================================]]--
@@ -138,8 +128,12 @@ addon_data.target.OnCombatLogUnfiltered = function(combat_info)
                 addon_data.target.ResetMainSwingTimer()
             end
         elseif (event == "SWING_MISSED") then
+            local is_player = false
+            if (dest_guid == addon_data.player.guid) then
+                is_player = true
+            end
             local miss_type, is_offhand = select(12, unpack(combat_info))
-            addon_data.core.MissHandler("target", miss_type, is_offhand)
+            addon_data.core.MissHandler("target", miss_type, is_offhand, is_player)
         elseif (event == "SPELL_DAMAGE") or (event == "SPELL_MISSED") then
             local _, _, _, _, _, _, spell_id = GetSpellInfo(spell_name)
             addon_data.core.SpellHandler("target", spell_id)
@@ -453,12 +447,12 @@ addon_data.target.InitializeVisuals = function()
     -- Create the main hand bar left text
     frame.main_left_text = frame:CreateFontString(nil, "OVERLAY")
     frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.main_left_text:SetJustifyV("CENTER")
+    frame.main_left_text:SetJustifyV("MIDDLE")
     frame.main_left_text:SetJustifyH("LEFT")
     -- Create the main hand bar right text
     frame.main_right_text = frame:CreateFontString(nil, "OVERLAY")
     frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.main_right_text:SetJustifyV("CENTER")
+    frame.main_right_text:SetJustifyV("MIDDLE")
     frame.main_right_text:SetJustifyH("RIGHT")
     -- Create the off hand bar
     frame.off_bar = frame:CreateTexture(nil,"ARTWORK")
@@ -468,12 +462,12 @@ addon_data.target.InitializeVisuals = function()
     -- Create the off hand bar left text
     frame.off_left_text = frame:CreateFontString(nil, "OVERLAY")
     frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.off_left_text:SetJustifyV("CENTER")
+    frame.off_left_text:SetJustifyV("MIDDLE")
     frame.off_left_text:SetJustifyH("LEFT")
     -- Create the off hand bar right text
     frame.off_right_text = frame:CreateFontString(nil, "OVERLAY")
     frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
-    frame.off_right_text:SetJustifyV("CENTER")
+    frame.off_right_text:SetJustifyV("MIDDLE")
     frame.off_right_text:SetJustifyH("RIGHT")
     -- Show it off
     addon_data.target.UpdateVisualsOnSettingsChange()
@@ -582,107 +576,45 @@ addon_data.target.YOffsetEditBoxOnEnter = function(self)
 end
 
 addon_data.target.MainColorPickerOnClick = function()
-    local settings = character_target_settings
-    local function MainOnActionFunc(restore)
-        local settings = character_target_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
-        end
-        settings.main_r, settings.main_g, settings.main_b, settings.main_a = new_r, new_g, new_b, new_a
-        addon_data.target.frame.main_bar:SetVertexColor(
-            settings.main_r, settings.main_g, settings.main_b, settings.main_a)
-        addon_data.target.config_frame.main_color_picker.foreground:SetColorTexture(
-            settings.main_r, settings.main_g, settings.main_b, settings.main_a)
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        MainOnActionFunc, MainOnActionFunc, MainOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.main_a
-    ColorPickerFrame:SetColorRGB(settings.main_r, settings.main_g, settings.main_b)
-    ColorPickerFrame.previousValues = {settings.main_r, settings.main_g, settings.main_b, settings.main_a}
-    ColorPickerFrame:Show()
+    addon_data.config.ShowColorPicker(
+        character_target_settings,
+        "main",
+        addon_data.target.config_frame.main_color_picker.foreground,
+        addon_data.target.UpdateVisualsOnSettingsChange
+    )
 end
 
 addon_data.target.MainTextColorPickerOnClick = function()
-    local settings = character_target_settings
-    local function MainTextOnActionFunc(restore)
-        local settings = character_target_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
+    addon_data.config.ShowColorPicker(
+        character_target_settings,
+        "main_text",
+        addon_data.target.config_frame.main_text_color_picker.foreground,
+        function(r, g, b, a)
+            addon_data.target.frame.main_left_text:SetTextColor(r, g, b, a)
+            addon_data.target.frame.main_right_text:SetTextColor(r, g, b, a)
         end
-        settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a = new_r, new_g, new_b, new_a
-        addon_data.target.frame.main_left_text:SetTextColor(
-            settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-        addon_data.target.frame.main_right_text:SetTextColor(
-            settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-        addon_data.target.config_frame.main_text_color_picker.foreground:SetColorTexture(
-            settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        MainTextOnActionFunc, MainTextOnActionFunc, MainTextOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.main_text_a
-    ColorPickerFrame:SetColorRGB(settings.main_text_r, settings.main_text_g, settings.main_text_b)
-    ColorPickerFrame.previousValues = {settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a}
-    ColorPickerFrame:Show()
+    )
 end
 
 addon_data.target.OffColorPickerOnClick = function()
-    local settings = character_target_settings
-    local function OffOnActionFunc(restore)
-        local settings = character_target_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
-        end
-        settings.off_r, settings.off_g, settings.off_b, settings.off_a = new_r, new_g, new_b, new_a
-        addon_data.target.frame.off_bar:SetVertexColor(
-            settings.off_r, settings.off_g, settings.off_b, settings.off_a)
-        addon_data.target.config_frame.off_color_picker.foreground:SetColorTexture(
-            settings.off_r, settings.off_g, settings.off_b, settings.off_a)
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        OffOnActionFunc, OffOnActionFunc, OffOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.off_a
-    ColorPickerFrame:SetColorRGB(settings.off_r, settings.off_g, settings.off_b)
-    ColorPickerFrame.previousValues = {settings.off_r, settings.off_g, settings.off_b, settings.off_a}
-    ColorPickerFrame:Show()
+    addon_data.config.ShowColorPicker(
+        character_target_settings,
+        "off",
+        addon_data.target.config_frame.off_color_picker.foreground,
+        addon_data.target.UpdateVisualsOnSettingsChange
+    )
 end
 
 addon_data.target.OffTextColorPickerOnClick = function()
-    local settings = character_target_settings
-    local function OffTextOnActionFunc(restore)
-        local settings = character_target_settings
-        local new_r, new_g, new_b, new_a
-        if restore then
-            new_r, new_g, new_b, new_a = unpack(restore)
-        else
-            new_a, new_r, new_g, new_b = 1 - OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
+    addon_data.config.ShowColorPicker(
+        character_target_settings,
+        "off_text",
+        addon_data.target.config_frame.off_text_color_picker.foreground,
+        function(r, g, b, a)
+            addon_data.target.frame.off_left_text:SetTextColor(r, g, b, a)
+            addon_data.target.frame.off_right_text:SetTextColor(r, g, b, a)
         end
-        settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a = new_r, new_g, new_b, new_a
-        addon_data.target.frame.off_left_text:SetTextColor(
-            settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-        addon_data.target.frame.off_right_text:SetTextColor(
-            settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-        addon_data.target.config_frame.off_text_color_picker.foreground:SetColorTexture(
-            settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-    end
-    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
-        OffTextOnActionFunc, OffTextOnActionFunc, OffTextOnActionFunc
-    ColorPickerFrame.hasOpacity = true 
-    ColorPickerFrame.opacity = 1 - settings.off_text_a
-    ColorPickerFrame:SetColorRGB(settings.off_text_r, settings.off_text_g, settings.off_text_b)
-    ColorPickerFrame.previousValues = {settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a}
-    ColorPickerFrame:Show()
+    )
 end
 
 addon_data.target.CombatAlphaOnValChange = function(self)

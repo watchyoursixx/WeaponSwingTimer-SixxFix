@@ -1,7 +1,6 @@
 local addon_name, addon_data = ...
 local L = addon_data.localization_table
 
-
 addon_data.core = {}
 
 addon_data.core.core_frame = CreateFrame("Frame", addon_name .. "CoreFrame", UIParent)
@@ -11,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "7.2.2"
+local version = "7.5.2"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -524,7 +523,7 @@ swing_reset_spells['WARRIOR'] = {
     -- --[[ Thunder Clap ]]
     -- --[[ Whirlwind ]]
 }
-
+-- used to initalize settings first if they don't exist, and assign settings to individual profile db references
 local function LoadAllSettings()
     addon_data.core.LoadSettings()
     addon_data.player.LoadSettings()
@@ -534,18 +533,15 @@ local function LoadAllSettings()
 end
 
 addon_data.core.RestoreAllDefaults = function()
-    addon_data.core.RestoreDefaults()
-    addon_data.player.RestoreDefaults()
-    addon_data.target.RestoreDefaults()
-    addon_data.hunter.RestoreDefaults()
-	addon_data.castbar.RestoreDefaults()
+    addon_data.db:ResetProfile()
+    addon_data.core.UpdateAllVisualsOnSettingsChange()
 end
 
 local function InitializeAllVisuals()
     addon_data.player.InitializeVisuals()
     addon_data.target.InitializeVisuals()
     addon_data.hunter.InitializeVisuals()
-	addon_data.castbar.InitializeVisuals()
+    addon_data.castbar.InitializeVisuals()
     addon_data.config.InitializeVisuals()
 end
 
@@ -555,6 +551,10 @@ addon_data.core.UpdateAllVisualsOnSettingsChange = function()
     addon_data.target.UpdateVisualsOnSettingsChange()
     addon_data.hunter.UpdateVisualsOnSettingsChange()
 	addon_data.castbar.UpdateVisualsOnSettingsChange()
+    addon_data.player.UpdateConfigPanelValues()
+    addon_data.target.UpdateConfigPanelValues()
+    addon_data.hunter.UpdateConfigPanelValues()
+    addon_data.castbar.UpdateConfigPanelValues()
 end
 
 addon_data.core.LoadSettings = function()
@@ -570,12 +570,6 @@ addon_data.core.LoadSettings = function()
     end
 end
 
-addon_data.core.RestoreDefaults = function()
-    for setting, value in pairs(addon_data.core.default_settings) do
-        character_core_settings[setting] = value
-    end
-end
-
 local function CoreFrame_OnUpdate(self, elapsed)
     addon_data.player.OnUpdate(elapsed)
     addon_data.target.OnUpdate(elapsed)
@@ -583,31 +577,56 @@ local function CoreFrame_OnUpdate(self, elapsed)
 	addon_data.castbar.OnUpdate(elapsed)
 end
 
-addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
+addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
     if miss_type == "PARRY" then
         if unit == "player" then
-            min_swing_time = addon_data.target.main_weapon_speed * 0.2
-            if addon_data.target.main_swing_timer > min_swing_time then
-                addon_data.target.main_swing_timer = min_swing_time
+            -- parry haste calculations:
+            -- if swing is below 20%, do nothing.
+            -- if swing is above 20%, reduce by 40% of main_weapon_speed
+            -- if new swing is below 20%, set to 20% (parry cannot reduce swing timer below 20%)
+            local min_swing_time = addon_data.target.main_weapon_speed * 0.2
+
+            if min_swing_time >= addon_data.target.main_swing_timer then
+                -- do nothing
+			else
+                addon_data.target.main_swing_timer = addon_data.target.main_swing_timer - (addon_data.target.main_weapon_speed * 0.4)
+
+                if addon_data.target.main_swing_timer < min_swing_time then
+                    addon_data.target.main_swing_timer = min_swing_time
+                end
             end
             if not is_offhand then
-                if (addon_data.player.extra_attacks_flag == false) then
-			addon_data.player.ResetMainSwingTimer()
-		end
-		addon_data.player.extra_attacks_flag = false
+			-- resets swing timer if it's not an extra attack, attempt to fix random resets mid-swing
+				if (addon_data.player.extra_attacks_flag == false) then
+					addon_data.player.ResetMainSwingTimer()
+				end
+			addon_data.player.extra_attacks_flag = false
             else
                 addon_data.player.ResetOffSwingTimer()
             end
-        elseif unit == "target" then
-            min_swing_time = addon_data.player.main_weapon_speed * 0.2
-            if addon_data.player.main_swing_timer > min_swing_time then
-                addon_data.player.main_swing_timer = min_swing_time
+        elseif unit == "target" and is_player then
+            -- parry haste calculations:
+            -- if swing is below 20%, do nothing.
+            -- if swing is above 20%, reduce by 40% of main_weapon_speed
+            -- if new swing is below 20%, set to 20% (parry cannot reduce swing timer below 20%)
+            local min_swing_time = addon_data.player.main_weapon_speed * 0.2
+
+            if min_swing_time >= addon_data.player.main_swing_timer then
+                -- do nothing
+			else
+                addon_data.player.main_swing_timer = addon_data.player.main_swing_timer - (addon_data.player.main_weapon_speed * 0.4)
+
+                if addon_data.player.main_swing_timer < min_swing_time then
+                    addon_data.player.main_swing_timer = min_swing_time
+                end
             end
             if not is_offhand then
                 addon_data.target.ResetMainSwingTimer()
             else
                 addon_data.target.ResetOffSwingTimer()
             end
+		elseif unit == "target" then
+            -- do nothing
         else
             addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
@@ -627,7 +646,7 @@ addon_data.core.MissHandler = function(unit, miss_type, is_offhand)
             else
                 addon_data.target.ResetOffSwingTimer()
             end 
-        else
+		else
             addon_data.utils.PrintMsg(L["Unexpected Unit Type in MissHandler()."])
         end
     end
@@ -639,6 +658,7 @@ addon_data.core.SpellHandler = function(unit, spell_id)
         if player_class == class then
             for spell_index, curr_spell_id in ipairs(spell_table) do
 				if spell_id == curr_spell_id then
+				
                     if unit == "player" then
                         addon_data.player.ResetMainSwingTimer()
                     elseif unit == "target" then
@@ -653,9 +673,134 @@ addon_data.core.SpellHandler = function(unit, spell_id)
     end
 end
 
+-- loads Ace3 DB for storing profiles and creates a func for updating settings
+function addon_data.core.InitDB()
+    local AceDB = LibStub("AceDB-3.0")
+
+    addon_data.db = AceDB:New("WSTProfileDB", addon_data.defaults, true)
+    -- added legacy settings check that was per character, for migrating into account wide
+    addon_data.core.CheckLegacySettingsOrWarn()
+    addon_data.core.MigrateLegacyPerCharToProfile()
+
+    local function RefreshFromDB()
+        character_core_settings    = addon_data.db.profile.core
+        character_player_settings  = addon_data.db.profile.player
+        character_target_settings  = addon_data.db.profile.target
+        character_hunter_settings  = addon_data.db.profile.hunter
+        character_castbar_settings = addon_data.db.profile.castbar
+
+        if addon_data.core.visuals_initialized then
+            addon_data.core.UpdateAllVisualsOnSettingsChange()
+        end
+    end
+
+    addon_data.core.RefreshFromDB = RefreshFromDB
+    RefreshFromDB()
+    
+    addon_data.db:RegisterCallback("OnProfileChanged", RefreshFromDB)
+    addon_data.db:RegisterCallback("OnProfileCopied",  RefreshFromDB)
+    addon_data.db:RegisterCallback("OnProfileReset",   RefreshFromDB)
+end
+
+function addon_data.core.CheckLegacySettingsOrWarn()
+    if not addon_data.db then return end
+
+    -- Per-character storage inside AceDB
+    addon_data.db.char = addon_data.db.char or {}
+
+    -- Prevent spam
+    if addon_data.db.char.warnedMissingLegacy then
+        return
+    end
+
+    local function HasLegacySettings()
+        local function hasData(t)
+            return type(t) == "table" and next(t) ~= nil
+        end
+
+        return
+            hasData(_G.character_core_settings) or
+            hasData(_G.character_player_settings) or
+            hasData(_G.character_target_settings) or
+            hasData(_G.character_hunter_settings) or
+            hasData(_G.character_castbar_settings)
+    end
+
+    -- No legacy data found
+    if not HasLegacySettings() then
+        addon_data.db.char.warnedMissingLegacy = true
+
+        addon_data.utils.PrintMsg(
+            "WST could not find your old per-character settings.\n" ..
+            "If you have a .bak file, please restore it:\n" ..
+            "|cffaaaaaaWTF/Account/<AccountName>/<ServerName>/SavedVariables/WeaponSwingTimer.lua.bak|r\n" ..
+            "Create a copy, and rename the .bak file to WeaponSwingTimer.lua\n" ..
+            "Then reload the game to migrate your settings into a profile automatically."
+        )
+    end
+end
+
+function addon_data.core.MigrateLegacyPerCharToProfile()
+    if not addon_data.db then return end
+
+    -- per-character storage inside AceDB
+    addon_data.db.char = addon_data.db.char or {}
+    addon_data.db.char.migratedLegacy = addon_data.db.char.migratedLegacy or {}
+
+    local playerName = UnitName("player")
+    local realmName = GetRealmName()
+    local key = playerName .. " - " .. realmName
+
+    -- already migrated on this character
+    if addon_data.db.char.migratedLegacy[key] then
+        return
+    end
+
+    -- Detect whether legacy data exists
+    local function hasData(t) 
+        return type(t) == "table" and next(t) ~= nil
+    end
+
+    local legacyExists =
+        hasData(_G.character_core_settings) or
+        hasData(_G.character_player_settings) or
+        hasData(_G.character_target_settings) or
+        hasData(_G.character_hunter_settings) or
+        hasData(_G.character_castbar_settings)
+
+    if not legacyExists then
+        return
+    end
+
+    -- Create/use a per-character profile name
+    local profileName = key
+
+    -- Create profile if it doesn't exist
+    local profiles = addon_data.db:GetProfiles()
+    local found = false
+    for _, p in ipairs(profiles) do
+        if p == profileName then found = true break end
+    end
+    if not found then
+        addon_data.db:SetProfile(profileName)
+        addon_data.utils.PrintMsg("WST automatically imported your previous settings and saved under" .. " " .. profileName)
+    else
+        addon_data.db:SetProfile(profileName)
+    end
+
+    addon_data.db.profile.core    = addon_data.utils.DeepCopy(_G.character_core_settings or {}, {})
+    addon_data.db.profile.player  = addon_data.utils.DeepCopy(_G.character_player_settings or {}, {})
+    addon_data.db.profile.target  = addon_data.utils.DeepCopy(_G.character_target_settings or {}, {})
+    addon_data.db.profile.hunter  = addon_data.utils.DeepCopy(_G.character_hunter_settings or {}, {})
+    addon_data.db.profile.castbar = addon_data.utils.DeepCopy(_G.character_castbar_settings or {}, {})
+
+    -- Mark migrated for this character
+    addon_data.db.char.migratedLegacy[key] = true
+
+end
+
 local function OnAddonLoaded(self)
-    -- Attach the rest of the events and scripts to the core frame
-    addon_data.core.core_frame:SetScript("OnUpdate", CoreFrame_OnUpdate)
+    -- Register events first (OnUpdate registered after visuals are initialized)
     addon_data.core.core_frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     addon_data.core.core_frame:RegisterEvent("PLAYER_REGEN_DISABLED")
     addon_data.core.core_frame:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -668,8 +813,24 @@ local function OnAddonLoaded(self)
     addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
     addon_data.core.core_frame:RegisterEvent("UNIT_SPELLCAST_FAILED_QUIET")
     -- Load the settings for the core and all timers
-    LoadAllSettings()
+    -- load profiles defaults
+    addon_data.defaults = {
+    profile = {
+        core    = addon_data.core.default_settings,
+        hunter  = addon_data.hunter.default_settings,
+        player  = addon_data.player.default_settings,
+        target  = addon_data.target.default_settings,
+        castbar = addon_data.castbar.default_settings,
+        }
+    }
+    -- initialize profiles Ace3 database
+    addon_data.core.InitDB()
+    LoadAllSettings()          
     InitializeAllVisuals()
+    addon_data.core.visuals_initialized = true
+
+    -- Now that visuals are initialized, attach the OnUpdate script
+    addon_data.core.core_frame:SetScript("OnUpdate", CoreFrame_OnUpdate)
     -- Any other misc operations that happen at the start
     addon_data.player.ZeroizeSwingTimers()
     addon_data.target.ZeroizeSwingTimers()
@@ -723,9 +884,15 @@ SLASH_WEAPONSWINGTIMER_CONFIG1 = "/WeaponSwingTimer"
 SLASH_WEAPONSWINGTIMER_CONFIG2 = "/weaponswingtimer"
 SLASH_WEAPONSWINGTIMER_CONFIG3 = "/wst"
 SlashCmdList["WEAPONSWINGTIMER_CONFIG"] = function(option)
-    InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
-    InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
+    if Settings and Settings.OpenToCategory then
+        Settings.OpenToCategory("WeaponSwingTimer")
+    elseif InterfaceOptionsFrame_OpenToCategory then
+        -- Fallback for older clients (called twice to work around a known bug)
+        InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
+        InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
+    end
 end
 
 -- Setup the core of the addon (This is like calling main in C)
 addon_data.core.core_frame:SetScript("OnEvent", CoreFrame_OnEvent)
+
