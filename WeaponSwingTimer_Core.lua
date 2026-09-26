@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "6.7.3"
+local version = "6.7.4"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -884,8 +884,8 @@ SLASH_WEAPONSWINGTIMER_CONFIG1 = "/WeaponSwingTimer"
 SLASH_WEAPONSWINGTIMER_CONFIG2 = "/weaponswingtimer"
 SLASH_WEAPONSWINGTIMER_CONFIG3 = "/wst"
 SlashCmdList["WEAPONSWINGTIMER_CONFIG"] = function(option)
-    if Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory("WeaponSwingTimer")
+    if Settings and Settings.OpenToCategory and addon_data.config.settingsCategoryID then
+        Settings.OpenToCategory(addon_data.config.settingsCategoryID)
     elseif InterfaceOptionsFrame_OpenToCategory then
         -- Fallback for older clients (called twice to work around a known bug)
         InterfaceOptionsFrame_OpenToCategory("WeaponSwingTimer")
