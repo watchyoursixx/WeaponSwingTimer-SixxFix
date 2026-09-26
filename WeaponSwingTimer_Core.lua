@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "6.7.3"
+local version = "1.60.1"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -80,6 +80,64 @@ addon_data.core.HandlePlayerSwingResetSpell = function(unit, spell_id, trigger)
     if should_reset then
         addon_data.player.ResetMainSwingTimer()
     end
+end
+
+-- used to initalize settings first if they don't exist, and assign settings to individual profile db references
+local function LoadAllSettings()
+    addon_data.core.LoadSettings()
+    addon_data.player.LoadSettings()
+    addon_data.target.LoadSettings()
+    addon_data.hunter.LoadSettings()
+    addon_data.range.LoadSettings()
+	addon_data.castbar.LoadSettings()
+end
+
+addon_data.core.RestoreAllDefaults = function()
+    addon_data.db:ResetProfile()
+    addon_data.core.UpdateAllVisualsOnSettingsChange()
+end
+
+local function InitializeAllVisuals()
+    addon_data.player.InitializeVisuals()
+    addon_data.target.InitializeVisuals()
+    addon_data.hunter.InitializeVisuals()
+    addon_data.range.InitializeVisuals()
+    addon_data.castbar.InitializeVisuals()
+    addon_data.config.InitializeVisuals()
+end
+
+
+addon_data.core.UpdateAllVisualsOnSettingsChange = function()
+    addon_data.player.UpdateVisualsOnSettingsChange()
+    addon_data.target.UpdateVisualsOnSettingsChange()
+    addon_data.hunter.UpdateVisualsOnSettingsChange()
+    addon_data.range.UpdateVisualsOnSettingsChange()
+	addon_data.castbar.UpdateVisualsOnSettingsChange()
+    addon_data.player.UpdateConfigPanelValues()
+    addon_data.target.UpdateConfigPanelValues()
+    addon_data.hunter.UpdateConfigPanelValues()
+    addon_data.range.UpdateConfigPanelValues()
+    addon_data.castbar.UpdateConfigPanelValues()
+end
+
+addon_data.core.LoadSettings = function()
+    -- If the carried over settings dont exist then make them
+    if not character_core_settings then
+        character_core_settings = {}
+    end
+    -- If the carried over settings aren't set then set them to the defaults
+    for setting, value in pairs(addon_data.core.default_settings) do
+        if character_core_settings[setting] == nil then
+            character_core_settings[setting] = value
+        end
+    end
+end
+
+local function CoreFrame_OnUpdate(self, elapsed)
+    addon_data.player.OnUpdate(elapsed)
+    addon_data.target.OnUpdate(elapsed)
+    addon_data.hunter.OnUpdate(elapsed)
+	addon_data.castbar.OnUpdate(elapsed)
 end
 
 addon_data.core.MissHandler = function(unit, miss_type, is_offhand, is_player)
@@ -390,7 +448,8 @@ local function WST_ApplyParryHaste(unit)
 end
 
 local function CoreFrame_OnEvent(self, event, ...)
-    local args = {...}    if event == "ADDON_LOADED" then
+    local args = {...}
+    if event == "ADDON_LOADED" then
         if args[1] == "WeaponSwingTimer" then
             OnAddonLoaded()
         end
@@ -406,6 +465,9 @@ local function CoreFrame_OnEvent(self, event, ...)
         -- A PARRY result means that unit performed the parry, so its
         -- own next main-hand swing receives parry haste.
         local unit, action = ...
+        if unit == "player" and addon_data.target.OnEstimatedPlayerCombatResult then
+            addon_data.target.OnEstimatedPlayerCombatResult(action)
+        end
         if action == "PARRY" then
             WST_ApplyParryHaste(unit)
         end
