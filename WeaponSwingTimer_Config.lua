@@ -68,12 +68,12 @@ addon_data.config.InitializeVisuals = function()
 
     -- Add the range finder panel
     panel.config_range_panel = CreateFrame("Frame", nil, panel)
-    panel.config_range_panel:SetSize(620, 390)
+    panel.config_range_panel:SetSize(620, 660)
 
     panel.config_range_panel.range_panel =
         addon_data.range.CreateConfigPanel(panel.config_range_panel)
     panel.config_range_panel.range_panel:SetPoint("TOPLEFT", 0, 0)
-    panel.config_range_panel.range_panel:SetSize(620, 350)
+    panel.config_range_panel.range_panel:SetSize(620, 640)
 
     panel.config_range_panel.name = L["Range Check Settings"]
     panel.config_range_panel.parent = panel.name

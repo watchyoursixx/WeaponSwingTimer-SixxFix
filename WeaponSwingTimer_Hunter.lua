@@ -85,9 +85,10 @@ addon_data.hunter.default_settings = {
 addon_data.hunter.shooting = false
 -- added check below for range speed to default 3 on initialize 
 addon_data.hunter.range_speed = 3
-addon_data.hunter.shot_timer = 0.52
+addon_data.hunter.shot_timer = 0.5
 addon_data.hunter.last_shot_time = GetTime()
 addon_data.hunter.auto_shot_ready = true
+addon_data.hunter.auto_cast_active = false
 
 -- Forever retry-delay indicator. This is intentionally separate from
 -- shot_timer so a failed Auto Shot attempt cannot reset the real swing timer.
@@ -104,6 +105,113 @@ addon_data.hunter.casting = false
 
 addon_data.hunter.has_moved = false
 
+-- Auto Shot's visual windup uses ranged weapon haste, including quiver haste.
+addon_data.hunter.GetAutoCastTime = function()
+    -- This cycle's native speed is authoritative and stays fixed mid-cycle.
+    if addon_data.hunter.native_cycle_cast_time then return addon_data.hunter.native_cycle_cast_time end
+    local base = tonumber(addon_data.hunter.base_speed) or 0
+    -- Inventory-change events may not have fired yet after login/reload.
+    if base <= 1 and addon_data.GetRangedBaseSpeed then
+        local value = addon_data.GetRangedBaseSpeed()
+        if not WST_IsSecret(value) then
+            local parsed = tonumber(value)
+            if parsed and parsed > 1 then
+                base = parsed
+                addon_data.hunter.base_speed = base
+            end
+        end
+    end
+    local speed = UnitRangedDamage("player")
+    if not WST_IsSecret(speed) and type(speed) == "number" and speed > 0 and base > 1 then
+        -- Includes every ranged speed modifier reflected in actual attack speed.
+        local cast_time = 0.5 * speed / base
+        addon_data.hunter.cached_auto_cast_time = cast_time
+        return cast_time
+    end
+    -- Combat may hide ranged stats. Never replace a known speed multiplier
+    -- with the haste API's zero/default value merely because stats vanished.
+    if addon_data.hunter.cached_auto_cast_time then
+        return addon_data.hunter.cached_auto_cast_time
+    end
+    local haste = GetRangedHaste and GetRangedHaste()
+    if not WST_IsSecret(haste) and type(haste) == "number" and haste > -100 then
+        return 0.5 / (1 + haste / 100)
+    end
+    return 0.5
+end
+
+-- Preserve known readiness when combat makes a later API read unavailable.
+addon_data.hunter.auto_visual_state = {}
+addon_data.hunter.UpdateAutoMovement = function()
+    local state = addon_data.hunter.auto_visual_state
+    local speed = GetUnitSpeed("player")
+    if not WST_IsSecret(speed) and type(speed) == "number" then
+        state.moving = speed > 0
+    elseif state.move_pending_since and GetTime() - state.move_pending_since >= 0.05 then
+        -- Short event pulses are not enough to declare movement when speed
+        -- cannot be read. A sustained start event still cancels the inference.
+        state.moving = true
+    end
+    return state.moving
+end
+
+addon_data.hunter.OnReadinessEvent = function(_, event)
+    local state = addon_data.hunter.auto_visual_state
+    if event == "PLAYER_STARTED_MOVING" then
+        state.move_pending_since = state.move_pending_since or GetTime()
+        if addon_data.hunter.UpdateAutoMovement() == true and addon_data.hunter.auto_cast_inferred then
+            addon_data.hunter.auto_cast_active = false
+            addon_data.hunter.auto_cast_inferred = false
+        end
+    elseif event == "PLAYER_STOPPED_MOVING" then
+        state.move_pending_since = nil
+        state.moving = false
+        addon_data.hunter.UpdateAutoMovement()
+    else
+        addon_data.hunter.pending_auto_attempt = nil
+        addon_data.hunter.auto_cast_guid = nil
+        state.attackable, state.in_range, state.dead = nil, nil, nil
+        if event == "PLAYER_ENTERING_WORLD" then state.move_pending_since = nil end
+        if addon_data.hunter.auto_cast_inferred then
+            addon_data.hunter.auto_cast_active = false
+            addon_data.hunter.auto_cast_inferred = false
+        end
+    end
+end
+
+addon_data.hunter.CanBeginAutoVisual = function()
+    local state = addon_data.hunter.auto_visual_state
+    if not addon_data.hunter.shooting or not UnitExists("target") then return false end
+    addon_data.hunter.UpdateAutoMovement()
+    local dead = UnitIsDeadOrGhost("target")
+    if not WST_IsSecret(dead) and type(dead) == "boolean" then state.dead = dead end
+    local attackable = UnitCanAttack("player", "target")
+    if not WST_IsSecret(attackable) and type(attackable) == "boolean" then
+        state.attackable = attackable
+    end
+    local checked_range = false
+    if C_SwingTimer and C_SwingTimer.IsTargetWithinSwingRange and
+       Enum and Enum.PlayerSwingType and Enum.PlayerSwingType.Ranged then
+        local ok, value = pcall(C_SwingTimer.IsTargetWithinSwingRange, Enum.PlayerSwingType.Ranged)
+        if ok and not WST_IsSecret(value) and value ~= nil then
+            state.in_range = value == true or value == 1
+            checked_range = true
+        end
+    end
+    if not checked_range and addon_data.range and addon_data.range.GetRangeBand then
+        local ok, _, key = pcall(addon_data.range.GetRangeBand)
+        if ok then
+            if key == "ranged" or key == "close" then
+                state.in_range = true
+            elseif key == "melee" or key == "deadzone" or key == "far" or key == "out" then
+                state.in_range = false
+            end
+        end
+    end
+    return state.moving == false and state.dead ~= true and
+        state.attackable == true and state.in_range == true
+end
+
 -- handling of stopping auto timer from starting
 addon_data.hunter.StartCastingSpell = function(spell_id)
     if not spell_id or addon_data.hunter.casting then
@@ -114,8 +222,7 @@ addon_data.hunter.StartCastingSpell = function(spell_id)
         return
     end
 
-    -- Auto Shot has no cast phase in Forever. The dedicated Castbar module
-    -- owns actual cast timing; Hunter.lua only needs a simple casting state.
+    -- Other cast-time shots also control the general casting state.
     if addon_data.hunter.is_spell_multi_shot(spell_id) or
        addon_data.hunter.is_spell_aimed_shot(spell_id) or
        spell_id == 34120 then -- Steady Shot
@@ -161,11 +268,26 @@ addon_data.hunter.OnPlayerSwing = function(duration, swing_type)
         return
     end
 
+    if addon_data.hunter.auto_cast_inferred and
+       (not addon_data.hunter.auto_cast_guid or addon_data.hunter.auto_cast_guid == addon_data.hunter.last_auto_success_guid) then
+        addon_data.hunter.auto_cast_active = false
+        addon_data.hunter.auto_cast_inferred = false
+        addon_data.hunter.auto_cast_remaining = 0
+    end
+    local base = tonumber(addon_data.hunter.base_speed) or 0
+    if base <= 1 then
+        addon_data.hunter.GetAutoCastTime() -- resolve the base speed if not loaded yet
+        base = tonumber(addon_data.hunter.base_speed) or 0
+    end
+    addon_data.hunter.native_cycle_speed = duration
+    if base > 1 then
+        addon_data.hunter.native_cycle_cast_time = 0.5 * duration / base
+        addon_data.hunter.cached_auto_cast_time = addon_data.hunter.native_cycle_cast_time
+    end
     addon_data.hunter.range_speed = duration
     addon_data.hunter.last_shot_time = GetTime()
     addon_data.hunter.shot_timer = duration
     addon_data.hunter.auto_shot_ready = false
-    addon_data.hunter.auto_delay_timer = 0
     addon_data.hunter.FeignFullReset = false
 end
 
@@ -196,22 +318,76 @@ addon_data.hunter.FeignDeath = function()
     addon_data.hunter.ResetShotTimer()
 end
 
---- Update timer for Auto Shot. Forever Auto Shot has no cast phase.
+--- Update the native ranged swing countdown.
 addon_data.hunter.ResetShotTimer = function()
-    addon_data.hunter.shot_timer = tonumber(addon_data.hunter.range_speed) or 0
+    addon_data.hunter.pending_auto_attempt = nil
+    addon_data.hunter.auto_cast_guid = nil
+    addon_data.hunter.auto_cast_active = false
+    addon_data.hunter.auto_cast_inferred = false
+        addon_data.hunter.shot_timer = tonumber(addon_data.hunter.range_speed) or 0
     addon_data.hunter.auto_shot_ready = false
+end
+
+-- A cast phase has one deadline. Event arrival/frame length must not rewind it.
+addon_data.hunter.BeginAutoCastVisual = function(duration, started_at, guid, inferred)
+    local h = addon_data.hunter
+    if h.auto_cast_active then
+        if not h.auto_cast_guid and guid then h.auto_cast_guid = guid end
+        if not inferred then h.auto_cast_inferred = false end
+        return
+    end
+    h.auto_cast_active = true
+    h.auto_cast_inferred = inferred
+    h.auto_cast_guid = guid
+    h.auto_cast_duration = duration
+    h.auto_cast_started_at = started_at
+    h.auto_cast_ends_at = started_at + duration
+    h.auto_cast_remaining = math.max(0, h.auto_cast_ends_at - GetTime())
+    local speed = UnitRangedDamage("player")
+    if WST_IsSecret(speed) or type(speed) ~= "number" or speed <= 0 then
+        speed = h.visual_range_speed or h.range_speed
+    end
+    h.auto_cast_visual_speed = h.native_cycle_speed or speed
 end
 
 addon_data.hunter.UpdateAutoShotTimer = function(elapsed)
     local curr_time = GetTime()
     local shot_timer = tonumber(addon_data.hunter.shot_timer) or 0
 
-    addon_data.hunter.shot_timer = math.max(shot_timer - elapsed, 0)
-    addon_data.hunter.auto_shot_ready = addon_data.hunter.shot_timer <= 0
+    local cast_time = addon_data.hunter.GetAutoCastTime()
+    addon_data.hunter.shot_timer = math.max(shot_timer - elapsed, cast_time)
+    local retry = tonumber(addon_data.hunter.auto_delay_timer) or 0
+    local can_begin = addon_data.hunter.CanBeginAutoVisual()
+    if addon_data.hunter.auto_cast_inferred and not can_begin then
+        addon_data.hunter.auto_cast_active = false
+        addon_data.hunter.auto_cast_inferred = false
+    end
+    if addon_data.hunter.auto_cast_active then
+        addon_data.hunter.auto_cast_remaining = math.max(
+            (addon_data.hunter.auto_cast_ends_at or curr_time) - curr_time, 0)
+    elseif can_begin and not addon_data.hunter.pending_auto_attempt then
+        local wait = math.max(0, shot_timer - cast_time, retry)
+        if elapsed >= wait then
+            local started_at = math.max(curr_time - elapsed + wait,
+                addon_data.hunter.autorepeat_started_at or (curr_time - elapsed))
+            addon_data.hunter.BeginAutoCastVisual(cast_time, started_at, nil, true)
+        end
+    end
+    addon_data.hunter.auto_shot_ready = not addon_data.hunter.auto_cast_active and
+        addon_data.hunter.shot_timer <= cast_time
 
     local auto_delay_timer = tonumber(addon_data.hunter.auto_delay_timer) or 0
     if auto_delay_timer > 0 then
         addon_data.hunter.auto_delay_timer = math.max(auto_delay_timer - elapsed, 0)
+    end
+
+    local pending = addon_data.hunter.pending_auto_attempt
+    if pending and curr_time > pending.sent_at then
+        addon_data.hunter.pending_auto_attempt = nil
+        if addon_data.hunter.shooting and can_begin then
+            addon_data.hunter.BeginAutoCastVisual(pending.cast_time, pending.sent_at, pending.guid, true)
+            addon_data.hunter.auto_delay_timer = 0
+        end
     end
 
     if addon_data.hunter.spell_GCD_Time + 1.5 > curr_time then
@@ -255,21 +431,63 @@ end)
 --- -----------------------------------------------------------------
 --- Determines the state of shooting on or off
 addon_data.hunter.OnStartAutorepeatSpell = function()
+    if not addon_data.hunter.shooting then
+        addon_data.hunter.autorepeat_started_at = GetTime()
+        if GetTime() - addon_data.hunter.last_shot_time >= addon_data.hunter.range_speed then
+            addon_data.hunter.native_cycle_cast_time = nil
+            addon_data.hunter.native_cycle_speed = nil
+        end
+    end
+    -- Toggling autorepeat readies the cast segment but does not start its countdown.
+    if not addon_data.hunter.shooting and
+       addon_data.hunter.shot_timer <= 0.5 and
+       addon_data.hunter.auto_delay_timer <= 0 then
+        addon_data.hunter.shot_timer = addon_data.hunter.GetAutoCastTime()
+        addon_data.hunter.auto_shot_ready = false
+    end
     addon_data.hunter.shooting = true
+    if addon_data.hunter.frame then
+        addon_data.hunter.UpdateVisualsOnUpdate()
+    end
 end
 
 addon_data.hunter.OnStopAutorepeatSpell = function()
     addon_data.hunter.shooting = false
+    addon_data.hunter.pending_auto_attempt = nil
+    addon_data.hunter.auto_cast_guid = nil
+    addon_data.hunter.auto_cast_active = false
+    addon_data.hunter.auto_cast_inferred = false
+    addon_data.hunter.auto_delay_timer = 0
+end
+
+-- A SENT request is tentative until the current event batch has had a
+-- chance to report FAILED_QUIET for the same GUID.
+addon_data.hunter.OnUnitSpellCastSent = function(unit, target, cast_guid, spell_id)
+    if unit ~= "player" or not addon_data.hunter.is_spell_auto_shot(spell_id) then return end
+    if WST_IsSecret(cast_guid) or type(cast_guid) ~= "string" then return end
+    if addon_data.hunter.auto_cast_active and addon_data.hunter.auto_cast_guid == cast_guid then return end
+    local pending = addon_data.hunter.pending_auto_attempt
+    if pending and pending.guid == cast_guid then return end
+    addon_data.hunter.pending_auto_attempt = {
+        guid = cast_guid, sent_at = GetTime(), cast_time = addon_data.hunter.GetAutoCastTime()
+    }
 end
 
 -- Modern cast-start path. CLEU remains enabled, but UNIT_SPELLCAST_START gives
 -- us a direct player cast event and fixes short casts such as Rank 1 Multi-Shot
 -- being missed by the old combat-log-only start detection.
-addon_data.hunter.OnUnitSpellCastStart = function(unit, spell_id)
+addon_data.hunter.OnUnitSpellCastStart = function(unit, spell_id, cast_guid)
     if unit ~= "player" or not spell_id then
         return
     end
 
+    if addon_data.hunter.is_spell_auto_shot(spell_id) then
+        addon_data.hunter.pending_auto_attempt = nil
+        local guid = not WST_IsSecret(cast_guid) and cast_guid or nil
+        addon_data.hunter.BeginAutoCastVisual(addon_data.hunter.GetAutoCastTime(), GetTime(), guid, false)
+        addon_data.hunter.auto_delay_timer = 0
+        addon_data.hunter.auto_shot_ready = false
+    end
     addon_data.hunter.FeignStatus = false
     addon_data.hunter.StartCastingSpell(spell_id)
 
@@ -293,9 +511,27 @@ end
 
 --- upon spell cast succeeded, check if is auto shot and reset timer, adjust ranged speed based on haste. 
 --- If not auto shot, set bar to green *commented out
-addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
+addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id, cast_guid)
     if unit ~= "player" then
         return
+    end
+
+    if addon_data.hunter.is_spell_auto_shot(spell_id) then
+        if WST_IsSecret(cast_guid) then cast_guid = nil end
+        addon_data.hunter.last_auto_success_guid = cast_guid
+        local pending = addon_data.hunter.pending_auto_attempt
+        if pending and pending.guid == cast_guid then addon_data.hunter.pending_auto_attempt = nil end
+        -- A completed shot confirms these prerequisites even if combat APIs
+        -- cannot expose them. Readable negative checks still take priority.
+        local state = addon_data.hunter.auto_visual_state
+        state.attackable, state.in_range, state.dead = true, true, false
+        if not cast_guid or not addon_data.hunter.auto_cast_guid or addon_data.hunter.auto_cast_guid == cast_guid then
+            addon_data.hunter.auto_cast_active = false
+            addon_data.hunter.auto_cast_inferred = false
+            addon_data.hunter.auto_cast_remaining = 0
+            addon_data.hunter.auto_cast_guid = nil
+            addon_data.hunter.auto_delay_timer = 0
+        end
     end
 
     addon_data.hunter.casting = false
@@ -348,38 +584,54 @@ addon_data.hunter.OnUnitSpellCastSucceeded = function(unit, spell_id)
     end
 end
 
-addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id)
+addon_data.hunter.OnUnitSpellCastInterrupted = function(unit, spell_id, cast_guid)
+    if unit ~= "player" then return end
+    if addon_data.hunter.is_spell_auto_shot(spell_id) then
+        if WST_IsSecret(cast_guid) then cast_guid = nil end
+        local pending = addon_data.hunter.pending_auto_attempt
+        if pending and (not cast_guid or pending.guid == cast_guid) then addon_data.hunter.pending_auto_attempt = nil end
+        if not cast_guid or not addon_data.hunter.auto_cast_guid or addon_data.hunter.auto_cast_guid == cast_guid then
+            addon_data.hunter.auto_cast_active = false
+            addon_data.hunter.auto_cast_inferred = false
+            addon_data.hunter.auto_cast_guid = nil
+        end
+    end
     addon_data.hunter.casting = false
 end
 
 --- triggered when auto shot is toggled on and attempts to begin casting, but can't
 --- This causes 0.5 seconds of delay before it can try casting again
-addon_data.hunter.OnUnitSpellCastFailedQuiet = function(unit, spell_id)
+addon_data.hunter.OnUnitSpellCastFailedQuiet = function(unit, spell_id, cast_guid)
     local settings = character_hunter_settings
 
-    if not settings.show_autoshot_delay_timer or
-       unit ~= "player" or
-       not addon_data.hunter.is_spell_auto_shot(spell_id) or
-       not addon_data.hunter.shooting then
+    if unit ~= "player" or
+       not addon_data.hunter.is_spell_auto_shot(spell_id) then
         return
     end
 
-    if addon_data.core.native_swing_available then
-        -- PLAYER_SWING owns the real swing timer. Only show the 0.5 second
-        -- retry indicator when Auto Shot was actually ready to fire.
-        -- This prevents unrelated instant shots during the normal cooldown
-        -- from creating a fake reset/retry.
-        local shot_timer = tonumber(addon_data.hunter.shot_timer) or 0
-        if shot_timer <= 0.05 then
-            addon_data.hunter.auto_delay_timer =
-                addon_data.hunter.auto_delay_duration
-        end
+    if WST_IsSecret(cast_guid) then cast_guid = nil end
+    local pending = addon_data.hunter.pending_auto_attempt
+    if pending and (not cast_guid or pending.guid == cast_guid) then addon_data.hunter.pending_auto_attempt = nil end
+    -- An extra rejected request is not a failure to start the shot already
+    -- underway. Leave that accepted cast and its display alone.
+    if addon_data.hunter.auto_cast_active and cast_guid and addon_data.hunter.auto_cast_guid and
+       addon_data.hunter.auto_cast_guid ~= cast_guid then
         return
     end
-
-    -- Legacy clients keep the old behavior.
-    addon_data.hunter.shot_timer = 0.5
-    addon_data.hunter.auto_shot_ready = false
+    -- Genuine failed starts always restart the full retry indicator, even
+    -- when the native cooldown will cover some or all of that window.
+    if not cast_guid or not addon_data.hunter.auto_cast_guid or addon_data.hunter.auto_cast_guid == cast_guid then
+        addon_data.hunter.auto_cast_active = false
+        addon_data.hunter.auto_cast_inferred = false
+        addon_data.hunter.auto_cast_guid = nil
+    end
+    addon_data.hunter.auto_delay_timer = addon_data.hunter.auto_delay_duration
+    addon_data.hunter.shot_timer = math.max(
+        tonumber(addon_data.hunter.shot_timer) or 0,
+        addon_data.hunter.GetAutoCastTime())
+    if addon_data.hunter.frame then
+        addon_data.hunter.UpdateVisualsOnUpdate()
+    end
 end
 
 --- Updating and initializing visuals
@@ -395,7 +647,19 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
     end
 
     if settings.enabled then
-        frame.shot_bar_text:SetText(tostring(addon_data.utils.SimpleRound(shot_timer, 0.1)))
+        if addon_data.hunter.auto_cast_active then
+            shot_timer = addon_data.hunter.auto_cast_remaining or 0
+        end
+        local cast_time = addon_data.hunter.auto_cast_active and addon_data.hunter.auto_cast_duration or
+            addon_data.hunter.GetAutoCastTime()
+        local delay_timer = settings.show_autoshot_delay_timer and
+            (tonumber(addon_data.hunter.auto_delay_timer) or 0) or 0
+        local cast_remaining = addon_data.hunter.auto_cast_active and math.min(shot_timer, cast_time) or cast_time
+        local displayed_timer = delay_timer > 0 and (cast_remaining + delay_timer) or shot_timer
+        if not addon_data.hunter.shooting and shot_timer <= 0 then
+            displayed_timer = cast_time
+        end
+        frame.shot_bar_text:SetText(string.format("%.1f", displayed_timer))
 
         if addon_data.core.in_combat or addon_data.hunter.shooting or addon_data.hunter.casting_shot then
             frame:SetAlpha(settings.in_combat_alpha)
@@ -403,44 +667,46 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             frame:SetAlpha(settings.ooc_alpha)
         end
 
-        if addon_data.hunter.spell_GCD > 0.2 then
-            frame.shot_bar:SetVertexColor(0.8, 0.64, 0, 1)
+        frame.shot_bar:SetVertexColor(
+            settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
+        -- Use weapon speed for the visual scale. PLAYER_SWING durations can
+        -- include resets/delays and must not move the cast boundary.
+        local weapon_speed = UnitRangedDamage("player")
+        if WST_IsSecret(weapon_speed) or type(weapon_speed) ~= "number" or weapon_speed <= 0 then
+            weapon_speed = addon_data.hunter.visual_range_speed or range_speed
         else
-            frame.shot_bar:SetVertexColor(
-                settings.cooldown_r, settings.cooldown_g,
-                settings.cooldown_b, settings.cooldown_a)
+            addon_data.hunter.visual_range_speed = weapon_speed
         end
-
+        if addon_data.hunter.native_cycle_speed then weapon_speed = addon_data.hunter.native_cycle_speed end
+        if addon_data.hunter.auto_cast_active and addon_data.hunter.auto_cast_visual_speed then
+            weapon_speed = addon_data.hunter.auto_cast_visual_speed
+        end
+        local scale = settings.width / math.max(weapon_speed, cast_time + addon_data.hunter.auto_delay_duration)
+        local cast_width = cast_time * scale
+        local retry_width = delay_timer * scale
+        local cooldown_width = math.max(0, settings.width - cast_width)
         local progress = math.max(0, math.min(1, (range_speed - shot_timer) / range_speed))
-
-        if not settings.one_bar then
-            -- Original bar direction: full after a shot, shrinking to zero.
-            frame.shot_bar:SetWidth(math.max(2, settings.width * (1 - progress)))
+        local white_width
+        -- Autorepeat toggling/target loss does not reset the native cooldown.
+        if settings.one_bar then
+            -- Once the cast begins, white follows the shrinking red edge.
+            local available_width = math.max(0, settings.width - cast_remaining * scale)
+            white_width = math.min(available_width, settings.width * progress)
         else
-            -- YaHT / one-bar direction: empty after a shot, filling to full.
-            frame.shot_bar:SetWidth(math.max(0.001, settings.width * progress))
+            white_width = math.min(cooldown_width, math.max(0, shot_timer - cast_time) * scale)
         end
+        frame.shot_bar:SetWidth(math.max(0.001, white_width))
+        frame.shot_bar:SetShown(white_width > 0)
 
-        -- Forever Auto Shot has no cast phase. Reuse the old cast overlay
-        -- exclusively for the independent 0.5 second retry-delay indicator.
-        local delay_timer = tonumber(addon_data.hunter.auto_delay_timer) or 0
-        local delay_duration = tonumber(addon_data.hunter.auto_delay_duration) or 0.5
-
-        if settings.show_autoshot_delay_timer and delay_timer > 0 and delay_duration > 0 then
-            local delay_progress = math.max(0, math.min(1, delay_timer / delay_duration))
-
-            -- Both layouts use the same reverse red countdown:
-            -- full red when the retry starts, then shrinking toward the
-            -- right edge until the retry window clears.
-            frame.auto_shot_cast_bar:ClearAllPoints()
-            frame.auto_shot_cast_bar:SetPoint("BOTTOMRIGHT", 0, 0)
-            frame.auto_shot_cast_bar:SetWidth(
-                math.max(0.001, settings.width * delay_progress)
-            )
-            frame.auto_shot_cast_bar:Show()
-        else
-            frame.auto_shot_cast_bar:Hide()
-        end
+        frame.auto_shot_cast_bar:ClearAllPoints()
+        frame.auto_shot_cast_bar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+        frame.auto_shot_cast_bar:SetWidth(math.max(0.001, cast_remaining * scale))
+        frame.auto_shot_cast_bar:SetShown(cast_remaining > 0)
+        frame.retry_bar:ClearAllPoints()
+        -- Retry always ends at the fixed START of the full cast segment.
+        frame.retry_bar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -cast_width, 0)
+        frame.retry_bar:SetSize(math.max(0.001, retry_width), settings.height)
+        frame.retry_bar:SetShown(delay_timer > 0)
 
         frame.multishot_clip_bar:Hide()
 
@@ -472,14 +738,13 @@ addon_data.hunter.UpdateVisualsOnSettingsChange = function()
         frame.backplane:SetBackdropColor(0,0,0,settings.backplane_alpha)
         frame.shot_bar:ClearAllPoints()
         if not settings.one_bar then
-            frame.shot_bar:SetPoint("BOTTOM", 0, 0)
+            frame.shot_bar:SetPoint("BOTTOMLEFT", 0, 0)
         else
             frame.shot_bar:SetPoint("BOTTOMLEFT", 0, 0)
             frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
         end
         frame.auto_shot_cast_bar:ClearAllPoints()
-        -- Retry delay always counts down in reverse from the right side,
-        -- including YaHT / One Bar mode.
+        -- Cast and retry segments count down toward the right edge.
         frame.auto_shot_cast_bar:SetPoint("BOTTOMRIGHT", 0, 0)
         frame.auto_shot_cast_bar:SetHeight(settings.height)
         frame.auto_shot_cast_bar:SetVertexColor(
@@ -575,6 +840,17 @@ addon_data.hunter.InitializeVisuals = function()
     frame.multishot_clip_bar = frame:CreateTexture(nil,"OVERLAY")
     -- Create the auto shot cast bar indicator
     frame.auto_shot_cast_bar = frame:CreateTexture(nil,"OVERLAY")
+    frame.retry_bar = frame:CreateTexture(nil, "OVERLAY", nil, 2)
+    frame.retry_bar:SetColorTexture(1, 0.5, 0, 1)
+    if not addon_data.hunter.readiness_frame then
+        local watcher = CreateFrame("Frame", nil, UIParent)
+        addon_data.hunter.readiness_frame = watcher
+        watcher:RegisterEvent("PLAYER_STARTED_MOVING")
+        watcher:RegisterEvent("PLAYER_STOPPED_MOVING")
+        watcher:RegisterEvent("PLAYER_TARGET_CHANGED")
+        watcher:RegisterEvent("PLAYER_ENTERING_WORLD")
+        watcher:SetScript("OnEvent", addon_data.hunter.OnReadinessEvent)
+    end
     -- Show it off
     addon_data.hunter.UpdateVisualsOnSettingsChange()
     addon_data.hunter.UpdateVisualsOnUpdate()
@@ -594,6 +870,7 @@ addon_data.hunter.UpdateConfigPanelValues = function()
     local panel = addon_data.hunter.config_frame
     local settings = character_hunter_settings
     panel.enabled_checkbox:SetChecked(settings.enabled)
+    panel.show_gcd_spark_checkbox:SetChecked(settings.show_gcd_spark)
     panel.show_multishot_clip_bar_checkbox:SetChecked(settings.show_multishot_clip_bar)
 	panel.show_autoshot_delay_checkbox:SetChecked(settings.show_autoshot_delay_timer)
     panel.show_border_checkbox:SetChecked(settings.show_border)
@@ -852,7 +1129,7 @@ addon_data.hunter.CreateConfigPanel = function(parent_panel)
         L["Auto Shot Cast Color"],
         addon_data.hunter.AutoShotCastColorPickerOnClick)
     panel.autoshot_cast_color_picker:SetPoint('TOPLEFT', 205, -200)
-    panel.autoshot_cast_color_picker:Hide()
+    panel.autoshot_cast_color_picker:Show()
     
     -- In Combat Alpha Slider
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(

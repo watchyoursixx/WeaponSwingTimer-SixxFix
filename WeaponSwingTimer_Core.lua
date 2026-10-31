@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "1.60.1"
+local version = "1.60.2"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -499,6 +499,9 @@ local function CoreFrame_OnEvent(self, event, ...)
         addon_data.hunter.OnStopAutorepeatSpell()
     elseif event == "UNIT_SPELLCAST_SENT" then
         -- UNIT_SPELLCAST_SENT: unit, target, castGUID, spellID
+        if addon_data.hunter.OnUnitSpellCastSent then
+            addon_data.hunter.OnUnitSpellCastSent(args[1], args[2], args[3], args[4])
+        end
         if addon_data.castbar.OnUnitSpellCastSent then
             addon_data.castbar.OnUnitSpellCastSent(
                 args[1], args[2], args[3], args[4]
@@ -514,7 +517,7 @@ local function CoreFrame_OnEvent(self, event, ...)
     elseif event == "UNIT_SPELLCAST_START" then
         addon_data.core.HandlePlayerSwingResetSpell(args[1], args[3], "START")
         if addon_data.hunter.OnUnitSpellCastStart then
-            addon_data.hunter.OnUnitSpellCastStart(args[1], args[3])
+            addon_data.hunter.OnUnitSpellCastStart(args[1], args[3], args[2])
         end
         if addon_data.castbar.OnUnitSpellCastStart then
             addon_data.castbar.OnUnitSpellCastStart(args[1], args[3])
@@ -523,15 +526,16 @@ local function CoreFrame_OnEvent(self, event, ...)
         addon_data.core.HandlePlayerSwingResetSpell(args[1], args[3], "CHANNEL_START")
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         addon_data.core.HandlePlayerSwingResetSpell(args[1], args[3], "SUCCEEDED")
-        addon_data.hunter.OnUnitSpellCastSucceeded(args[1], args[3])
+        addon_data.hunter.OnUnitSpellCastSucceeded(args[1], args[3], args[2])
 		addon_data.castbar.OnUnitSpellCastSucceeded(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_FAILED" then
+        addon_data.hunter.OnUnitSpellCastInterrupted(args[1], args[3], args[2])
 		addon_data.castbar.OnUnitSpellCastFailed(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-		addon_data.hunter.OnUnitSpellCastInterrupted(args[1], args[3])
+		addon_data.hunter.OnUnitSpellCastInterrupted(args[1], args[3], args[2])
 		addon_data.castbar.OnUnitSpellCastInterrupted(args[1], args[3])
     elseif event == "UNIT_SPELLCAST_FAILED_QUIET" then
-        addon_data.hunter.OnUnitSpellCastFailedQuiet(args[1], args[3])
+        addon_data.hunter.OnUnitSpellCastFailedQuiet(args[1], args[3], args[2])
     end
 end
 
