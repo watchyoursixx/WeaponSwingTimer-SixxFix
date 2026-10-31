@@ -17,6 +17,16 @@ addon_data.range.default_settings = {
     backplane_alpha = 0.5,
     is_locked = false,
     show_text = true,
+    hide_no_target = false,
+    hide_dead_target = false,
+    text_melee = L["0-5 yd  •  MELEE"] or "0-5 yd  •  MELEE",
+    text_deadzone = L["5-8 yd  •  DEAD ZONE"] or "5-8 yd  •  DEAD ZONE",
+    text_close = L["8-15 yd"] or "8-15 yd",
+    text_ranged = L["8-35 yd"] or "8-35 yd",
+    text_far = L["35-100 yd"] or "35-100 yd",
+    text_out = L["100+ yd  •  OUT OF RANGE"] or "100+ yd  •  OUT OF RANGE",
+    text_unknown = L["NO TARGET"] or "NO TARGET",
+
     show_border = false,
     classic_bars = true,
 
@@ -575,12 +585,22 @@ addon_data.range.UpdateRange = function()
         return
     end
 
+    if (settings.hide_no_target and not UnitExists("target")) or
+       (settings.hide_dead_target and UnitExists("target") and UnitIsDeadOrGhost("target")) then
+        frame:Hide()
+        return
+    end
     local text, key = addon_data.range.GetRangeBand()
     if not text then
         text = L["NO TARGET"]
         key = "unknown"
     end
 
+    -- An unchanged default keeps dynamic labels (talent range and fallback probes).
+    local override = settings["text_" .. key]
+    if override ~= nil and override ~= addon_data.range.default_settings["text_" .. key] then
+        text = override
+    end
     frame:Show()
     addon_data.range.current_text = text
     addon_data.range.current_key = key
@@ -628,7 +648,17 @@ addon_data.range.InitializeVisuals = function()
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", addon_data.range.OnFrameDragStart)
     frame:SetScript("OnDragStop", addon_data.range.OnFrameDragStop)
-    frame:SetScript("OnUpdate", addon_data.range.OnUpdate)
+    -- A separate driver continues polling even when the visible bar is hidden.
+    addon_data.range.update_frame = CreateFrame("Frame", nil, UIParent)
+    addon_data.range.update_frame:SetSize(1, 1)
+    addon_data.range.update_frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    addon_data.range.update_frame:SetScript("OnUpdate", addon_data.range.OnUpdate)
+    addon_data.range.update_frame:Show()
+    addon_data.range.update_frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    addon_data.range.update_frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    addon_data.range.update_frame:SetScript("OnEvent", function()
+        addon_data.range.UpdateVisualsOnSettingsChange()
+    end)
 
     frame.backplane = CreateFrame(
         "Frame",
@@ -736,6 +766,23 @@ addon_data.range.UpdateConfigPanelValues = function()
         return
     end
 
+    for _, field in ipairs({"hide_no_target", "hide_dead_target"}) do
+        if panel[field .. "_checkbox"] then
+            panel[field .. "_checkbox"]:SetChecked(settings[field])
+        end
+    end
+    if panel.text_editboxes then
+        for key, box in pairs(panel.text_editboxes) do
+            local field = "text_" .. key
+            local value = settings[field]
+            if type(value) ~= "string" then
+                value = addon_data.range.default_settings[field] or ""
+                settings[field] = value
+            end
+            box:SetText(value)
+            box:SetCursorPosition(0)
+        end
+    end
     panel.enabled_checkbox:SetChecked(settings.enabled)
     panel.show_border_checkbox:SetChecked(settings.show_border)
     panel.classic_bars_checkbox:SetChecked(settings.classic_bars)
@@ -1059,15 +1106,39 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
     panel.unknown_color_picker =
         MakeRangeColorPicker("RangeUnknownColor", "unknown", L["No Target / Unknown"], 20, -470)
 
-    panel.info = addon_data.config.TextFactory(
-        panel,
-        L["Hunter bands: 0-5 melee • 5-8 dead zone • 8-35 ranged • Scatter adds an 8-15 breakpoint • 35-100 far"],
-        11
-    )
-    panel.info:SetPoint("TOPLEFT", 10, -510)
-    panel.info:SetJustifyH("LEFT")
+    panel.hide_no_target_checkbox = addon_data.config.CheckBoxFactory(
+        "RangeHideNoTarget", panel, "Hide with no target", "Hide the range bar when no target is selected.",
+        function(self) character_range_settings.hide_no_target = self:GetChecked(); addon_data.range.UpdateRange() end)
+    panel.hide_no_target_checkbox:SetPoint("TOPLEFT", 10, -205)
+    panel.hide_dead_target_checkbox = addon_data.config.CheckBoxFactory(
+        "RangeHideDeadTarget", panel, "Hide with dead target", "Hide the range bar when the target is dead.",
+        function(self) character_range_settings.hide_dead_target = self:GetChecked(); addon_data.range.UpdateRange() end)
+    panel.hide_dead_target_checkbox:SetPoint("TOPLEFT", 300, -205)
 
-    panel:SetSize(620, 545)
+    panel.text_editboxes = {}
+    local bands = {
+        {"melee", "Melee"}, {"deadzone", "Dead zone"}, {"close", "Close"},
+        {"ranged", "Ranged"}, {"far", "Far"}, {"out", "Out of range"}, {"unknown", "No target / Unknown"}
+    }
+    for i, band in ipairs(bands) do
+        local key = band[1]
+        local box = addon_data.config.EditBoxFactory("RangeText" .. key, panel, band[2], 180, 25,
+            function(self)
+                character_range_settings["text_" .. key] = self:GetText()
+                addon_data.range.UpdateRange()
+            end)
+        box:SetMaxLetters(120)
+        -- Save only user edits; allow an intentionally blank label.
+        box:SetScript("OnTextChanged", function(self, user_input)
+            if user_input then
+                character_range_settings["text_" .. key] = self:GetText()
+                addon_data.range.UpdateRange()
+            end
+        end)
+        box:SetPoint("TOPLEFT", 20 + ((i - 1) % 3) * 195, -515 - math.floor((i - 1) / 3) * 44)
+        panel.text_editboxes[key] = box
+    end
+    panel:SetSize(620, 640)
 
     -- Settings canvas can create/show this panel after its initial construction.
     -- Refresh the values every time it becomes visible so the edit boxes and
@@ -1078,4 +1149,23 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
 
     addon_data.range.UpdateConfigPanelValues()
     return panel
+end
+
+-- Recover an off-screen, transparent, or disabled range bar for positioning.
+SLASH_WSTRANGESHOW1 = "/wstrangeshow"
+SlashCmdList["WSTRANGESHOW"] = function()
+    local settings = character_range_settings
+    if not settings then return end
+    settings.enabled = true
+    settings.point, settings.rel_point = "CENTER", "CENTER"
+    settings.x_offset, settings.y_offset = 0, -290
+    settings.width = tonumber(settings.width) or 300
+    settings.height = tonumber(settings.height) or 12
+    if settings.width <= 0 then settings.width = 300 end
+    if settings.height <= 0 then settings.height = 12 end
+    settings.in_combat_alpha, settings.ooc_alpha = 1, 1
+    settings.hide_no_target, settings.hide_dead_target = false, false
+    addon_data.range.UpdateVisualsOnSettingsChange()
+    addon_data.range.UpdateConfigPanelValues()
+    print("WeaponSwingTimer: Range Check enabled and centered; target hiding disabled.")
 end
