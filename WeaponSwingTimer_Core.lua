@@ -10,7 +10,7 @@ addon_data.core.all_timers = {
     addon_data.player, addon_data.target
 }
 
-local version = "1.60.3"
+local version = "1.60.4"
 
 local load_message = L["Thank you for installing WeaponSwingTimer Version"] .. " " .. version .. 
                      " " .. L["by WatchYourSixx! Use |cFFFFC300/wst|r for more options."]
@@ -78,7 +78,199 @@ addon_data.core.HandlePlayerSwingResetSpell = function(unit, spell_id, trigger)
     end
 
     if should_reset then
+        addon_data.core.LogSwingReset(spell_id, trigger)
         addon_data.player.ResetMainSwingTimer()
+    end
+end
+
+-- Opt-in evidence collection. Do not use the addon's predicted bar as a swing baseline.
+do
+    local trace = CreateFrame("Frame")
+    local active, start, last, intent, previous, nextPoll
+    local exportFrame
+    local function safe(v)
+        if issecretvalue and issecretvalue(v) then return nil end
+        return v
+    end
+    local function read(fn, ...)
+        if not fn then return nil end
+        local ok, a, b, c = pcall(fn, ...)
+        if ok then return safe(a), safe(b), safe(c) end
+    end
+    local function field(v)
+        v = safe(v)
+        if v == nil then return "?" end
+        if type(v) == "number" then return string.format("%.3f", v) end
+        return (tostring(v):gsub("[\t\r\n]", " "))
+    end
+    local function log(kind, ...)
+        if not active then return end
+        local row = {field(GetTime() - start), kind}
+        for i = 1, select("#", ...) do row[#row + 1] = field(select(i, ...)) end
+        active.lines[#active.lines + 1] = table.concat(row, "\t")
+        if #active.lines >= 12000 then
+            active.stopped = "limit"
+            active = nil
+            trace:UnregisterAllEvents()
+            trace:Hide()
+            print("WST swing log reached its limit. Use /wstswinglog copy.")
+        end
+    end
+    local function state()
+        local attacking = read(C_Spell and C_Spell.IsCurrentSpell or IsCurrentSpell, 6603)
+        local source = "spell6603"
+        if type(attacking) ~= "boolean" then attacking, source = intent, "attack_event" end
+        local hand = Enum and Enum.PlayerSwingType and Enum.PlayerSwingType.MainHand
+        local inRange
+        if hand ~= nil then inRange = read(C_SwingTimer and C_SwingTimer.IsTargetWithinSwingRange, hand) end
+        local rangeSource, band
+        if type(inRange) == "boolean" then
+            rangeSource = "native"
+        elseif addon_data.range then
+            inRange = read(addon_data.range.GetHunterMeleeRange)
+            if type(inRange) == "boolean" then
+                rangeSource = "wing_clip"
+            else
+                local _, key = read(addon_data.range.GetRangeBand)
+                band = key
+            end
+        end
+        local mh, oh, ranged = read(UnitAttackSpeed, "player")
+        return field(attacking), source, field(inRange), field(mh), field(oh), field(ranged),
+            field(read(UnitCanAttack, "player", "target")), field(read(UnitIsDead, "target")),
+            field(rangeSource), field(band)
+    end
+    local function sample()
+        local a, src, r, mh, oh, ranged, hostile, dead, probe, band = state()
+        local key = table.concat({a,src,r,mh,oh,ranged,hostile,dead,probe,band}, "\t")
+        if key ~= previous then
+            previous = key
+            log("STATE", a, src, r, mh, oh, ranged, hostile, dead, probe, band)
+        end
+        return a, r
+    end
+    trace:SetScript("OnUpdate", function()
+        if GetTime() >= nextPoll then
+            nextPoll = GetTime() + 0.05
+            sample()
+        end
+    end)
+    trace:SetScript("OnEvent", function(_, event, unit, a, b, c)
+        if not active then return end
+        if event == "PLAYER_SWING" then
+            local now = GetTime()
+            local duration, hand = safe(unit), safe(a)
+            local kinds = Enum and Enum.PlayerSwingType
+            local name = kinds and hand ~= nil and
+                ((hand == kinds.MainHand and "MH") or (hand == kinds.OffHand and "OH") or
+                 (hand == kinds.Ranged and "RANGED"))
+            local prior = name and last[name]
+            local gap = prior and now - prior.time
+            local expected = prior and prior.duration
+            local delta = gap and expected and gap - expected
+            local attacking, inRange = sample()
+            log("SWING", name or hand, duration, gap, expected, delta, attacking, inRange)
+            if name then
+                last[name] = {time = now, duration = type(duration) == "number" and duration > 0 and duration or nil}
+            end
+        elseif event:find("^UNIT_SPELLCAST_") then
+            if safe(unit) ~= "player" then return end
+            local guid, id
+            if event == "UNIT_SPELLCAST_SENT" then guid, id = b, c else guid, id = a, b end
+            id = safe(id)
+            local name = type(id) == "number" and read(C_Spell and C_Spell.GetSpellName or GetSpellInfo, id)
+            log(event, id, guid, name or nil)
+        elseif event == "PLAYER_SWING_RANGE_UPDATE" then
+            log(event, unit, a, b)
+            sample()
+        elseif event == "UNIT_COMBAT" then
+            if safe(unit) == "player" and safe(a) == "PARRY" then log("PLAYER_PARRY") end
+        elseif event == "UNIT_ATTACK_SPEED" or event == "UNIT_INVENTORY_CHANGED" then
+            if safe(unit) == "player" then log(event); sample() end
+        else
+            if event == "PLAYER_ENTER_COMBAT" then intent = true
+            elseif event == "PLAYER_LEAVE_COMBAT" then intent = false end
+            log(event)
+            sample()
+        end
+    end)
+    trace:Hide()
+    local events = {
+        "PLAYER_SWING", "PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBAT",
+        "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "PLAYER_TARGET_CHANGED",
+        "PLAYER_DEAD", "PLAYER_ENTERING_WORLD", "UNIT_ATTACK_SPEED",
+        "UNIT_INVENTORY_CHANGED", "UNIT_COMBAT", "PLAYER_SWING_RANGE_UPDATE",
+        "START_AUTOREPEAT_SPELL", "STOP_AUTOREPEAT_SPELL",
+        "UNIT_SPELLCAST_SENT", "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_SUCCEEDED",
+        "UNIT_SPELLCAST_FAILED", "UNIT_SPELLCAST_FAILED_QUIET",
+        "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_DELAYED",
+        "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP",
+    }
+    -- These are local timer changes, not evidence of a game-side reset.
+    addon_data.core.LogSwingReset = function(spellID, trigger)
+        if active then log("ADDON_RESET_MH", spellID, trigger) end
+    end
+    SLASH_WSTSWINGLOG1 = "/wstswinglog"
+    SlashCmdList.WSTSWINGLOG = function(message)
+        local cmd = message:match("^%s*(%S*)")
+        if cmd == "start" then
+            if active then print("WST swing log is already recording."); return end
+            WSTSwingLog = {schema = 2, started = date("!%Y-%m-%dT%H:%M:%SZ"), lines = {
+                "# seconds since start; ? = unavailable",
+                "# STATE: melee_active, source, melee_range, mh_speed, oh_speed, ranged_speed, hostile, dead, melee_range_source, fallback_range_band",
+                "# SWING: hand, next_duration, gap, previous_duration, gap_minus_previous_duration, melee_active, melee_range",
+                "# UNIT_SPELLCAST: spell_id, cast_guid, spell_name",
+            }}
+            active, start, last, intent, previous, nextPoll = WSTSwingLog, GetTime(), {}, nil, nil, 0
+            for _, event in ipairs(events) do
+                if not pcall(trace.RegisterEvent, trace, event) then log("UNAVAILABLE_EVENT", event) end
+            end
+            log("START", (select(2, GetBuildInfo())), (select(2, UnitClass("player"))))
+            sample()
+            trace:Show()
+            print("WST swing log recording. /wstswinglog stop to finish.")
+        elseif cmd == "stop" then
+            if not active then print("WST swing log is not recording."); return end
+            log("STOP")
+            if active then active.stopped = "manual" end
+            active = nil
+            trace:UnregisterAllEvents()
+            trace:Hide()
+            print("WST swing log stopped. /wstswinglog copy or /reload to save to disk.")
+        elseif cmd == "copy" then
+            if not WSTSwingLog or not WSTSwingLog.lines then print("No WST swing log yet."); return end
+            if not exportFrame then
+                local frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+                frame:SetSize(760, 420)
+                frame:SetPoint("CENTER")
+                frame:SetFrameStrata("DIALOG")
+                frame:SetBackdrop({bgFile = "Interface/Tooltips/UI-Tooltip-Background"})
+                frame:SetBackdropColor(0, 0, 0, 0.95)
+                local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+                close:SetPoint("TOPRIGHT")
+                local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                title:SetPoint("TOPLEFT", 12, -12)
+                title:SetText("WST Swing Log — Ctrl+A, Ctrl+C to copy")
+                local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+                scroll:SetPoint("TOPLEFT", 12, -36)
+                scroll:SetPoint("BOTTOMRIGHT", -32, 12)
+                local box = CreateFrame("EditBox", nil, scroll)
+                box:SetWidth(700)
+                box:SetFontObject(GameFontHighlightSmall)
+                box:SetMultiLine(true)
+                box:SetAutoFocus(false)
+                box:SetScript("OnEscapePressed", function() frame:Hide() end)
+                scroll:SetScrollChild(box)
+                frame.box = box
+                exportFrame = frame
+            end
+            exportFrame:Show()
+            exportFrame.box:SetText(table.concat(WSTSwingLog.lines, "\n"))
+            exportFrame.box:SetFocus()
+            exportFrame.box:HighlightText()
+        else
+            print("WST: /wstswinglog start | stop | copy. Starting replaces the previous capture.")
+        end
     end
 end
 

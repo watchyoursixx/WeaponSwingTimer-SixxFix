@@ -23,7 +23,7 @@ addon_data.target.default_settings = {
 	x_offset = 0,
 	y_offset = -230,
 	in_combat_alpha = 1.0,
-	ooc_alpha = 0.25,
+	ooc_alpha = 0.5,
 	backplane_alpha = 0.5,
 	is_locked = false,
     show_left_text = true,
@@ -342,10 +342,11 @@ end
 addon_data.target.UpdateVisualsOnUpdate = function()
     local settings = character_target_settings
     local frame = addon_data.target.frame
-    if settings.enabled and UnitExists("target") then
+    local preview = addon_data.config.IsBarPreviewActive()
+    if settings.enabled and (preview or UnitExists("target")) then
         frame:Show()
-        local main_speed = addon_data.target.main_weapon_speed
-        local main_timer = addon_data.target.main_swing_timer
+        local main_speed = preview and 2.5 or addon_data.target.main_weapon_speed
+        local main_timer = preview and 1.2 or addon_data.target.main_swing_timer
         -- FIXME: Handle divide by 0 error
         if main_speed == 0 then
             main_speed = 2
@@ -411,7 +412,9 @@ addon_data.target.UpdateVisualsOnUpdate = function()
             frame:SetHeight(settings.height)
         end
         -- Update the alpha
-        if addon_data.core.in_combat then
+        if preview then
+            frame:SetAlpha(1)
+        elseif addon_data.core.in_combat then
             frame:SetAlpha(settings.in_combat_alpha)
         else
             frame:SetAlpha(settings.ooc_alpha)

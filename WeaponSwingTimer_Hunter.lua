@@ -68,7 +68,7 @@ addon_data.hunter.default_settings = {
 	x_offset = 0,
 	y_offset = -260,
 	in_combat_alpha = 1.0,
-	ooc_alpha = 0.0,
+	ooc_alpha = 0.5,
 	backplane_alpha = 0.5,
 	is_locked = false,
     show_text = true,
@@ -263,10 +263,20 @@ addon_data.hunter.OnPlayerSwing = function(duration, swing_type)
         return
     end
 
-    if not Enum or not Enum.PlayerSwingType or
-       swing_type ~= Enum.PlayerSwingType.Ranged then
+    local swing_types = Enum and Enum.PlayerSwingType
+    if not swing_types or WST_IsSecret(swing_type) then return end
+
+    if swing_type == swing_types.MainHand or swing_type == swing_types.OffHand then
+        local h = addon_data.hunter
+        -- Restart the full ranged countdown using the same timer reset as Feign Death.
+        h.last_shot_time = GetTime()
+        h.auto_delay_timer = 0
+        h.auto_cast_remaining = 0
+        h.ResetShotTimer()
         return
     end
+
+    if swing_type ~= swing_types.Ranged then return end
 
     if addon_data.hunter.auto_cast_inferred and
        (not addon_data.hunter.auto_cast_guid or addon_data.hunter.auto_cast_guid == addon_data.hunter.last_auto_success_guid) then
@@ -647,8 +657,11 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
     end
 
     if settings.enabled then
+        local preview = addon_data.config.IsBarPreviewActive()
         if addon_data.hunter.auto_cast_active then
             shot_timer = addon_data.hunter.auto_cast_remaining or 0
+        elseif preview then
+            shot_timer = range_speed * 0.6
         end
         local cast_time = addon_data.hunter.auto_cast_active and addon_data.hunter.auto_cast_duration or
             addon_data.hunter.GetAutoCastTime()
@@ -661,7 +674,9 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
         end
         frame.shot_bar_text:SetText(string.format("%.1f", displayed_timer))
 
-        if addon_data.core.in_combat or addon_data.hunter.shooting or addon_data.hunter.casting_shot then
+        if preview then
+            frame:SetAlpha(1)
+        elseif addon_data.core.in_combat or addon_data.hunter.shooting or addon_data.hunter.casting_shot then
             frame:SetAlpha(settings.in_combat_alpha)
         else
             frame:SetAlpha(settings.ooc_alpha)
@@ -682,29 +697,37 @@ addon_data.hunter.UpdateVisualsOnUpdate = function()
             weapon_speed = addon_data.hunter.auto_cast_visual_speed
         end
         local scale = settings.width / math.max(weapon_speed, cast_time + addon_data.hunter.auto_delay_duration)
-        local cast_width = cast_time * scale
-        local retry_width = delay_timer * scale
-        local cooldown_width = math.max(0, settings.width - cast_width)
-        local progress = math.max(0, math.min(1, (range_speed - shot_timer) / range_speed))
-        local white_width
+        local white_width, red_width, retry_width
+        local anchor = settings.one_bar and "BOTTOMLEFT" or "BOTTOM"
+        frame.shot_bar:ClearAllPoints()
+        frame.shot_bar:SetPoint(anchor, frame, anchor, 0, 0)
+        frame.auto_shot_cast_bar:ClearAllPoints()
+        frame.retry_bar:ClearAllPoints()
         -- Autorepeat toggling/target loss does not reset the native cooldown.
         if settings.one_bar then
             -- Once the cast begins, white follows the shrinking red edge.
             local available_width = math.max(0, settings.width - cast_remaining * scale)
+            local progress = math.max(0, math.min(1, (range_speed - shot_timer) / range_speed))
             white_width = math.min(available_width, settings.width * progress)
+            red_width = cast_remaining * scale
+            retry_width = delay_timer * scale
+            frame.auto_shot_cast_bar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+            -- Retry ends at the fixed start of the full cast segment.
+            frame.retry_bar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -cast_time * scale, 0)
         else
-            white_width = math.min(cooldown_width, math.max(0, shot_timer - cast_time) * scale)
+            -- Each phase uses the full width, centered like the Era layout.
+            local cooldown_fraction = (shot_timer - cast_time) / math.max(0.001, range_speed - cast_time)
+            white_width = settings.width * math.max(0, math.min(1, cooldown_fraction))
+            red_width = addon_data.hunter.auto_cast_active and
+                settings.width * math.max(0, math.min(1, 1 - cast_remaining / cast_time)) or 0
+            retry_width = settings.width * math.min(1, delay_timer / addon_data.hunter.auto_delay_duration)
+            frame.auto_shot_cast_bar:SetPoint("BOTTOM", frame, "BOTTOM", 0, 0)
+            frame.retry_bar:SetPoint("BOTTOM", frame, "BOTTOM", 0, 0)
         end
         frame.shot_bar:SetWidth(math.max(0.001, white_width))
         frame.shot_bar:SetShown(white_width > 0)
-
-        frame.auto_shot_cast_bar:ClearAllPoints()
-        frame.auto_shot_cast_bar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
-        frame.auto_shot_cast_bar:SetWidth(math.max(0.001, cast_remaining * scale))
-        frame.auto_shot_cast_bar:SetShown(cast_remaining > 0)
-        frame.retry_bar:ClearAllPoints()
-        -- Retry always ends at the fixed START of the full cast segment.
-        frame.retry_bar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -cast_width, 0)
+        frame.auto_shot_cast_bar:SetWidth(math.max(0.001, red_width))
+        frame.auto_shot_cast_bar:SetShown(red_width > 0)
         frame.retry_bar:SetSize(math.max(0.001, retry_width), settings.height)
         frame.retry_bar:SetShown(delay_timer > 0)
 
@@ -736,13 +759,6 @@ addon_data.hunter.UpdateVisualsOnSettingsChange = function()
                 insets = { left = 8, right = 8, top = 8, bottom = 8}})
         end
         frame.backplane:SetBackdropColor(0,0,0,settings.backplane_alpha)
-        frame.shot_bar:ClearAllPoints()
-        if not settings.one_bar then
-            frame.shot_bar:SetPoint("BOTTOMLEFT", 0, 0)
-        else
-            frame.shot_bar:SetPoint("BOTTOMLEFT", 0, 0)
-            frame.shot_bar:SetVertexColor(settings.cooldown_r, settings.cooldown_g, settings.cooldown_b, settings.cooldown_a)
-        end
         frame.auto_shot_cast_bar:ClearAllPoints()
         -- Cast and retry segments count down toward the right edge.
         frame.auto_shot_cast_bar:SetPoint("BOTTOMRIGHT", 0, 0)

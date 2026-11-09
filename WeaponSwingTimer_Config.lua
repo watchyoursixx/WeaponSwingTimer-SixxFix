@@ -3,6 +3,11 @@ local L = addon_data.localization_table
 
 addon_data.config = {}
 
+-- Preview is a session-only display override. Live timers keep running.
+addon_data.config.IsBarPreviewActive = function()
+    return addon_data.config.preview_bars and not addon_data.core.in_combat
+end
+
 addon_data.config.OnDefault = function()
     addon_data.core.RestoreAllDefaults()
     addon_data.config.UpdateConfigValues()
@@ -327,6 +332,16 @@ addon_data.config.CreateConfigPanel = function(parent_panel)
         addon_data.config.WelcomeCheckBoxOnClick)
     panel.welcome_checkbox:SetPoint("TOPLEFT", 0, -80)
     
+    panel.preview_bars_checkbox = addon_data.config.CheckBoxFactory(
+        "PreviewBarsCheckBox",
+        panel,
+        " Preview Bars",
+        "Show enabled bars with sample values outside combat. Unlock the bars to move them.",
+        function(self)
+            addon_data.config.preview_bars = self:GetChecked()
+        end)
+    panel.preview_bars_checkbox:SetPoint("TOPLEFT", 0, -130)
+
     -- Return the final panel
     addon_data.config.UpdateConfigValues()
     return panel

@@ -13,7 +13,7 @@ addon_data.range.default_settings = {
     x_offset = 0,
     y_offset = -290,
     in_combat_alpha = 1.0,
-    ooc_alpha = 0.65,
+    ooc_alpha = 0.5,
     backplane_alpha = 0.5,
     is_locked = false,
     show_text = true,
@@ -78,6 +78,7 @@ local CLASS_RANGE_PROBES = {
 local AUTO_SHOT_ID = 75
 
 local function NormalizeRangeResult(result)
+    if issecretvalue and issecretvalue(result) then return nil end
     if result == true or result == 1 then
         return true
     elseif result == false or result == 0 then
@@ -155,6 +156,16 @@ local function NativeMeleeInRange()
     end
 
     return SpellBookSpellInRange("Wing Clip")
+end
+
+-- Share the Hunter melee probe with diagnostics without enabling the range bar.
+addon_data.range.GetHunterMeleeRange = function()
+    local _, class = UnitClass("player")
+    if class ~= "HUNTER" or not UnitExists("target") or UnitIsDead("target")
+        or not UnitCanAttack("player", "target") then
+        return nil
+    end
+    return NativeMeleeInRange()
 end
 
 local function NativeRangedInRange()
@@ -585,8 +596,9 @@ addon_data.range.UpdateRange = function()
         return
     end
 
-    if (settings.hide_no_target and not UnitExists("target")) or
-       (settings.hide_dead_target and UnitExists("target") and UnitIsDeadOrGhost("target")) then
+    local preview = addon_data.config.IsBarPreviewActive()
+    if not preview and ((settings.hide_no_target and not UnitExists("target")) or
+       (settings.hide_dead_target and UnitExists("target") and UnitIsDeadOrGhost("target"))) then
         frame:Hide()
         return
     end
@@ -615,10 +627,12 @@ addon_data.range.UpdateRange = function()
         frame.text:Hide()
     end
 
-    if addon_data.core.in_combat then
-        frame:SetAlpha(settings.in_combat_alpha)
+    if preview then
+        frame.content:SetAlpha(1)
+    elseif addon_data.core.in_combat then
+        frame.content:SetAlpha(settings.in_combat_alpha)
     else
-        frame:SetAlpha(settings.ooc_alpha)
+        frame.content:SetAlpha(settings.ooc_alpha)
     end
 end
 
@@ -660,20 +674,24 @@ addon_data.range.InitializeVisuals = function()
         addon_data.range.UpdateVisualsOnSettingsChange()
     end)
 
+    -- Keep the public frame available for external fades; apply our opacity inside it.
+    frame.content = CreateFrame("Frame", nil, frame)
+    frame.content:SetAllPoints(frame)
+
     frame.backplane = CreateFrame(
         "Frame",
         addon_name .. "RangeBackdropFrame",
-        frame,
+        frame.content,
         "BackdropTemplate"
     )
     frame.backplane:SetPoint("TOPLEFT", -9, 9)
     frame.backplane:SetPoint("BOTTOMRIGHT", 9, -9)
     frame.backplane:SetFrameStrata("BACKGROUND")
 
-    frame.bar = frame:CreateTexture(nil, "ARTWORK")
+    frame.bar = frame.content:CreateTexture(nil, "ARTWORK")
     frame.bar:SetAllPoints(frame)
 
-    frame.text = frame:CreateFontString(nil, "OVERLAY")
+    frame.text = frame.content:CreateFontString(nil, "OVERLAY")
     frame.text:SetPoint("CENTER", 0, 0)
     frame.text:SetJustifyH("CENTER")
     frame.text:SetJustifyV("MIDDLE")
@@ -957,6 +975,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         L["Enables the Range Check bar for this character."],
         addon_data.range.EnabledCheckBoxOnClick
     )
+    panel.enabled_checkbox:SetScale(1)
     panel.enabled_checkbox:SetPoint("TOPLEFT", 10, -105)
 
     panel.show_border_checkbox = addon_data.config.CheckBoxFactory(
@@ -966,6 +985,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         L["Shows the range bar border."],
         addon_data.range.ShowBorderCheckBoxOnClick
     )
+    panel.show_border_checkbox:SetScale(1)
     panel.show_border_checkbox:SetPoint("TOPLEFT", 10, -155)
 
     panel.classic_bars_checkbox = addon_data.config.CheckBoxFactory(
@@ -975,6 +995,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         L["Uses the classic WeaponSwingTimer bar texture."],
         addon_data.range.ClassicBarsCheckBoxOnClick
     )
+    panel.classic_bars_checkbox:SetScale(1)
     panel.classic_bars_checkbox:SetPoint("TOPLEFT", 10, -180)
 
     panel.show_text_checkbox = addon_data.config.CheckBoxFactory(
@@ -984,6 +1005,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         L["Shows the estimated range band on the bar."],
         addon_data.range.ShowTextCheckBoxOnClick
     )
+    panel.show_text_checkbox:SetScale(1)
     panel.show_text_checkbox:SetPoint("TOPLEFT", 10, -130)
 
     panel.width_editbox = addon_data.config.EditBoxFactory(
@@ -1027,7 +1049,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
     panel.y_offset_editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
 
     panel.alpha_text = addon_data.config.TextFactory(panel, L["Alpha Settings"], 16)
-    panel.alpha_text:SetPoint("TOPLEFT", 10, -225)
+    panel.alpha_text:SetPoint("TOPLEFT", 10, -235)
     panel.alpha_text:SetTextColor(1, 0.82, 0, 1)
 
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(
@@ -1037,7 +1059,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         0, 1, 0.05,
         addon_data.range.CombatAlphaOnValChange
     )
-    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 20, -262)
+    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 20, -267)
     if panel.in_combat_alpha_slider.editbox then
         panel.in_combat_alpha_slider.editbox:SetTextColor(1, 1, 1, 1)
         panel.in_combat_alpha_slider.editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
@@ -1050,7 +1072,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         0, 1, 0.05,
         addon_data.range.OOCAlphaOnValChange
     )
-    panel.ooc_alpha_slider:SetPoint("TOPLEFT", 205, -262)
+    panel.ooc_alpha_slider:SetPoint("TOPLEFT", 205, -267)
     if panel.ooc_alpha_slider.editbox then
         panel.ooc_alpha_slider.editbox:SetTextColor(1, 1, 1, 1)
         panel.ooc_alpha_slider.editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
@@ -1063,14 +1085,14 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         0, 1, 0.05,
         addon_data.range.BackplaneAlphaOnValChange
     )
-    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 390, -262)
+    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 390, -267)
     if panel.backplane_alpha_slider.editbox then
         panel.backplane_alpha_slider.editbox:SetTextColor(1, 1, 1, 1)
         panel.backplane_alpha_slider.editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
     end
 
     panel.colors_text = addon_data.config.TextFactory(panel, L["Range Colors"], 16)
-    panel.colors_text:SetPoint("TOPLEFT", 10, -330)
+    panel.colors_text:SetPoint("TOPLEFT", 10, -305)
     panel.colors_text:SetTextColor(1, 0.82, 0, 1)
 
     local function MakeRangeColorPicker(field, key, label, x, y)
@@ -1090,29 +1112,31 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
     end
 
     panel.melee_color_picker =
-        MakeRangeColorPicker("RangeMeleeColor", "melee", L["0-5 Melee"], 20, -365)
+        MakeRangeColorPicker("RangeMeleeColor", "melee", L["0-5 Melee"], 20, -335)
     panel.deadzone_color_picker =
-        MakeRangeColorPicker("RangeDeadzoneColor", "deadzone", L["5-8 Dead Zone"], 300, -365)
+        MakeRangeColorPicker("RangeDeadzoneColor", "deadzone", L["5-8 Dead Zone"], 300, -335)
     panel.close_color_picker =
-        MakeRangeColorPicker("RangeCloseColor", "close", L["8-15 Close"], 20, -400)
+        MakeRangeColorPicker("RangeCloseColor", "close", L["8-15 Close"], 20, -363)
 
     panel.ranged_color_picker =
-        MakeRangeColorPicker("RangeRangedColor", "ranged", L["Ranged (8-35 / 15-35)"], 300, -400)
+        MakeRangeColorPicker("RangeRangedColor", "ranged", L["Ranged (8-35 / 15-35)"], 300, -363)
     panel.far_color_picker =
-        MakeRangeColorPicker("RangeFarColor", "far", L["35-100 Far"], 20, -435)
+        MakeRangeColorPicker("RangeFarColor", "far", L["35-100 Far"], 20, -391)
     panel.out_color_picker =
-        MakeRangeColorPicker("RangeOutColor", "out", L["Out of Range"], 300, -435)
+        MakeRangeColorPicker("RangeOutColor", "out", L["Out of Range"], 300, -391)
 
     panel.unknown_color_picker =
-        MakeRangeColorPicker("RangeUnknownColor", "unknown", L["No Target / Unknown"], 20, -470)
+        MakeRangeColorPicker("RangeUnknownColor", "unknown", L["No Target / Unknown"], 20, -419)
 
     panel.hide_no_target_checkbox = addon_data.config.CheckBoxFactory(
         "RangeHideNoTarget", panel, "Hide with no target", "Hide the range bar when no target is selected.",
         function(self) character_range_settings.hide_no_target = self:GetChecked(); addon_data.range.UpdateRange() end)
+    panel.hide_no_target_checkbox:SetScale(1)
     panel.hide_no_target_checkbox:SetPoint("TOPLEFT", 10, -205)
     panel.hide_dead_target_checkbox = addon_data.config.CheckBoxFactory(
         "RangeHideDeadTarget", panel, "Hide with dead target", "Hide the range bar when the target is dead.",
         function(self) character_range_settings.hide_dead_target = self:GetChecked(); addon_data.range.UpdateRange() end)
+    panel.hide_dead_target_checkbox:SetScale(1)
     panel.hide_dead_target_checkbox:SetPoint("TOPLEFT", 300, -205)
 
     panel.text_editboxes = {}
@@ -1135,7 +1159,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
                 addon_data.range.UpdateRange()
             end
         end)
-        box:SetPoint("TOPLEFT", 20 + ((i - 1) % 3) * 195, -515 - math.floor((i - 1) / 3) * 44)
+        box:SetPoint("TOPLEFT", 20 + ((i - 1) % 3) * 195, -465 - math.floor((i - 1) / 3) * 40)
         panel.text_editboxes[key] = box
     end
     panel:SetSize(620, 640)

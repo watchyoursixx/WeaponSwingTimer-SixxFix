@@ -448,11 +448,49 @@ end
 
 --- Updating and initializing visuals
 --- ---------------------------------
+local function IsSpellBarEnabled(settings)
+    local _, class = UnitClass("player")
+    return class == "HUNTER" and settings.enabled and
+        (settings.show_multishot_cast_bar or settings.show_aimedshot_cast_bar or settings.show_steadyshot_cast_bar)
+end
+
 addon_data.castbar.UpdateVisualsOnUpdate = function()
     local settings = character_castbar_settings
     local frame = addon_data.castbar.frame
 
-    if addon_data.core.in_combat or addon_data.castbar.casting_shot then
+    if not IsSpellBarEnabled(settings) then
+        frame:Hide()
+        return
+    end
+
+    if addon_data.config.IsBarPreviewActive() then
+        frame:SetAlpha(1)
+        frame:Show()
+        frame.spell_bar:SetVertexColor(0.8, 0.64, 0, 1)
+        frame.spell_bar:SetWidth(settings.width * 0.6)
+        frame.spell_bar_text:SetText("0.8")
+        frame.spell_spark:Hide()
+        frame.cast_latency:Hide()
+        frame.wst_preview = true
+        return
+    end
+
+    if frame.wst_preview then
+        frame.wst_preview = nil
+        if not addon_data.castbar.casting_shot then
+            frame:SetAlpha(0)
+            frame.spell_bar_text:SetText("")
+        end
+    end
+
+    if not addon_data.core.in_combat then
+        frame:Hide()
+        frame:SetAlpha(0)
+        return
+    end
+
+    frame:Show()
+    do
 		if addon_data.castbar.casting_shot then
 		
 			local time_left = math.max(addon_data.utils.SimpleRound(addon_data.castbar.cast_time - addon_data.castbar.cast_timer, 0.1), 0)
@@ -490,23 +528,13 @@ addon_data.castbar.UpdateVisualsOnUpdate = function()
 				frame.cast_latency:Hide()
 		end
 	end
-	else
-		frame.spell_bar:SetVertexColor(0.2, 0.2, 0.2, 1)
-		frame:SetSize(settings.width, settings.height)
-        if not (settings.is_locked) then
-			frame.spell_text_center:SetText(L["Spell Bar Unlocked"])
-			frame:SetAlpha(1)
-		else
-			frame:SetAlpha(0)
-		end
     end
 end
 
 addon_data.castbar.UpdateVisualsOnSettingsChange = function()
     local settings = character_castbar_settings
     local frame = addon_data.castbar.frame
-	local _, class, _ = UnitClass("player")
-	if (settings.show_multishot_cast_bar or settings.show_aimedshot_cast_bar or settings.show_steadyshot_cast_bar) and (class == "HUNTER") then
+    if IsSpellBarEnabled(settings) then
         frame:EnableMouse(not settings.is_locked)
         frame:Show()
         frame:ClearAllPoints()
@@ -555,6 +583,7 @@ addon_data.castbar.UpdateVisualsOnSettingsChange = function()
             frame.spell_text_center:Hide()
             frame.spell_bar_text:Hide()
         end
+        addon_data.castbar.UpdateVisualsOnUpdate()
     else
         frame:Hide()
     end
@@ -619,7 +648,6 @@ addon_data.castbar.InitializeVisuals = function()
     -- Show it off
     addon_data.castbar.UpdateVisualsOnSettingsChange()
     addon_data.castbar.UpdateVisualsOnUpdate()
-    frame:Show()
 end
 
 
