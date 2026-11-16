@@ -2,8 +2,7 @@
 
 Track melee swings, Hunter Auto Shot, and wand shots. Supported builds also include a Hunter spell cast bar and an optional target range display.
 
-> **Screenshot placeholder:** WeaponSwingTimer in game.
-<!-- ![WeaponSwingTimer bars in game](Images/screenshot-overview.png) -->
+![WeaponSwingTimer in game](https://raw.githubusercontent.com/watchyoursixx/WeaponSwingTimer-SixxFix/refs/heads/forever/Images/screenshot-overview.png)
 
 ## Quick setup
 
@@ -24,18 +23,15 @@ Find **YaHT / One bar** under **Ranged Settings**. It's one toggle with two layo
 
 **White** is generally the time you can move. **Red** is when to stand still for Auto Shot. **Gray** marks a ranged timer reset after a melee swing or Feign Death in builds that support it.
 
-> **Screenshot placeholder:** Centered layout — white cooldown and red cast.
-<!-- ![Centered Auto Shot cooldown and cast](Images/screenshot-hunter-centered.png) -->
+![centered](https://raw.githubusercontent.com/watchyoursixx/WeaponSwingTimer-SixxFix/refs/heads/forever/Images/screenshot-hunter-centered.png)
 
-> **Screenshot placeholder:** YaHT / One Bar — white fill and red cast segment.
-<!-- ![YaHT-style Auto Shot timer](Images/screenshot-hunter-one-bar.png) -->
+![alt text](https://raw.githubusercontent.com/watchyoursixx/WeaponSwingTimer-SixxFix/refs/heads/forever/Images/screenshot-hunter-one-bar.png)
 
 ### Orange: Auto Shot retry
 
 With **Auto Shot delay timer** enabled, orange appears after a failed Auto Shot attempt. It counts down toward the middle in **Centered** mode or toward the red cast segment in **One Bar**. While orange is showing, the number combines the retry time and the Auto Shot cast time. Orange alone doesn't mean your next shot was delayed by the full retry window.
 
-> **Screenshot placeholder:** Orange retry timer.
-<!-- ![Orange Auto Shot retry indicator](Images/screenshot-hunter-retry.png) -->
+![retry timer in orange](https://github.com/watchyoursixx/WeaponSwingTimer-SixxFix/blob/forever/Images/screenshot-hunter-retry.png?raw=true)
 
 The separate **Hunter spell bar** shows supported cast-time shots such as Aimed Shot and Multi-Shot. In builds with **Preview Bars**, it's hidden outside combat except during preview.
 
@@ -48,16 +44,13 @@ The separate **Hunter spell bar** shows supported cast-time shots such as Aimed 
 | **Appearance** | Set the font, size, texture, and colors for each bar. **Default** keeps the existing look. Extra fonts and textures can appear under **Shared Media** when available. |
 | **Profiles** | Save and switch between layouts. |
 
-> **Screenshot placeholder:** Melee bar with a queued attack.
-<!-- ![Melee bar highlighting a queued attack](Images/screenshot-melee.png) -->
+![alt text](https://github.com/watchyoursixx/WeaponSwingTimer-SixxFix/blob/forever/Images/screenshot-melee.png?raw=true)
 
 On Forever, Auto Shot's normal range band follows your Hawk Eye rank. Enable **Show Sniper Shot range** in Range Check Settings to highlight targets within Sniper Shot reach and see extended Auto Shot range when the Sniper buff is active. Use `/wstrangedebug` to see which probes are answering.
 
-> **Screenshot placeholder:** Range Check in game.
-<!-- ![Range Check bar](Images/screenshot-range.png) -->
+![range bars](https://github.com/watchyoursixx/WeaponSwingTimer-SixxFix/blob/forever/Images/screenshot-range.png?raw=true)
 
-> **Screenshot placeholder:** Appearance settings.
-<!-- ![Appearance settings](Images/screenshot-appearance.png) -->
+![appearance setting page](https://github.com/watchyoursixx/WeaponSwingTimer-SixxFix/blob/forever/Images/screenshot-appearance.png?raw=true)
 
 ## Troubleshooting
 
