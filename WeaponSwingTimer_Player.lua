@@ -14,6 +14,8 @@ end
 --[[============================================================================================]]--
 
 addon_data.player.default_settings = {
+    bar_font = "default",
+    bar_texture = "default",
 	enabled = true,
 	width = 300,
 	height = 12,
@@ -32,6 +34,8 @@ addon_data.player.default_settings = {
     show_border = false,
     classic_bars = true,
     fill_empty = true,
+    show_queued_attack_text = true,
+    queued_r = 1.0, queued_g = 0.76, queued_b = 0.15, queued_a = 1.0,
     main_r = 0.1, main_g = 0.1, main_b = 0.9, main_a = 1.0,
     main_text_r = 1.0, main_text_g = 1.0, main_text_b = 1.0, main_text_a = 1.0,
     off_r = 0.1, off_g = 0.1, off_b = 0.9, off_a = 1.0,
@@ -263,6 +267,35 @@ end
 --[[ ============================================================================================]]--
 --[[===================================== VISUALS RELATED ======================================]]--
 --[[============================================================================================]]--
+local queued_attacks_by_class = {
+    WARRIOR = {
+        {name = "Heroic Strike", 25286, 11567, 11566, 11565, 11564, 1608, 285, 284, 78},
+        {name = "Cleave", 20569, 11609, 11608, 7369, 845},
+    },
+    DRUID = {{name = "Maul", 9881, 9880, 9745, 8972, 6809, 6808, 6807}},
+    HUNTER = {{name = "Raptor Strike", 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973}},
+}
+
+local queued_attacks = queued_attacks_by_class[select(2, UnitClass("player"))]
+local last_queue_check, queued_attack_name
+local function GetQueuedMeleeAttack()
+    local is_current = C_Spell and C_Spell.IsCurrentSpell or IsCurrentSpell
+    if not queued_attacks or not is_current then return nil end
+    local now = GetTime()
+    if last_queue_check and now - last_queue_check < 0.05 then return queued_attack_name end
+    last_queue_check, queued_attack_name = now, nil
+    for _, attack in ipairs(queued_attacks) do
+        for _, spell_id in ipairs(attack) do
+            local current = is_current(spell_id)
+            if not WST_IsSecret(current) and current then
+                local name = C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(spell_id)
+                queued_attack_name = not WST_IsSecret(name) and name or attack.name
+                return queued_attack_name
+            end
+        end
+    end
+end
+
 addon_data.player.UpdateVisualsOnUpdate = function()
     local settings = character_player_settings
     local frame = addon_data.player.frame
@@ -287,7 +320,13 @@ addon_data.player.UpdateVisualsOnUpdate = function()
             frame.main_spark:Show()
         end
         -- Update the main bars text
-        frame.main_left_text:SetText(L["Main-Hand"])
+        local queued = not preview and GetQueuedMeleeAttack()
+        if queued then
+            frame.main_bar:SetVertexColor(settings.queued_r, settings.queued_g, settings.queued_b, settings.queued_a)
+        else
+            frame.main_bar:SetVertexColor(settings.main_r, settings.main_g, settings.main_b, settings.main_a)
+        end
+        frame.main_left_text:SetText(settings.show_queued_attack_text and queued or L["Main-Hand"])
         frame.main_right_text:SetText(tostring(addon_data.utils.SimpleRound(main_timer, 0.1)))
         -- Update the off hand bar
         if addon_data.player.has_offhand and settings.show_offhand then
@@ -369,37 +408,29 @@ addon_data.player.UpdateVisualsOnSettingsChange = function()
         frame.backplane:SetBackdropColor(0,0,0,settings.backplane_alpha)
         frame.main_bar:SetPoint("TOPLEFT", 0, 0)
         frame.main_bar:SetHeight(settings.height)
-        if settings.classic_bars then
-            frame.main_bar:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Bar')
-        else
-            frame.main_bar:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Background')
-        end
+        frame.main_bar:SetTexture(addon_data.config.GetBarTexture(settings))
         frame.main_bar:SetVertexColor(settings.main_r, settings.main_g, settings.main_b, settings.main_a)
         frame.main_spark:SetSize(16, settings.height)
         frame.main_left_text:SetPoint("TOPLEFT", 2, -(settings.height / 2) + (settings.fontsize / 2))
         frame.main_left_text:SetTextColor(settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-		frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		addon_data.config.ApplyBarFont(frame.main_left_text, settings)
 	
         frame.main_right_text:SetPoint("TOPRIGHT", -5, -(settings.height / 2) + (settings.fontsize / 2))
         frame.main_right_text:SetTextColor(settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a)
-		frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		addon_data.config.ApplyBarFont(frame.main_right_text, settings)
 
         frame.off_bar:SetPoint("BOTTOMLEFT", 0, 0)
         frame.off_bar:SetHeight(settings.height)
-        if settings.classic_bars then
-            frame.off_bar:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Bar')
-        else
-            frame.off_bar:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Background')
-        end
+        frame.off_bar:SetTexture(addon_data.config.GetBarTexture(settings))
         frame.off_bar:SetVertexColor(settings.off_r, settings.off_g, settings.off_b, settings.off_a)
         frame.off_spark:SetSize(16, settings.height)
         frame.off_left_text:SetPoint("BOTTOMLEFT", 2, (settings.height / 2) - (settings.fontsize / 2))
         frame.off_left_text:SetTextColor(settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-		frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		addon_data.config.ApplyBarFont(frame.off_left_text, settings)
 	
         frame.off_right_text:SetPoint("BOTTOMRIGHT", -5, (settings.height / 2) - (settings.fontsize / 2))
         frame.off_right_text:SetTextColor(settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a)
-		frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		addon_data.config.ApplyBarFont(frame.off_right_text, settings)
         if settings.show_left_text then
             frame.main_left_text:Show()
             frame.off_left_text:Show()
@@ -480,12 +511,12 @@ addon_data.player.InitializeVisuals = function()
     frame.main_spark:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Spark')
     -- Create the main hand bar left text
     frame.main_left_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.main_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+    addon_data.config.ApplyBarFont(frame.main_left_text, settings)
     frame.main_left_text:SetJustifyV("MIDDLE")
     frame.main_left_text:SetJustifyH("LEFT")
     -- Create the main hand bar right text
     frame.main_right_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.main_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+    addon_data.config.ApplyBarFont(frame.main_right_text, settings)
     frame.main_right_text:SetJustifyV("MIDDLE")
     frame.main_right_text:SetJustifyH("RIGHT")
     -- Create the off hand bar
@@ -495,12 +526,12 @@ addon_data.player.InitializeVisuals = function()
     frame.off_spark:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Spark')
     -- Create the off hand bar left text
     frame.off_left_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.off_left_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+    addon_data.config.ApplyBarFont(frame.off_left_text, settings)
     frame.off_left_text:SetJustifyV("MIDDLE")
     frame.off_left_text:SetJustifyH("LEFT")
     -- Create the off hand bar right text
     frame.off_right_text = frame:CreateFontString(nil, "OVERLAY")
-    frame.off_right_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+    addon_data.config.ApplyBarFont(frame.off_right_text, settings)
     frame.off_right_text:SetJustifyV("MIDDLE")
     frame.off_right_text:SetJustifyH("RIGHT")
     -- Show it off
@@ -519,10 +550,12 @@ addon_data.player.UpdateConfigPanelValues = function()
     panel.enabled_checkbox:SetChecked(settings.enabled)
     panel.show_offhand_checkbox:SetChecked(settings.show_offhand)
     panel.show_border_checkbox:SetChecked(settings.show_border)
-    panel.classic_bars_checkbox:SetChecked(settings.classic_bars)
     panel.fill_empty_checkbox:SetChecked(settings.fill_empty)
     panel.show_left_text_checkbox:SetChecked(settings.show_left_text)
     panel.show_right_text_checkbox:SetChecked(settings.show_right_text)
+    panel.queued_text_checkbox:SetChecked(settings.show_queued_attack_text)
+    panel.queued_color_picker.foreground:SetColorTexture(
+        settings.queued_r, settings.queued_g, settings.queued_b, settings.queued_a)
     panel.width_editbox:SetText(tostring(settings.width))
     panel.width_editbox:SetCursorPosition(0)
     panel.height_editbox:SetText(tostring(settings.height))
@@ -561,11 +594,6 @@ end
 
 addon_data.player.ShowBorderCheckBoxOnClick = function(self)
     character_player_settings.show_border = self:GetChecked()
-    addon_data.player.UpdateVisualsOnSettingsChange()
-end
-
-addon_data.player.ClassicBarsCheckBoxOnClick = function(self)
-    character_player_settings.classic_bars = self:GetChecked()
     addon_data.player.UpdateVisualsOnSettingsChange()
 end
 
@@ -666,7 +694,7 @@ addon_data.player.BackplaneAlphaOnValChange = function(self)
     addon_data.player.UpdateVisualsOnSettingsChange()
 end
 
-addon_data.player.CreateConfigPanel = function(parent_panel)
+addon_data.player.CreateConfigPanel = function(parent_panel, appearance_panel)
     addon_data.player.config_frame = CreateFrame("Frame", addon_name .. "PlayerConfigPanel", parent_panel)
     local panel = addon_data.player.config_frame
     local settings = character_player_settings
@@ -675,6 +703,7 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
     panel.title_text = addon_data.config.TextFactory(panel, L["Player Swing Bar Settings"], 20)
     panel.title_text:SetPoint("TOPLEFT", 10, -10)
     panel.title_text:SetTextColor(1, 0.82, 0, 1)
+    addon_data.config.SectionSummary(panel, "Track your melee swings and queued attacks. Choose which hands and labels to show.")
     
     -- Enabled Checkbox
     panel.enabled_checkbox = addon_data.config.CheckBoxFactory(
@@ -683,7 +712,8 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         L["Enable"],
         L["Enables the player's swing bars."],
         addon_data.player.EnabledCheckBoxOnClick)
-    panel.enabled_checkbox:SetPoint("TOPLEFT", 10, -40)
+    panel.enabled_checkbox:SetScale(1)
+    panel.enabled_checkbox:SetPoint("TOPLEFT", 10, -78)
     -- Show Off-Hand Checkbox
     panel.show_offhand_checkbox = addon_data.config.CheckBoxFactory(
         "PlayerShowOffHandCheckBox",
@@ -691,7 +721,8 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         L["Show Off-Hand"],
         L["Enables the player's off-hand swing bar."],
         addon_data.player.ShowOffHandCheckBoxOnClick)
-    panel.show_offhand_checkbox:SetPoint("TOPLEFT", 10, -60)
+    panel.show_offhand_checkbox:SetScale(1)
+    panel.show_offhand_checkbox:SetPoint("TOPLEFT", 10, -102)
     -- Show Border Checkbox
     panel.show_border_checkbox = addon_data.config.CheckBoxFactory(
         "PlayerShowBorderCheckBox",
@@ -699,15 +730,8 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         L["Show border"],
         L["Enables the player bar's border."],
         addon_data.player.ShowBorderCheckBoxOnClick)
-    panel.show_border_checkbox:SetPoint("TOPLEFT", 10, -80)
-    -- Show Classic Bars Checkbox
-    panel.classic_bars_checkbox = addon_data.config.CheckBoxFactory(
-        "PlayerClassicBarsCheckBox",
-        panel,
-        L["Classic bars"],
-        L["Enables the classic texture for the player's bars."],
-        addon_data.player.ClassicBarsCheckBoxOnClick)
-    panel.classic_bars_checkbox:SetPoint("TOPLEFT", 10, -100)
+    panel.show_border_checkbox:SetScale(1)
+    panel.show_border_checkbox:SetPoint("TOPLEFT", 10, -126)
     -- Fill/Empty Checkbox
     panel.fill_empty_checkbox = addon_data.config.CheckBoxFactory(
         "PlayerFillEmptyCheckBox",
@@ -715,7 +739,8 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         L["Fill / Empty"],
         L["Determines if the bar is full or empty when a swing is ready."],
         addon_data.player.FillEmptyCheckBoxOnClick)
-    panel.fill_empty_checkbox:SetPoint("TOPLEFT", 10, -120)
+    panel.fill_empty_checkbox:SetScale(1)
+    panel.fill_empty_checkbox:SetPoint("TOPLEFT", 10, -150)
     -- Show Left Text Checkbox
     panel.show_left_text_checkbox = addon_data.config.CheckBoxFactory(
         "PlayerShowLeftTextCheckBox",
@@ -723,7 +748,8 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         L["Show Left Text"],
         L["Enables the player's left side text."],
         addon_data.player.ShowLeftTextCheckBoxOnClick)
-    panel.show_left_text_checkbox:SetPoint("TOPLEFT", 10, -140)
+    panel.show_left_text_checkbox:SetScale(1)
+    panel.show_left_text_checkbox:SetPoint("TOPLEFT", 10, -174)
     -- Show Right Text Checkbox
     panel.show_right_text_checkbox = addon_data.config.CheckBoxFactory(
         "PlayerShowRightTextCheckBox",
@@ -731,34 +757,51 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         L["Show Right Text"],
         L["Enables the player's right side text."],
         addon_data.player.ShowRightTextCheckBoxOnClick)
-    panel.show_right_text_checkbox:SetPoint("TOPLEFT", 10, -160)
+    panel.show_right_text_checkbox:SetScale(1)
+    panel.show_right_text_checkbox:SetPoint("TOPLEFT", 10, -198)
+    panel.queued_text_checkbox = addon_data.config.CheckBoxFactory(
+        "PlayerQueuedAttackTextCheckBox", panel, "Show Queued Name",
+        "Replace Main-Hand text with the queued attack name when Show Left Text is enabled.",
+        function(self)
+            character_player_settings.show_queued_attack_text = self:GetChecked()
+        end)
+    panel.queued_text_checkbox:SetScale(1)
+    panel.queued_text_checkbox:SetPoint("TOPLEFT", 10, -222)
+    panel.queued_color_picker = addon_data.config.color_picker_factory(
+        "PlayerQueuedAttackColorPicker", appearance_panel,
+        settings.queued_r, settings.queued_g, settings.queued_b, settings.queued_a,
+        "Queued Attack Color",
+        function()
+            addon_data.config.ShowColorPicker(character_player_settings, "queued",
+                panel.queued_color_picker.foreground, addon_data.player.UpdateVisualsOnSettingsChange)
+        end)
     -- Width EditBox
     panel.width_editbox = addon_data.config.EditBoxFactory(
         "PlayerWidthEditBox",
-        panel,
+        appearance_panel,
         L["Bar Width"],
         75,
         25,
         addon_data.player.WidthEditBoxOnEnter)
-    panel.width_editbox:SetPoint("TOPLEFT", 240, -60, "BOTTOMRIGHT", 275, -85)
+
     -- Height EditBox
     panel.height_editbox = addon_data.config.EditBoxFactory(
         "PlayerHeightEditBox",
-        panel,
+        appearance_panel,
         L["Bar Height"],
         75,
         25,
         addon_data.player.HeightEditBoxOnEnter)
-    panel.height_editbox:SetPoint("TOPLEFT", 320, -60, "BOTTOMRIGHT", 355, -85)
+
 	-- Font Size EditBox
 	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
         "FontSizeEditBox",
-        panel,
+        appearance_panel,
         "Font Size",
         75,
         25,
         addon_data.player.FontSizeEditBoxOnEnter)
-    panel.fontsize_editbox:SetPoint("TOPLEFT", 160, -60)
+
     -- X Offset EditBox
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
         "PlayerXOffsetEditBox",
@@ -767,7 +810,7 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.player.XOffsetEditBoxOnEnter)
-    panel.x_offset_editbox:SetPoint("TOPLEFT", 200, -110, "BOTTOMRIGHT", 275, -135)
+    panel.x_offset_editbox:SetPoint("TOPLEFT", 220, -78)
     -- Y Offset EditBox
     panel.y_offset_editbox = addon_data.config.EditBoxFactory(
         "PlayerYOffsetEditBox",
@@ -776,71 +819,70 @@ addon_data.player.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.player.YOffsetEditBoxOnEnter)
-    panel.y_offset_editbox:SetPoint("TOPLEFT", 280, -110, "BOTTOMRIGHT", 355, -135)
+    panel.y_offset_editbox:SetPoint("TOPLEFT", 304, -78)
     
     -- Main-hand color picker
     panel.main_color_picker = addon_data.config.color_picker_factory(
         'PlayerMainColorPicker',
-        panel,
+        appearance_panel,
         settings.main_r, settings.main_g, settings.main_b, settings.main_a,
         L["Main-hand Bar Color"],
         addon_data.player.MainColorPickerOnClick)
-    panel.main_color_picker:SetPoint('TOPLEFT', 205, -150)
+
     -- Main-hand color text picker
     panel.main_text_color_picker = addon_data.config.color_picker_factory(
         'PlayerMainTextColorPicker',
-        panel,
+        appearance_panel,
         settings.main_text_r, settings.main_text_g, settings.main_text_b, settings.main_text_a,
         L["Main-hand Bar Text Color"],
         addon_data.player.MainTextColorPickerOnClick)
-    panel.main_text_color_picker:SetPoint('TOPLEFT', 205, -170)
+
     -- Off-hand color picker
     panel.off_color_picker = addon_data.config.color_picker_factory(
         'PlayerOffColorPicker',
-        panel,
+        appearance_panel,
         settings.off_r, settings.off_g, settings.off_b, settings.off_a,
         L["Off-hand Bar Color"],
         addon_data.player.OffColorPickerOnClick)
-    panel.off_color_picker:SetPoint('TOPLEFT', 205, -200)
+
     -- Off-hand color text picker
     panel.off_text_color_picker = addon_data.config.color_picker_factory(
         'PlayerOffTextColorPicker',
-        panel,
+        appearance_panel,
         settings.off_text_r, settings.off_text_g, settings.off_text_b, settings.off_text_a,
         L["Off-hand Bar Text Color"],
         addon_data.player.OffTextColorPickerOnClick)
-    panel.off_text_color_picker:SetPoint('TOPLEFT', 205, -220)
-    
+
     -- In Combat Alpha Slider
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(
         "PlayerInCombatAlphaSlider",
-        panel,
+        appearance_panel,
         L["In Combat Alpha"],
         0,
         1,
         0.05,
         addon_data.player.CombatAlphaOnValChange)
-    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 405, -60)
+
     -- Out Of Combat Alpha Slider
     panel.ooc_alpha_slider = addon_data.config.SliderFactory(
         "PlayerOOCAlphaSlider",
-        panel,
+        appearance_panel,
         L["Out of Combat Alpha"],
         0,
         1,
         0.05,
         addon_data.player.OOCAlphaOnValChange)
-    panel.ooc_alpha_slider:SetPoint("TOPLEFT", 405, -110)
+
     -- Backplane Alpha Slider
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
         "PlayerBackplaneAlphaSlider",
-        panel,
+        appearance_panel,
         L["Backplane Alpha"],
         0,
         1,
         0.05,
         addon_data.player.BackplaneAlphaOnValChange)
-    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 405, -160)
+
     -- Return the final panel
     addon_data.player.UpdateConfigPanelValues()
     return panel

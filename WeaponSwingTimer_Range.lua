@@ -4,6 +4,8 @@ local L = addon_data.localization_table
 addon_data.range = {}
 
 addon_data.range.default_settings = {
+    bar_font = "default",
+    bar_texture = "default",
     enabled = false,
     width = 300,
     height = 12,
@@ -17,12 +19,16 @@ addon_data.range.default_settings = {
     backplane_alpha = 0.5,
     is_locked = false,
     show_text = true,
+    show_sweet_spot = false,
+    show_sniper_shot = false,
     hide_no_target = false,
     hide_dead_target = false,
     text_melee = L["0-5 yd  •  MELEE"] or "0-5 yd  •  MELEE",
     text_deadzone = L["5-8 yd  •  DEAD ZONE"] or "5-8 yd  •  DEAD ZONE",
+    text_sweet_spot = "8-11 yd  •  SWEET SPOT",
     text_close = L["8-15 yd"] or "8-15 yd",
     text_ranged = L["8-35 yd"] or "8-35 yd",
+    text_sniper_shot = "35-45 yd  •  SNIPER SHOT",
     text_far = L["35-100 yd"] or "35-100 yd",
     text_out = L["100+ yd  •  OUT OF RANGE"] or "100+ yd  •  OUT OF RANGE",
     text_unknown = L["NO TARGET"] or "NO TARGET",
@@ -32,8 +38,10 @@ addon_data.range.default_settings = {
 
     melee_r = 0.85, melee_g = 0.20, melee_b = 0.20, melee_a = 1.0,
     deadzone_r = 1.00, deadzone_g = 0.90, deadzone_b = 0.10, deadzone_a = 1.0,
+    sweet_spot_r = 0.0, sweet_spot_g = 0.85, sweet_spot_b = 0.8, sweet_spot_a = 1.0,
     close_r = 0.95, close_g = 0.75, close_b = 0.10, close_a = 1.0,
     ranged_r = 0.20, ranged_g = 0.75, ranged_b = 0.20, ranged_a = 1.0,
+    sniper_shot_r = 0.75, sniper_shot_g = 0.4, sniper_shot_b = 0.95, sniper_shot_a = 1.0,
     far_r = 0.35, far_g = 0.55, far_b = 0.90, far_a = 1.0,
     out_r = 0.55, out_g = 0.55, out_b = 0.55, out_a = 1.0,
     unknown_r = 0.65, unknown_g = 0.65, unknown_b = 0.65, unknown_a = 1.0,
@@ -110,13 +118,21 @@ local function SpellBookSpellInRange(spell_identifier)
             )
 
             if range_ok then
-                return NormalizeRangeResult(result)
+                local in_range = NormalizeRangeResult(result)
+                if in_range ~= nil then return in_range end
             end
         end
     end
 
-    -- Compatibility fallback for clients/builds where the spellbook API
+    -- Compatibility fallbacks for clients/builds where the spellbook API
     -- cannot resolve the item.
+    if C_Spell and C_Spell.IsSpellInRange then
+        local ok, result = pcall(C_Spell.IsSpellInRange, spell_identifier, "target")
+        if ok then
+            local in_range = NormalizeRangeResult(result)
+            if in_range ~= nil then return in_range end
+        end
+    end
     if IsSpellInRange then
         local spell_name = spell_identifier
         if type(spell_identifier) == "number" and C_Spell and C_Spell.GetSpellName then
@@ -168,19 +184,77 @@ addon_data.range.GetHunterMeleeRange = function()
     return NativeMeleeInRange()
 end
 
-local function NativeRangedInRange()
-    if C_SwingTimer and C_SwingTimer.IsTargetWithinSwingRange and
-       Enum and Enum.PlayerSwingType and Enum.PlayerSwingType.Ranged then
+local function NativeSwingInRange(hand)
+    local swing_type = Enum and Enum.PlayerSwingType and Enum.PlayerSwingType[hand]
+    if C_SwingTimer and C_SwingTimer.IsTargetWithinSwingRange and swing_type ~= nil then
         local ok, result = pcall(
             C_SwingTimer.IsTargetWithinSwingRange,
-            Enum.PlayerSwingType.Ranged
+            swing_type
         )
-        if ok and result ~= nil then
-            return result
+        if ok then
+            local in_range = NormalizeRangeResult(result)
+            if in_range ~= nil then return in_range end
         end
     end
 
+end
+
+local function NativeRangedInRange()
+    local result = NativeSwingInRange("Ranged")
+    if result ~= nil then return result end
     return SpellBookSpellInRange("Auto Shot")
+end
+
+-- Fixed hostile-item breakpoints from the Classic/Forever range-check tables.
+local range_items = {
+    [5] = {8149, 15826, 16308, 17117},
+    [10] = {9606, 9618, 9619, 9620, 9621},
+    [35] = {1258, 1399, 1402, 8688},
+}
+local requested_items = {}
+
+local function ItemRange(yards, prefer_positive)
+    local check = C_Item and C_Item.IsItemInRange or IsItemInRange
+    if not check then return nil end
+    local items = range_items[yards]
+    if not requested_items[yards] and C_Item and C_Item.RequestLoadItemDataByID then
+        requested_items[yards] = true
+        for _, id in ipairs(items) do pcall(C_Item.RequestLoadItemDataByID, id) end
+    end
+    local answered_no
+    for _, id in ipairs(items) do
+        local ok, result = pcall(check, id, "target")
+        if ok then
+            local in_range = NormalizeRangeResult(result)
+            if in_range == true then return true, id end
+            if in_range == false then
+                if not prefer_positive then return false, id end
+                answered_no = id
+            end
+        end
+    end
+    if answered_no then return false, answered_no end
+end
+
+local function SweetSpotTradeRange()
+    if CheckInteractDistance then
+        local ok, result = pcall(CheckInteractDistance, "target", 2)
+        if ok then return NormalizeRangeResult(result) end
+    end
+end
+
+local function SweetSpotRange()
+    if SweetSpotTradeRange() == true then return true, 11 end
+    -- A hostile target can return false for the trade probe even at shooting
+    -- distance. Still check the short-range items, and do not infer >11 yd
+    -- solely from a negative trade response.
+    return ItemRange(10, true), 10
+end
+
+local function GenericMeleeInRange()
+    local result = NativeSwingInRange("MainHand")
+    if result ~= nil then return result end
+    return ItemRange(5)
 end
 
 local function IsCloseFallback()
@@ -197,29 +271,16 @@ local function IsCloseFallback()
     -- Index 1 is also ~28 yd on current clients, so use it as a fallback
     -- in case index 4 is unavailable/unreliable on a particular build.
     local ok4, result4 = pcall(CheckInteractDistance, "target", 4)
-    if ok4 and (result4 == true or result4 == 1) then
+    if ok4 and NormalizeRangeResult(result4) == true then
         return true
     end
 
     local ok1, result1 = pcall(CheckInteractDistance, "target", 1)
-    if ok1 and (result1 == true or result1 == 1) then
+    if ok1 and NormalizeRangeResult(result1) == true then
         return true
     end
 
     return false
-end
-
-local function GetAutoShotMaxRange()
-    if C_Spell and C_Spell.GetSpellInfo then
-        local ok, info = pcall(C_Spell.GetSpellInfo, AUTO_SHOT_ID)
-        if ok and type(info) == "table" then
-            local max_range = tonumber(info.maxRange)
-            if max_range and max_range > 0 then
-                return math.floor(max_range + 0.5)
-            end
-        end
-    end
-    return 35
 end
 
 local function GetSpellRangeInfo(spell_identifier)
@@ -232,7 +293,62 @@ local function GetSpellRangeInfo(spell_identifier)
         return nil, nil, nil
     end
 
-    return tonumber(info.minRange), tonumber(info.maxRange), info.name
+    local min, max = info.minRange, info.maxRange
+    if issecretvalue then
+        if issecretvalue(min) then min = nil end
+        if issecretvalue(max) then max = nil end
+    end
+    return tonumber(min), tonumber(max), info.name
+end
+
+local sniper_ids = {1310786, 1310785, 1310687}
+local HAWK_EYE_NODE = 105013
+local function HawkEyeBonus()
+    if C_Traits and C_Traits.GetNodeInfo then
+        local ok, rank = pcall(function()
+            local group = C_SpecializationInfo and C_SpecializationInfo.GetActiveSpecGroup
+                and C_SpecializationInfo.GetActiveSpecGroup()
+            local config = group and GetCombatConfigIDForSpecGroup and GetCombatConfigIDForSpecGroup(group)
+            if not config and C_ClassTalents and C_ClassTalents.GetActiveConfigID then
+                config = C_ClassTalents.GetActiveConfigID()
+            end
+            local node = config and C_Traits.GetNodeInfo(config, HAWK_EYE_NODE)
+            if node then return node.activeRank end
+        end)
+        if ok and not (issecretvalue and issecretvalue(rank)) and type(rank) == "number" and rank >= 0 and rank <= 3 then
+            return 2 * rank
+        end
+    end
+end
+
+local function SniperBuffActive()
+    local check = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
+    if not check then return false end
+    for _, id in ipairs(sniper_ids) do
+        local ok, aura = pcall(check, id)
+        if ok and not (issecretvalue and issecretvalue(aura)) and type(aura) == "table" then return true end
+    end
+    return false
+end
+
+local function ShotMaxRange(spell, base, bonus)
+    local _, reported = GetSpellRangeInfo(spell)
+    -- Some clients report base range and others include modifiers. Use the
+    -- larger value so a talent or buff is never counted twice.
+    return math.floor(math.max(reported or 0, base + bonus) + 0.5)
+end
+
+local function FormatShotBand(lower, upper, label)
+    return string.format("%d-%d yd  •  %s", lower, upper, label)
+end
+
+local function SniperRange()
+    for _, id in ipairs(sniper_ids) do
+        if HasSpellBookSpell(id) then
+            local result = SpellBookSpellInRange(id)
+            if result ~= nil then return result, id end
+        end
+    end
 end
 
 local function RangeKeyFromMax(max_range)
@@ -358,6 +474,7 @@ addon_data.range.GetRangeBand = function()
 
     local _, class = UnitClass("player")
     if class ~= "HUNTER" then
+        if GenericMeleeInRange() == true then return L["0-5 yd  •  MELEE"], "melee" end
         return GetGenericClassRangeBand(class)
     end
 
@@ -371,6 +488,19 @@ addon_data.range.GetRangeBand = function()
     local scatter = SpellBookSpellInRange("Scatter Shot")
     local ranged = NativeRangedInRange()
     local mark = SpellBookSpellInRange("Hunter's Mark")
+    local settings = character_range_settings
+    local show_sniper = settings and settings.show_sniper_shot
+    local hawk = HawkEyeBonus() or 0
+    local sniper_buff = show_sniper and SniperBuffActive()
+    local auto_max = ShotMaxRange(AUTO_SHOT_ID, 35, hawk + (sniper_buff and 10 or 0))
+    -- If the aura is unreadable but the spell reports exactly the boosted
+    -- range, use that as evidence of Sniper's bonus.
+    if show_sniper and auto_max == 45 + hawk then sniper_buff = true end
+    -- Live spell info can supply Hawk Eye's bonus if trait data is unavailable.
+    if hawk == 0 and not sniper_buff and
+        auto_max >= 37 and auto_max <= 41 and auto_max % 2 == 1 then
+        hawk = auto_max - 35
+    end
 
     -- Auto Shot has an 8 yd minimum. If we're not in melee, Auto Shot is
     -- unavailable, and Scatter is still in range, this is the dead zone.
@@ -379,17 +509,31 @@ addon_data.range.GetRangeBand = function()
     end
 
     if ranged == true then
-        local max_range = GetAutoShotMaxRange()
+        local lower = 8
+        if character_range_settings and character_range_settings.show_sweet_spot then
+            local in_sweet_spot, upper = SweetSpotRange()
+            if in_sweet_spot then
+                local text = upper == 11 and addon_data.range.default_settings.text_sweet_spot or "8-10 yd  •  SWEET SPOT"
+                return text, "sweet_spot"
+            elseif in_sweet_spot == false then
+                lower = upper
+            end
+        end
+        if show_sniper and sniper_buff and scatter ~= true and ItemRange(35) == false then
+            return FormatShotBand(35, auto_max, "SNIPER BUFF"), "sniper_shot"
+        end
 
         if HasSpellBookSpell("Scatter Shot") then
             if scatter == true then
+                if lower ~= 8 then return string.format(L["%d-%d yd"], lower, 15), "close" end
                 return L["8-15 yd"], "close"
             end
-            return string.format(L["15-%d yd"], max_range), "ranged"
+            return string.format(L["15-%d yd"], auto_max), "ranged"
         end
 
         -- Without Scatter Shot there is no reliable 15-yard breakpoint.
-        return string.format(L["8-%d yd"], max_range), "ranged"
+        if lower ~= 8 then return string.format(L["%d-%d yd"], lower, auto_max), "ranged" end
+        return string.format(L["8-%d yd"], auto_max), "ranged"
     end
 
     -- If the native ranged check says false, distinguish "too close" from
@@ -404,7 +548,22 @@ addon_data.range.GetRangeBand = function()
             return L["<8 yd"], "deadzone"
         end
 
+        if show_sniper and ItemRange(35) ~= true then
+            local sniper_in_range, spell = SniperRange()
+            if sniper_in_range == true then
+                local sniper_max = ShotMaxRange(spell, 45, hawk)
+                if sniper_max > auto_max then
+                    return FormatShotBand(auto_max, sniper_max, "SNIPER SHOT"), "sniper_shot"
+                end
+                return "SNIPER SHOT IN RANGE", "sniper_shot"
+            end
+            if sniper_in_range == false and mark == true then
+                return string.format(L["%d-%d yd"], math.max(auto_max, ShotMaxRange(spell, 45, hawk)), 100), "far"
+            end
+        end
+
         if mark == true then
+            if auto_max > 35 then return string.format(L["%d-%d yd"], auto_max, 100), "far" end
             return L["35-100 yd"], "far"
         elseif mark == false then
             return L["100+ yd  •  OUT OF RANGE"], "out"
@@ -486,6 +645,10 @@ addon_data.range.DumpDebug = function()
               DebugValue(has_scatter) .. " inRange=" .. DebugValue(scatter))
         print("|cffffcc00WST Range:|r Auto Shot/native ranged=" ..
               DebugValue(ranged))
+        local sniper, spell = SniperRange()
+        print("|cffffcc00WST Range:|r Hawk Eye bonus=" .. DebugValue(HawkEyeBonus()) ..
+              " Sniper range=" .. DebugValue(sniper) .. " spell=" .. DebugValue(spell) ..
+              " Sniper buff=" .. DebugValue(SniperBuffActive()) .. " item35=" .. DebugValue(ItemRange(35)))
         print("|cffffcc00WST Range:|r Hunter's Mark=" ..
               DebugValue(mark))
 
@@ -500,6 +663,15 @@ addon_data.range.DumpDebug = function()
             end
         end
 
+        if UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDead("target") then
+            local trade = SweetSpotTradeRange()
+            local item, id = ItemRange(10, true)
+            local settings = character_range_settings
+            print("|cffffcc00WST Range:|r Sweet spot enabled=" .. DebugValue(settings and settings.show_sweet_spot) ..
+                  " trade11=" .. DebugValue(trade) .. " item10=" .. DebugValue(item) ..
+                  " itemID=" .. DebugValue(id))
+        end
+
         if ranged == false then
             print("|cffffcc00WST Range branch:|r ranged=false; " ..
                   "closeFallback28yd=" .. DebugValue(IsCloseFallback()) ..
@@ -510,6 +682,8 @@ addon_data.range.DumpDebug = function()
             print("|cffffcc00WST Range branch:|r ranged=nil")
         end
     else
+        print("|cffffcc00WST Range:|r main-hand=" .. DebugValue(NativeSwingInRange("MainHand")) ..
+              " item5=" .. DebugValue(ItemRange(5)))
         local probes = CLASS_RANGE_PROBES[class]
         if not probes then
             print("|cffffcc00WST Range:|r no configured probes for this class")
@@ -699,7 +873,7 @@ addon_data.range.InitializeVisuals = function()
     -- A FontString must have a font before SetText() is called. This is done
     -- here instead of relying on UpdateVisualsOnSettingsChange(), because that
     -- function returns early when Range Check is disabled.
-    frame.text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize or 10)
+    addon_data.config.ApplyBarFont(frame.text, settings)
     frame.text:SetTextColor(1, 1, 1, 1)
 
     addon_data.range.UpdateVisualsOnSettingsChange()
@@ -764,13 +938,9 @@ addon_data.range.UpdateVisualsOnSettingsChange = function()
 
     frame.backplane:SetBackdropColor(0, 0, 0, settings.backplane_alpha)
 
-    if settings.classic_bars then
-        frame.bar:SetTexture("Interface/AddOns/WeaponSwingTimer/Images/Bar")
-    else
-        frame.bar:SetTexture("Interface/AddOns/WeaponSwingTimer/Images/Background")
-    end
+    frame.bar:SetTexture(addon_data.config.GetBarTexture(settings))
 
-    frame.text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+    addon_data.config.ApplyBarFont(frame.text, settings)
     frame.text:SetTextColor(1, 1, 1, 1)
 
     addon_data.range.UpdateRange()
@@ -784,7 +954,7 @@ addon_data.range.UpdateConfigPanelValues = function()
         return
     end
 
-    for _, field in ipairs({"hide_no_target", "hide_dead_target"}) do
+    for _, field in ipairs({"hide_no_target", "hide_dead_target", "show_sweet_spot", "show_sniper_shot"}) do
         if panel[field .. "_checkbox"] then
             panel[field .. "_checkbox"]:SetChecked(settings[field])
         end
@@ -803,7 +973,6 @@ addon_data.range.UpdateConfigPanelValues = function()
     end
     panel.enabled_checkbox:SetChecked(settings.enabled)
     panel.show_border_checkbox:SetChecked(settings.show_border)
-    panel.classic_bars_checkbox:SetChecked(settings.classic_bars)
     panel.show_text_checkbox:SetChecked(settings.show_text)
 
     panel.width_editbox:SetText(tostring(settings.width))
@@ -833,8 +1002,10 @@ addon_data.range.UpdateConfigPanelValues = function()
     local color_pickers = {
         {"melee_color_picker", "melee"},
         {"deadzone_color_picker", "deadzone"},
+        {"sweet_spot_color_picker", "sweet_spot"},
         {"close_color_picker", "close"},
         {"ranged_color_picker", "ranged"},
+        {"sniper_shot_color_picker", "sniper_shot"},
         {"far_color_picker", "far"},
         {"out_color_picker", "out"},
         {"unknown_color_picker", "unknown"},
@@ -861,11 +1032,6 @@ end
 
 addon_data.range.ShowBorderCheckBoxOnClick = function(self)
     character_range_settings.show_border = self:GetChecked()
-    addon_data.range.UpdateVisualsOnSettingsChange()
-end
-
-addon_data.range.ClassicBarsCheckBoxOnClick = function(self)
-    character_range_settings.classic_bars = self:GetChecked()
     addon_data.range.UpdateVisualsOnSettingsChange()
 end
 
@@ -941,7 +1107,7 @@ addon_data.range.RangeColorPickerOnClick = function(self)
     )
 end
 
-addon_data.range.CreateConfigPanel = function(parent_panel)
+addon_data.range.CreateConfigPanel = function(parent_panel, appearance_panel)
     addon_data.range.config_frame = CreateFrame(
         "Frame",
         addon_name .. "RangeConfigPanel",
@@ -953,20 +1119,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
     panel.title_text = addon_data.config.TextFactory(panel, L["Range Check Settings"], 20)
     panel.title_text:SetPoint("TOPLEFT", 10, -10)
     panel.title_text:SetTextColor(1, 0.82, 0, 1)
-
-    panel.disclaimer_text = addon_data.config.TextFactory(
-        panel,
-        L["Hunter range bands are the primary tested implementation. Other classes use experimental ability-range checks and need testing."],
-        11
-    )
-    panel.disclaimer_text:SetPoint("TOPLEFT", 10, -38)
-    panel.disclaimer_text:SetWidth(555)
-    panel.disclaimer_text:SetJustifyH("LEFT")
-    panel.disclaimer_text:SetTextColor(0.95, 0.60, 0.25, 1)
-
-    panel.general_text = addon_data.config.TextFactory(panel, L["General Settings"], 16)
-    panel.general_text:SetPoint("TOPLEFT", 10, -78)
-    panel.general_text:SetTextColor(1, 0.82, 0, 1)
+    addon_data.config.SectionSummary(panel, "Hunters use shot range checks. Other classes use main-hand range, with item and ability checks as available.")
 
     panel.enabled_checkbox = addon_data.config.CheckBoxFactory(
         "RangeEnabledCheckBox",
@@ -976,7 +1129,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         addon_data.range.EnabledCheckBoxOnClick
     )
     panel.enabled_checkbox:SetScale(1)
-    panel.enabled_checkbox:SetPoint("TOPLEFT", 10, -105)
+    panel.enabled_checkbox:SetPoint("TOPLEFT", 10, -78)
 
     panel.show_border_checkbox = addon_data.config.CheckBoxFactory(
         "RangeShowBorderCheckBox",
@@ -986,17 +1139,8 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         addon_data.range.ShowBorderCheckBoxOnClick
     )
     panel.show_border_checkbox:SetScale(1)
-    panel.show_border_checkbox:SetPoint("TOPLEFT", 10, -155)
+    panel.show_border_checkbox:SetPoint("TOPLEFT", 10, -126)
 
-    panel.classic_bars_checkbox = addon_data.config.CheckBoxFactory(
-        "RangeClassicBarsCheckBox",
-        panel,
-        L["Classic bar texture"],
-        L["Uses the classic WeaponSwingTimer bar texture."],
-        addon_data.range.ClassicBarsCheckBoxOnClick
-    )
-    panel.classic_bars_checkbox:SetScale(1)
-    panel.classic_bars_checkbox:SetPoint("TOPLEFT", 10, -180)
 
     panel.show_text_checkbox = addon_data.config.CheckBoxFactory(
         "RangeShowTextCheckBox",
@@ -1006,29 +1150,29 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         addon_data.range.ShowTextCheckBoxOnClick
     )
     panel.show_text_checkbox:SetScale(1)
-    panel.show_text_checkbox:SetPoint("TOPLEFT", 10, -130)
+    panel.show_text_checkbox:SetPoint("TOPLEFT", 10, -102)
 
     panel.width_editbox = addon_data.config.EditBoxFactory(
-        "RangeWidthEditBox", panel, L["Bar Width"], 75, 25,
+        "RangeWidthEditBox", appearance_panel, L["Bar Width"], 75, 25,
         addon_data.range.WidthEditBoxOnEnter
     )
-    panel.width_editbox:SetPoint("TOPLEFT", 205, -105)
+
     panel.width_editbox:SetTextColor(1, 1, 1, 1)
     panel.width_editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
 
     panel.height_editbox = addon_data.config.EditBoxFactory(
-        "RangeHeightEditBox", panel, L["Bar Height"], 75, 25,
+        "RangeHeightEditBox", appearance_panel, L["Bar Height"], 75, 25,
         addon_data.range.HeightEditBoxOnEnter
     )
-    panel.height_editbox:SetPoint("TOPLEFT", 300, -105)
+
     panel.height_editbox:SetTextColor(1, 1, 1, 1)
     panel.height_editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
 
     panel.fontsize_editbox = addon_data.config.EditBoxFactory(
-        "RangeFontSizeEditBox", panel, L["Font Size"], 75, 25,
+        "RangeFontSizeEditBox", appearance_panel, L["Font Size"], 75, 25,
         addon_data.range.FontSizeEditBoxOnEnter
     )
-    panel.fontsize_editbox:SetPoint("TOPLEFT", 395, -105)
+
     panel.fontsize_editbox:SetTextColor(1, 1, 1, 1)
     panel.fontsize_editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
 
@@ -1036,7 +1180,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         "RangeXOffsetEditBox", panel, L["X Offset"], 75, 25,
         addon_data.range.XOffsetEditBoxOnEnter
     )
-    panel.x_offset_editbox:SetPoint("TOPLEFT", 205, -160)
+    panel.x_offset_editbox:SetPoint("TOPLEFT", 220, -78)
     panel.x_offset_editbox:SetTextColor(1, 1, 1, 1)
     panel.x_offset_editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
 
@@ -1044,22 +1188,19 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
         "RangeYOffsetEditBox", panel, L["Y Offset"], 75, 25,
         addon_data.range.YOffsetEditBoxOnEnter
     )
-    panel.y_offset_editbox:SetPoint("TOPLEFT", 300, -160)
+    panel.y_offset_editbox:SetPoint("TOPLEFT", 304, -78)
     panel.y_offset_editbox:SetTextColor(1, 1, 1, 1)
     panel.y_offset_editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
 
-    panel.alpha_text = addon_data.config.TextFactory(panel, L["Alpha Settings"], 16)
-    panel.alpha_text:SetPoint("TOPLEFT", 10, -235)
-    panel.alpha_text:SetTextColor(1, 0.82, 0, 1)
 
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(
         "RangeCombatAlphaSlider",
-        panel,
+        appearance_panel,
         L["In Combat"],
         0, 1, 0.05,
         addon_data.range.CombatAlphaOnValChange
     )
-    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 20, -267)
+
     if panel.in_combat_alpha_slider.editbox then
         panel.in_combat_alpha_slider.editbox:SetTextColor(1, 1, 1, 1)
         panel.in_combat_alpha_slider.editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
@@ -1067,12 +1208,12 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
 
     panel.ooc_alpha_slider = addon_data.config.SliderFactory(
         "RangeOOCAlphaSlider",
-        panel,
+        appearance_panel,
         L["Out of Combat"],
         0, 1, 0.05,
         addon_data.range.OOCAlphaOnValChange
     )
-    panel.ooc_alpha_slider:SetPoint("TOPLEFT", 205, -267)
+
     if panel.ooc_alpha_slider.editbox then
         panel.ooc_alpha_slider.editbox:SetTextColor(1, 1, 1, 1)
         panel.ooc_alpha_slider.editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
@@ -1080,25 +1221,21 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
 
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
         "RangeBackplaneAlphaSlider",
-        panel,
+        appearance_panel,
         L["Background"],
         0, 1, 0.05,
         addon_data.range.BackplaneAlphaOnValChange
     )
-    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 390, -267)
+
     if panel.backplane_alpha_slider.editbox then
         panel.backplane_alpha_slider.editbox:SetTextColor(1, 1, 1, 1)
         panel.backplane_alpha_slider.editbox:SetFont("Fonts/FRIZQT__.ttf", 12, "OUTLINE")
     end
 
-    panel.colors_text = addon_data.config.TextFactory(panel, L["Range Colors"], 16)
-    panel.colors_text:SetPoint("TOPLEFT", 10, -305)
-    panel.colors_text:SetTextColor(1, 0.82, 0, 1)
-
-    local function MakeRangeColorPicker(field, key, label, x, y)
+    local function MakeRangeColorPicker(field, key, label)
         local picker = addon_data.config.color_picker_factory(
             field,
-            panel,
+            appearance_panel,
             settings[key .. "_r"],
             settings[key .. "_g"],
             settings[key .. "_b"],
@@ -1107,50 +1244,83 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
             addon_data.range.RangeColorPickerOnClick
         )
         picker.range_key = key
-        picker:SetPoint("TOPLEFT", x, y)
         return picker
     end
 
     panel.melee_color_picker =
-        MakeRangeColorPicker("RangeMeleeColor", "melee", L["0-5 Melee"], 20, -335)
+        MakeRangeColorPicker("RangeMeleeColor", "melee", L["0-5 Melee"])
     panel.deadzone_color_picker =
-        MakeRangeColorPicker("RangeDeadzoneColor", "deadzone", L["5-8 Dead Zone"], 300, -335)
+        MakeRangeColorPicker("RangeDeadzoneColor", "deadzone", L["5-8 Dead Zone"])
+    panel.sweet_spot_color_picker =
+        MakeRangeColorPicker("RangeSweetSpotColor", "sweet_spot", "Sweet Spot (8-11 yd)")
     panel.close_color_picker =
-        MakeRangeColorPicker("RangeCloseColor", "close", L["8-15 Close"], 20, -363)
+        MakeRangeColorPicker("RangeCloseColor", "close", L["8-15 Close"])
 
     panel.ranged_color_picker =
-        MakeRangeColorPicker("RangeRangedColor", "ranged", L["Ranged (8-35 / 15-35)"], 300, -363)
+        MakeRangeColorPicker("RangeRangedColor", "ranged", L["Ranged (8-35 / 15-35)"])
+    panel.sniper_shot_color_picker =
+        MakeRangeColorPicker("RangeSniperShotColor", "sniper_shot", "Sniper Shot / Buff")
     panel.far_color_picker =
-        MakeRangeColorPicker("RangeFarColor", "far", L["35-100 Far"], 20, -391)
+        MakeRangeColorPicker("RangeFarColor", "far", L["35-100 Far"])
     panel.out_color_picker =
-        MakeRangeColorPicker("RangeOutColor", "out", L["Out of Range"], 300, -391)
+        MakeRangeColorPicker("RangeOutColor", "out", L["Out of Range"])
 
     panel.unknown_color_picker =
-        MakeRangeColorPicker("RangeUnknownColor", "unknown", L["No Target / Unknown"], 20, -419)
+        MakeRangeColorPicker("RangeUnknownColor", "unknown", L["No Target / Unknown"])
 
     panel.hide_no_target_checkbox = addon_data.config.CheckBoxFactory(
         "RangeHideNoTarget", panel, "Hide with no target", "Hide the range bar when no target is selected.",
         function(self) character_range_settings.hide_no_target = self:GetChecked(); addon_data.range.UpdateRange() end)
     panel.hide_no_target_checkbox:SetScale(1)
-    panel.hide_no_target_checkbox:SetPoint("TOPLEFT", 10, -205)
+    panel.hide_no_target_checkbox:SetPoint("TOPLEFT", 10, -150)
     panel.hide_dead_target_checkbox = addon_data.config.CheckBoxFactory(
         "RangeHideDeadTarget", panel, "Hide with dead target", "Hide the range bar when the target is dead.",
         function(self) character_range_settings.hide_dead_target = self:GetChecked(); addon_data.range.UpdateRange() end)
     panel.hide_dead_target_checkbox:SetScale(1)
-    panel.hide_dead_target_checkbox:SetPoint("TOPLEFT", 300, -205)
+    panel.hide_dead_target_checkbox:SetPoint("TOPLEFT", 10, -174)
+
+    panel.show_sweet_spot_checkbox = addon_data.config.CheckBoxFactory(
+        "RangeShowSweetSpot", panel, "Show Hunter sweet spot (8-11 yd)",
+        "Highlights the close edge of Auto Shot range. Uses a positive ~11 yd trade check or a positive 10 yd item check.",
+        function(self)
+            character_range_settings.show_sweet_spot = self:GetChecked()
+            addon_data.range.UpdateRange()
+        end)
+    panel.show_sweet_spot_checkbox:SetScale(1)
+    panel.show_sweet_spot_checkbox:SetPoint("TOPLEFT", 10, -198)
+
+    local function RangeOption(field, name, tooltip, y)
+        local box = addon_data.config.CheckBoxFactory("RangeOption" .. field, panel, name, tooltip,
+            function(self)
+                character_range_settings[field] = self:GetChecked()
+                addon_data.range.UpdateRange()
+            end)
+        box:SetScale(1)
+        box:SetPoint("TOPLEFT", 10, y)
+        panel[field .. "_checkbox"] = box
+    end
+    RangeOption("show_sniper_shot", "Show Sniper Shot range", "Highlight Sniper Shot reach and its temporary range buff.", -222)
+
+    panel.range_labels_heading = addon_data.config.TextFactory(panel, L["Range Labels"] or "Range Labels", 16)
+    panel.range_labels_heading:SetPoint("TOPLEFT", 10, -264)
+    panel.range_labels_heading:SetTextColor(1, 0.82, 0, 1)
+
+    addon_data.config.SectionSummary(panel, "Edit the text shown for each range band.", -286, 376)
 
     panel.text_editboxes = {}
     local bands = {
-        {"melee", "Melee"}, {"deadzone", "Dead zone"}, {"close", "Close"},
-        {"ranged", "Ranged"}, {"far", "Far"}, {"out", "Out of range"}, {"unknown", "No target / Unknown"}
+        {"melee", "Melee"}, {"deadzone", "Dead zone"}, {"sweet_spot", "Sweet spot"}, {"close", "Close"},
+        {"ranged", "Ranged"}, {"sniper_shot", "Sniper Shot"}, {"far", "Far"}, {"out", "Out of range"}, {"unknown", "No target / Unknown"}
     }
     for i, band in ipairs(bands) do
         local key = band[1]
-        local box = addon_data.config.EditBoxFactory("RangeText" .. key, panel, band[2], 180, 25,
+        local box = addon_data.config.EditBoxFactory("RangeText" .. key, panel, band[2], 182, 25,
             function(self)
                 character_range_settings["text_" .. key] = self:GetText()
                 addon_data.range.UpdateRange()
             end)
+        box:SetFont("Fonts/FRIZQT__.ttf", 11, "OUTLINE")
+        box:SetTextInsets(4, 4, 0, 0)
         box:SetMaxLetters(120)
         -- Save only user edits; allow an intentionally blank label.
         box:SetScript("OnTextChanged", function(self, user_input)
@@ -1159,7 +1329,7 @@ addon_data.range.CreateConfigPanel = function(parent_panel)
                 addon_data.range.UpdateRange()
             end
         end)
-        box:SetPoint("TOPLEFT", 20 + ((i - 1) % 3) * 195, -465 - math.floor((i - 1) / 3) * 40)
+        box:SetPoint("TOPLEFT", 10 + ((i - 1) % 2) * 194, -328 - math.floor((i - 1) / 2) * 40)
         panel.text_editboxes[key] = box
     end
     panel:SetSize(620, 640)

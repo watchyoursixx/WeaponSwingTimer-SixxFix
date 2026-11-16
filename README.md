@@ -1,38 +1,68 @@
-Originally created by LeftHandedGlove. Huge thanks to him starting this project!
+# WeaponSwingTimer SixxFix
 
-<p align="center">
-<img src="https://github.com/LeftHandedGlove/WeaponSwingTimerAddon/blob/master/Images/wst_logo_shadow.png?raw=true" width="50%" height="50%" title="WST_Logo" class="center">
-</p>
+Track melee swings, Hunter Auto Shot, and wand shots. Supported builds also include a Hunter spell cast bar and an optional target range display.
 
-# WeaponSwingTimer
-WeaponSwingTimer is an addon for WoW Classic that tracks your's and your target's swing timers.
+> **Screenshot placeholder:** WeaponSwingTimer in game.
+<!-- ![WeaponSwingTimer bars in game](Images/screenshot-overview.png) -->
 
-If you're a hunter, it also tracks Auto Shot timing and castable shots cast time.
+## Quick setup
 
-If you use a wand, it also tracks when your shot will go off.
+1. Extract the ZIP for your WoW client into `Interface/AddOns`. The final path should be `Interface/AddOns/WeaponSwingTimer/WeaponSwingTimer.toc`.
+2. Run `/reload` if the game is open, then type `/wst`.
+3. Uncheck **Lock All Bars** and turn on **Preview Bars** to position enabled bars outside combat. Lock them and turn off preview when you're done.
 
-## Melee Bars
-The melee bars track the player's and target's main-hand and off-hand swings.
-It resets on abilities that would reset a swing timer, such as Warrior's Slam, and also takes parry haste into account.
-Both frames can be moved around with the typical click-and-drag.
-A configuration window can be brought up with /wst /WeaponSwingTimer or /weaponswingtimer where more visual options are available.
+Options vary by build and client. Updating the addon files keeps your saved profiles.
 
-## Hunter/Wand Bars
-The shot bars track the player's Auto Shot and Shoot timing and also track the cast time for Aimed Shot and Multi-Shot.
-The shot bar turns white when projectile leaves the player.
-While the bar is white, the player can move and cast freely without clipping their next Auto Shot or Shoot.
-When the white bar is depleted, the player should stand still while their Auto Shot or Shoot is 'casting'.
+## Hunter: centered vs. YaHT / One Bar
 
-## Installation
-### CurseForge / WoW Interface
-1. Download the latest version
-2. Unzip the file into Interface\Addons.
-3. It should look like Interface\Addons\WeaponSwingTimer\WeaponSwingTimer.toc
-### GitHub
-1. Click the download button on the repository's Github page, then select Download ZIP.
-2. Wait for the zip file to download
-3. Unzip the file into Interface\Addons.
-4. It should look like Interface\Addons\WeaponSwingTimer\WeaponSwingTimer.toc
-### Git Clone
-1. Clone the repository into Interface\Addons.
-2. It should look like Interface\Addons\WeaponSwingTimer\WeaponSwingTimer.toc
+Find **YaHT / One bar** under **Ranged Settings**. It's one toggle with two layouts:
+
+| Layout | White: between shots | Red: Auto Shot cast |
+| --- | --- | --- |
+| **Centered** (toggle off) | Shrinks toward the middle. | Grows outward from the middle while casting. |
+| **YaHT / One Bar** (toggle on) | Fills from left to right. | Shrinks at the right edge as the cast finishes. |
+
+**White** is generally the time you can move. **Red** is when to stand still for Auto Shot. **Gray** marks a ranged timer reset after a melee swing or Feign Death in builds that support it.
+
+> **Screenshot placeholder:** Centered layout — white cooldown and red cast.
+<!-- ![Centered Auto Shot cooldown and cast](Images/screenshot-hunter-centered.png) -->
+
+> **Screenshot placeholder:** YaHT / One Bar — white fill and red cast segment.
+<!-- ![YaHT-style Auto Shot timer](Images/screenshot-hunter-one-bar.png) -->
+
+### Orange: Auto Shot retry
+
+With **Auto Shot delay timer** enabled, orange appears after a failed Auto Shot attempt. It counts down toward the middle in **Centered** mode or toward the red cast segment in **One Bar**. While orange is showing, the number combines the retry time and the Auto Shot cast time. Orange alone doesn't mean your next shot was delayed by the full retry window.
+
+> **Screenshot placeholder:** Orange retry timer.
+<!-- ![Orange Auto Shot retry indicator](Images/screenshot-hunter-retry.png) -->
+
+The separate **Hunter spell bar** shows supported cast-time shots such as Aimed Shot and Multi-Shot. In builds with **Preview Bars**, it's hidden outside combat except during preview.
+
+## Other bars and settings
+
+| Page | What to set up |
+| --- | --- |
+| **Melee Settings** | Player and target swings, off-hand display, fill direction, text, and opacity. The main-hand bar can highlight queued Heroic Strike, Cleave, Maul, or Raptor Strike. |
+| **Range Check Settings** | Enable range bands, customize their labels, and hide the bar with no target or a dead target. Range bands are estimates and can vary by class and target. |
+| **Appearance** | Set the font, size, texture, and colors for each bar. **Default** keeps the existing look. Extra fonts and textures can appear under **Shared Media** when available. |
+| **Profiles** | Save and switch between layouts. |
+
+> **Screenshot placeholder:** Melee bar with a queued attack.
+<!-- ![Melee bar highlighting a queued attack](Images/screenshot-melee.png) -->
+
+On Forever, Auto Shot's normal range band follows your Hawk Eye rank. Enable **Show Sniper Shot range** in Range Check Settings to highlight targets within Sniper Shot reach and see extended Auto Shot range when the Sniper buff is active. Use `/wstrangedebug` to see which probes are answering.
+
+> **Screenshot placeholder:** Range Check in game.
+<!-- ![Range Check bar](Images/screenshot-range.png) -->
+
+> **Screenshot placeholder:** Appearance settings.
+<!-- ![Appearance settings](Images/screenshot-appearance.png) -->
+
+## Troubleshooting
+
+- **Bar missing?** Check that it's enabled and its opacity isn't zero. Try **Preview Bars** to locate it.
+- **Range Check missing?** In supported builds, `/wstrangeshow` enables and recenters it, restores full opacity, and turns off target hiding. `/wstrangedebug` prints the active range checks.
+- **Swing timing looks off?** Run `/wstswinglog start`, reproduce it, then run `/wstswinglog stop` and `/wstswinglog copy`. Starting a new capture replaces the old one.
+
+Originally created by **LeftHandedGlove**. SixxFix is maintained by **WatchYourSixx**.

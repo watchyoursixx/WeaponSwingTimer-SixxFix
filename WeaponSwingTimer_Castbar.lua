@@ -56,6 +56,8 @@ addon_data.castbar.is_spell_shoot = function(spell_id)
 end
 --- default settings to be loaded on initial load and reset to default
 addon_data.castbar.default_settings = {
+    bar_font = "default",
+    bar_texture = "default",
 	enabled = true,
 	width = 300,
 	height = 12,
@@ -495,7 +497,7 @@ addon_data.castbar.UpdateVisualsOnUpdate = function()
 		
 			local time_left = math.max(addon_data.utils.SimpleRound(addon_data.castbar.cast_time - addon_data.castbar.cast_timer, 0.1), 0)
 			frame.spell_bar_text:SetText(string.format("%.1f", time_left))
-			frame:SetAlpha(1)
+			frame:SetAlpha(settings.in_combat_alpha)
 			frame.spell_bar:SetVertexColor(0.8, 0.64, 0, 1)
 			new_width = settings.width * (addon_data.castbar.cast_timer / addon_data.castbar.cast_time)
 			new_width = math.min(new_width, settings.width)
@@ -557,15 +559,15 @@ addon_data.castbar.UpdateVisualsOnSettingsChange = function()
 
         frame.spell_bar_text:SetPoint("TOPRIGHT", -5, -(settings.height / 2) + (settings.fontsize / 2))
         frame.spell_bar_text:SetTextColor(1.0, 1.0, 1.0, 1.0)
-		frame.spell_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		addon_data.config.ApplyBarFont(frame.spell_bar_text, settings)
 		
         frame.spell_bar:SetPoint("TOPLEFT", 0, 0)
         frame.spell_bar:SetHeight(settings.height)
 
-		frame.spell_bar:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Background')
+		frame.spell_bar:SetTexture(addon_data.config.GetBarTexture(settings))
         frame.spell_spark:SetSize(16, settings.height)
         frame.spell_text_center:SetPoint("TOP", 2, -(settings.height / 2) + (settings.fontsize / 2))
-		frame.spell_text_center:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+		addon_data.config.ApplyBarFont(frame.spell_text_center, settings)
 		
 		frame.cast_latency:SetHeight(settings.height)
         frame.cast_latency:SetPoint("TOPLEFT", 0, 0)
@@ -631,7 +633,7 @@ addon_data.castbar.InitializeVisuals = function()
     frame.spell_bar = frame:CreateTexture(nil,"ARTWORK")
     -- Create the spell bar text
     frame.spell_bar_text = frame:CreateFontString(nil,"OVERLAY")
-    frame.spell_bar_text:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+    addon_data.config.ApplyBarFont(frame.spell_bar_text, settings)
     frame.spell_bar_text:SetJustifyV("MIDDLE")
     frame.spell_bar_text:SetJustifyH("CENTER")
     -- Create the spell spark
@@ -639,7 +641,7 @@ addon_data.castbar.InitializeVisuals = function()
     frame.spell_spark:SetTexture('Interface/AddOns/WeaponSwingTimer/Images/Spark')
     -- Create the range spell shot bar center text
     frame.spell_text_center = frame:CreateFontString(nil,"OVERLAY")
-    frame.spell_text_center:SetFont("Fonts/FRIZQT__.ttf", settings.fontsize)
+    addon_data.config.ApplyBarFont(frame.spell_text_center, settings)
     frame.spell_text_center:SetTextColor(1, 1, 1, 1)
     frame.spell_text_center:SetJustifyV("MIDDLE")
     frame.spell_text_center:SetJustifyH("LEFT")
@@ -751,7 +753,7 @@ addon_data.castbar.BackplaneAlphaOnValChange = function(self)
     addon_data.castbar.UpdateVisualsOnSettingsChange()
 end
 --- Initializes the main setting panel including layout, alignment, and design
-addon_data.castbar.CreateConfigPanel = function(parent_panel)
+addon_data.castbar.CreateConfigPanel = function(parent_panel, appearance_panel)
     addon_data.castbar.config_frame = CreateFrame("Frame", addon_name .. "CastbarConfigPanel", parent_panel)
     local panel = addon_data.castbar.config_frame
     local settings = character_castbar_settings
@@ -760,6 +762,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     panel.title_text = addon_data.config.TextFactory(panel, L["Player Spell Bar Settings"], 20)
     panel.title_text:SetPoint("TOPLEFT", 10, -10)
     panel.title_text:SetTextColor(1, 0.82, 0, 1)
+    addon_data.config.SectionSummary(panel, "Show cast bars for selected Hunter shots and optionally mark the latency window.")
     
     -- Show Text Checkbox
     panel.show_casttext_checkbox = addon_data.config.CheckBoxFactory(
@@ -768,7 +771,8 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
 		L["Show Cast Text"],
         L["Enables the cast bar text."],
         addon_data.castbar.ShowCastTextCheckBoxOnClick)
-    panel.show_casttext_checkbox:SetPoint("TOPLEFT", 10, -35)
+    panel.show_casttext_checkbox:SetScale(1)
+    panel.show_casttext_checkbox:SetPoint("TOPLEFT", 10, -78)
 
     -- Show Multi Shot Cast Bar Checkbox
     panel.show_multishot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
@@ -777,7 +781,8 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         L["Multi-Shot cast bar"],
         L["Allows the cast bar to show Multi-Shot casts."],
         addon_data.castbar.ShowMultiShotCastBarCheckBoxOnClick)
-    panel.show_multishot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -55)
+    panel.show_multishot_cast_bar_checkbox:SetScale(1)
+    panel.show_multishot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -102)
     
     -- Show Aimed Shot Cast Bar Checkbox
     panel.show_aimedshot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
@@ -786,7 +791,8 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         L["Aimed Shot cast bar"],
         L["Allows the cast bar to show Aimed Shot casts."],
         addon_data.castbar.ShowAimedShotCastBarCheckBoxOnClick)
-    panel.show_aimedshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -75)
+    panel.show_aimedshot_cast_bar_checkbox:SetScale(1)
+    panel.show_aimedshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -126)
 
     -- Show Steady Shot Cast Bar Checkbox
     panel.show_steadyshot_cast_bar_checkbox = addon_data.config.CheckBoxFactory(
@@ -795,7 +801,8 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         L["Steady Shot cast bar"],
         L["Allows the cast bar to show Steady Shot casts."],
         addon_data.castbar.ShowSteadyShotCastBarCheckBoxOnClick)
-    panel.show_steadyshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -95)
+    panel.show_steadyshot_cast_bar_checkbox:SetScale(1)
+    panel.show_steadyshot_cast_bar_checkbox:SetPoint("TOPLEFT", 10, -150)
 
     -- Show Latency Bar Checkbox
     panel.show_latency_bar_checkbox = addon_data.config.CheckBoxFactory(
@@ -804,36 +811,37 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         L["Latency bar"],
         L["Shows a bar that represents latency on cast bar."],
         addon_data.castbar.ShowLatencyBarsCheckBoxOnClick)
-    panel.show_latency_bar_checkbox:SetPoint("TOPLEFT", 10, -115)
+    panel.show_latency_bar_checkbox:SetScale(1)
+    panel.show_latency_bar_checkbox:SetPoint("TOPLEFT", 10, -174)
 
     -- Font Size EditBox
 	panel.fontsize_editbox = addon_data.config.EditBoxFactory(
         "FontSizeEditBox",
-        panel,
+        appearance_panel,
         L["Font Size"],
         75,
         25,
         addon_data.castbar.FontSizeEditBoxOnEnter)
-    panel.fontsize_editbox:SetPoint("TOPLEFT", 180, -50)
+
 
     -- Width EditBox
     panel.width_editbox = addon_data.config.EditBoxFactory(
         "CastBarWidthEditBox",
-        panel,
+        appearance_panel,
         L["Bar Width"],
         75,
         25,
         addon_data.castbar.WidthEditBoxOnEnter)
-    panel.width_editbox:SetPoint("TOPLEFT", 260, -50, "BOTTOMRIGHT", 275, -60)
+
     -- Height EditBox
     panel.height_editbox = addon_data.config.EditBoxFactory(
         "CastBarHeightEditBox",
-        panel,
+        appearance_panel,
         L["Bar Height"],
         75,
         25,
         addon_data.castbar.HeightEditBoxOnEnter)
-	panel.height_editbox:SetPoint("TOPLEFT", 340, -50, "BOTTOMRIGHT", 225, -60)
+
 
     -- X Offset EditBox
     panel.x_offset_editbox = addon_data.config.EditBoxFactory(
@@ -843,7 +851,7 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.castbar.XOffsetEditBoxOnEnter)
-    panel.x_offset_editbox:SetPoint("TOPLEFT", 220, -95, "BOTTOMRIGHT", 275, -105)
+    panel.x_offset_editbox:SetPoint("TOPLEFT", 220, -78)
     -- Y Offset EditBox
     panel.y_offset_editbox = addon_data.config.EditBoxFactory(
         "CastBarYOffsetEditBox",
@@ -852,18 +860,18 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
         75,
         25,
         addon_data.castbar.YOffsetEditBoxOnEnter)
-    panel.y_offset_editbox:SetPoint("TOPLEFT", 300, -95, "BOTTOMRIGHT", 225, -105)
+    panel.y_offset_editbox:SetPoint("TOPLEFT", 304, -78)
          
     -- In Combat Alpha Slider
     panel.in_combat_alpha_slider = addon_data.config.SliderFactory(
         "CastBarInCombatAlphaSlider",
-        panel,
+        appearance_panel,
         L["In Combat Alpha"],
         0,
         1,
         0.05,
         addon_data.castbar.CombatAlphaOnValChange)
-    panel.in_combat_alpha_slider:SetPoint("TOPLEFT", 425, -50)
+
     -- -- Out Of Combat Alpha Slider
     -- panel.ooc_alpha_slider = addon_data.config.SliderFactory(
     --     "CastBarOOCAlphaSlider",
@@ -877,13 +885,13 @@ addon_data.castbar.CreateConfigPanel = function(parent_panel)
     -- Backplane Alpha Slider
     panel.backplane_alpha_slider = addon_data.config.SliderFactory(
         "CastBarBackplaneAlphaSlider",
-        panel,
+        appearance_panel,
         L["Backplane Alpha"],
         0,
         1,
         0.05,
         addon_data.castbar.BackplaneAlphaOnValChange)
-    panel.backplane_alpha_slider:SetPoint("TOPLEFT", 425, -100)
+
     
     -- Return the final panel
     addon_data.castbar.UpdateConfigPanelValues()
